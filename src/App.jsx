@@ -1,31 +1,33 @@
-import { HelmetProvider, Helmet } from 'react-helmet-async'
-import Navbar from './components/Navbar'
-import Hero from './components/Hero'
-import Features from './components/Features'
-import Testimonials from './components/Testimonials'
-import CTA from './components/CTA'
-import Footer from './components/Footer'
-import OfflineBanner from './components/OfflineBanner'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
+import Home from './pages/Home'
+import Login from './pages/Login'
+import Dashboard from './pages/Dashboard'
+import { isUserAuthenticated } from './utils/api'
+
+// Protected Route Component
+function ProtectedRoute({ children }) {
+  return isUserAuthenticated() ? children : <Navigate to="/login" />
+}
 
 export default function App() {
   return (
     <HelmetProvider>
-      <Helmet>
-        <title>Gakuren — Kelola Kehadiran, Sederhanakan Sekolah</title>
-        <meta
-          name="description"
-          content="Gakuren membantu sekolah mengelola absensi, izin, penggajian guru, hingga laporan dalam satu platform yang aman, mudah digunakan, dan terintegrasi."
-        />
-      </Helmet>
-      <OfflineBanner />
-      <Navbar />
-      <main>
-        <Hero />
-        <Features />
-        <Testimonials />
-        <CTA />
-      </main>
-      <Footer />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </BrowserRouter>
     </HelmetProvider>
   )
 }

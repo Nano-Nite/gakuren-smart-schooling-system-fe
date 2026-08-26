@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { navLinks } from '../data/content'
 
@@ -19,12 +20,12 @@ export default function Navbar() {
       }`}
     >
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
-        <a href="#" className="flex items-center gap-2 font-bold text-slate-900">
+        <Link to="/" className="flex items-center gap-2 font-bold text-slate-900">
           <span className="grid h-8 w-8  text-white">
             <img src="/favicon.svg" alt="Gakuren logo" />
           </span>
           Gakuren
-        </a>
+        </Link>
 
         <div className="hidden items-center gap-8 lg:flex">
           {navLinks.map((link) => (
@@ -39,12 +40,12 @@ export default function Navbar() {
         </div>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <a
-            href="#masuk"
+          <Link
+            to="/login"
             className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
           >
             Masuk
-          </a>
+          </Link>
           <a
             href="#coba-gratis"
             className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
@@ -76,9 +77,9 @@ export default function Navbar() {
               </a>
             ))}
             <div className="mt-2 flex flex-col gap-2 border-t border-slate-100 pt-4">
-              <a href="#masuk" className="rounded-lg border border-slate-200 px-4 py-2 text-center text-sm font-semibold text-slate-700">
+              <Link to="/login" className="rounded-lg border border-slate-200 px-4 py-2 text-center text-sm font-semibold text-slate-700">
                 Masuk
-              </a>
+              </Link>
               <a href="#coba-gratis" className="rounded-lg bg-brand-600 px-4 py-2 text-center text-sm font-semibold text-white">
                 Coba Gratis
               </a>

@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Chrome: Debug App",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "vite:///*": "${webRoot}/*",
+        "webpack:///./src/*": "${webRoot}/src/*",
+        "webpack:///*": "${webRoot}/*"
+      },
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "timeout": 30000,
+      "preLaunchTask": "npm: dev"
+    }
+  ]
+}

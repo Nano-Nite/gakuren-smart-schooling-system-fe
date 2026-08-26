@@ -3,6 +3,16 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  server: {
+    sourcemap: true,
+    host: 'localhost',
+    port: 5173,
+    open: false
+  },
+  build: {
+    sourcemap: true,
+    minify: false
+  },
   plugins: [
     react(),
     VitePWA({
