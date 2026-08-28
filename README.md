@@ -1,88 +1,102 @@
-# Gakuren — Landing Page & Backend-Integrated Authentication
+# Gakuren Smart Schooling System — Frontend
 
-Landing page aplikasi manajemen sekolah "Gakuren", dibangun dengan React + Vite + Tailwind CSS, dan mendukung PWA (bisa di-install & tetap bisa diakses saat offline).
+Frontend aplikasi manajemen sekolah Gakuren yang dibangun dengan React, Vite, dan Tailwind CSS. Aplikasi menyediakan landing page, autentikasi yang terhubung ke backend, dashboard terproteksi, serta dukungan Progressive Web App (PWA).
 
-## ✨ Fitur Utama: Sistem Autentikasi Terintegrasi Backend
+## Fitur
 
-Frontend sudah **fully integrated** dengan backend API Anda:
+- Landing page responsif
+- Login dan logout melalui backend API
+- Enkripsi password dengan RSA-OAEP sebelum dikirim
+- Penyimpanan access token, refresh token, data pengguna, menu, dan permission di `sessionStorage`
+- Proteksi route dashboard
+- PWA dengan service worker, dukungan instalasi, dan cache aset
+- Banner status koneksi saat perangkat offline
 
-- ✅ **Login Real** — Koneksi ke `http://localhost:3000/v1/auth/login`
-- ✅ **JWT Token Management** — Access & refresh token otomatis
-- ✅ **User Data Display** — Dashboard menampilkan data user dari API
-- ✅ **Protected Routes** — Dashboard hanya bisa diakses setelah login
-- ✅ **API Utilities** — Fungsi-fungsi siap pakai untuk API calls
+## Teknologi
 
-### 🚀 Quick Start
+- React 18
+- Vite 8
+- React Router
+- Tailwind CSS
+- Recharts
+- Lucide React
+- React Helmet Async
+- Vite PWA
 
-```bash
-# 1. Pastikan backend berjalan di http://localhost:3000
-# 2. Start frontend
-npm run dev
+## Prasyarat
 
-# 3. Buka http://localhost:5174/login
-# 4. Login dengan kredensial Anda
+- Node.js yang kompatibel dengan Vite 8
+- npm
+- Backend Gakuren yang dapat diakses oleh browser
+- RSA public key dari backend
+
+## Menjalankan aplikasi
+
+1. Instal dependency:
+
+   ```bash
+   npm ci
+   ```
+
+2. Buat file `.env` di root project:
+
+   ```dotenv
+   VITE_API_URL=http://localhost:3000
+   VITE_RSA_PUBLIC_KEY=<base64-encoded-PEM-public-key>
+   ```
+
+   `VITE_RSA_PUBLIC_KEY` harus berisi seluruh PEM public key yang telah di-encode ke Base64. Jangan menyimpan private key di frontend.
+
+3. Jalankan development server:
+
+   ```bash
+   npm run dev
+   ```
+
+4. Buka [http://localhost:5173](http://localhost:5173). Halaman login tersedia di [http://localhost:5173/login](http://localhost:5173/login).
+
+Backend lokal secara umum berjalan di `http://localhost:3000`. Pastikan konfigurasi CORS backend mengizinkan origin `http://localhost:5173`.
+
+## Script npm
+
+| Perintah | Keterangan |
+| --- | --- |
+| `npm run dev` | Menjalankan development server di port `5173` |
+| `npm run build` | Membuat production build di folder `dist/` |
+| `npm run preview` | Menjalankan preview dari production build |
+
+## Route
+
+| Route | Keterangan |
+| --- | --- |
+| `/` | Landing page |
+| `/login` | Halaman login |
+| `/dashboard` | Dashboard yang hanya dapat diakses setelah login |
+
+Route yang tidak dikenal akan diarahkan kembali ke `/`.
+
+## Struktur project
+
+```text
+src/
+├── components/   # Komponen landing page dan OfflineBanner
+├── config/       # Konfigurasi endpoint API
+├── data/         # Konten fitur, testimoni, dan data grafik
+├── hooks/        # Custom React hooks
+├── pages/        # Home, Login, dan Dashboard
+├── utils/        # API client dan pengelolaan autentikasi
+├── App.jsx       # Router dan protected route
+├── index.css     # Global styles
+└── main.jsx      # Entry point aplikasi
 ```
 
-### 📚 Dokumentasi Lengkap
+Konfigurasi Vite dan PWA berada di `vite.config.js`. Ikon aplikasi berada di `public/icons/`.
 
-| Dokumen | Isi |
-|---------|-----|
-| [READY_TO_USE.md](./READY_TO_USE.md) | 🎉 **START HERE** — Ringkasan lengkap & next steps |
-| [BACKEND_INTEGRATION.md](./BACKEND_INTEGRATION.md) | 🔌 Dokumentasi integrasi backend lengkap |
-| [API_EXAMPLES.md](./API_EXAMPLES.md) | 💡 10 contoh code untuk API calls |
-| [ENVIRONMENT_SETUP.md](./ENVIRONMENT_SETUP.md) | 🔧 Setup environment variables |
-| [INTEGRATION_CHECKLIST.md](./INTEGRATION_CHECKLIST.md) | ✅ Testing & verification checklist |
-| [LOGIN_GUIDE.md](./LOGIN_GUIDE.md) | 🔐 Detail fitur login page |
-| [LOGIN_QUICKSTART.md](./LOGIN_QUICKSTART.md) | 🚀 Quick reference login page |
-
-## Versi React
-```
-NPM  - 11.19.0
-NVM  - 1.2.2
-NODE - 26.7.0
-```
-
-## Struktur modul
-
-- **Vite + React** — build tool & UI library.
-- **React Router** — routing client-side untuk navigasi multi-halaman.
-- **Tailwind CSS** — styling berbasis utility, token warna brand ada di `tailwind.config.js`.
-- **lucide-react** — ikon.
-- **recharts** — grafik kehadiran pada preview dashboard di hero.
-- **react-helmet-async** — kelola tag `<title>` & meta SEO per halaman.
-- **vite-plugin-pwa** — generate `manifest.webmanifest` + service worker (precache assets, cache gambar & halaman) sehingga situs bisa di-install ke home screen dan tetap terbuka saat offline.
-
-## Menjalankan secara lokal
-
-```bash
-npm install
-npm run dev
-```
-
-Build produksi (service worker & manifest otomatis ter-generate di `dist/`):
+## Production build
 
 ```bash
 npm run build
 npm run preview
 ```
 
-## Catatan PWA
-
-- Ikon aplikasi ada di `public/icons/icon-192.svg` dan `icon-512.svg` (SVG, ringan). Ganti dengan PNG/branding resmi bila diperlukan sebelum rilis produksi.
-- Konfigurasi manifest & caching ada di `vite.config.js` (bagian `VitePWA(...)`).
-- `OfflineBanner` menampilkan status koneksi ke pengguna saat mereka offline.
-
-## Struktur folder
-
-```
-src/
-  pages/        -> Home.jsx, Login.jsx, Dashboard.jsx (halaman-halaman utama)
-  components/   -> Navbar, Hero, DashboardPreview, Features, Testimonials, CTA, Footer, OfflineBanner
-  data/         -> content.js (teks fitur, testimoni, data grafik — mudah diedit tanpa sentuh komponen)
-  hooks/        -> useReveal.js (scroll-reveal animation, menghormati prefers-reduced-motion)
-```
-
-### Halaman yang Tersedia
-- `/` — Halaman landing (Home)
-- `/login` — Halaman login
-- `/dashboard` — Dashboard (hanya untuk pengguna yang login)
+Build akan menghasilkan folder `dist/` beserta manifest dan service worker PWA. Karena aplikasi menggunakan `BrowserRouter`, server production perlu dikonfigurasi agar semua route frontend mengarah ke `index.html`.
