@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#4F46E5" />
+    <script>
+      (() => {
+        const saved = document.cookie.split('; ').find(row => row.startsWith('gakuren_theme='))?.split('=')[1];
+        const theme = saved === 'dark' || saved === 'light' ? saved : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
     <meta name="description" content="Gakuren membantu sekolah mengelola absensi, izin, penggajian guru, hingga laporan dalam satu platform yang aman, mudah digunakan, dan terintegrasi." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icons/icon-192.svg" />

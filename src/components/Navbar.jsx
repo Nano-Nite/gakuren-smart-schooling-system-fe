@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { navLinks } from '../data/content'
+import ThemeToggle from './ThemeToggle'
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
@@ -40,6 +41,7 @@ export default function Navbar() {
         </div>
 
         <div className="hidden items-center gap-3 lg:flex">
+          <ThemeToggle />
           <Link
             to="/login"
             className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
@@ -54,13 +56,13 @@ export default function Navbar() {
           </a>
         </div>
 
-        <button
+        <div className="flex items-center gap-2 lg:hidden"><ThemeToggle /><button
           onClick={() => setOpen(!open)}
           className="grid h-10 w-10 place-items-center rounded-lg text-slate-700 lg:hidden"
           aria-label={open ? 'Tutup menu' : 'Buka menu'}
         >
           {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        </button></div>
       </nav>
 
       {open && (

@@ -184,11 +184,6 @@ export async function encryptRSA(plainText, publicKey) {
   }
 }
 
-const preserveKeyOrder = (obj) => {
-  const map = new Map(Object.entries(obj));
-  return JSON.stringify(Object.fromEntries(map));
-};
-
 export const loginUser = async (email, password) => {
   const response = await loginRequest(API_CONFIG.LOGIN, {
     method: "POST",
@@ -203,9 +198,9 @@ export const loginUser = async (email, password) => {
   sessionStorage.setItem(TOKEN_KEYS.ACCESS_TOKEN, token.access_token);
   sessionStorage.setItem(TOKEN_KEYS.REFRESH_TOKEN, token.refresh_token);
   sessionStorage.setItem(TOKEN_KEYS.TOKEN_EXPIRY, token.expired_in);
-  sessionStorage.setItem(TOKEN_KEYS.USER_DATA, preserveKeyOrder(user_data));
-  sessionStorage.setItem(TOKEN_KEYS.MENU_ITEMS, preserveKeyOrder(menu));
-  sessionStorage.setItem(TOKEN_KEYS.PERMISSIONS, preserveKeyOrder(permission));
+  sessionStorage.setItem(TOKEN_KEYS.USER_DATA, JSON.stringify(user_data || {}));
+  sessionStorage.setItem(TOKEN_KEYS.MENU_ITEMS, JSON.stringify(Array.isArray(menu) ? menu : []));
+  sessionStorage.setItem(TOKEN_KEYS.PERMISSIONS, JSON.stringify(Array.isArray(permission) ? permission : []));
   sessionStorage.setItem(TOKEN_KEYS.IS_AUTHENTICATED, "true");
 
   return response;
@@ -250,6 +245,13 @@ export const getAccessToken = () => {
 export const hasPermission = (permission) => {
   const permissions = sessionStorage.getItem(TOKEN_KEYS.PERMISSIONS);
   if (!permissions) return false;
-  const permissionsList = JSON.parse(permissions);
-  return permissionsList.includes(permission);
+  try {
+    const storedPermissions = JSON.parse(permissions);
+    const permissionsList = Array.isArray(storedPermissions)
+      ? storedPermissions
+      : Object.values(storedPermissions || {});
+    return permissionsList.includes(permission);
+  } catch {
+    return false;
+  }
 };

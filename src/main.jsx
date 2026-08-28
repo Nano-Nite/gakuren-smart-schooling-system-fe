@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import App from './App.jsx'
 import './index.css'
+import { ThemeProvider } from './context/ThemeContext.jsx'
+import { PageLoadingProvider } from './context/PageLoadingContext.jsx'
 
 registerSW({
   onNeedRefresh() {
@@ -15,6 +17,6 @@ registerSW({
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <ThemeProvider><PageLoadingProvider><App /></PageLoadingProvider></ThemeProvider>
   </React.StrictMode>
 )
