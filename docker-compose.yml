@@ -3,15 +3,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_RSA_PUBLIC_KEY: ${VITE_RSA_PUBLIC_KEY}
 
     restart: unless-stopped
 
     expose:
       - "80"
-
-    environment:
-      VITE_API_URL: ${VITE_API_URL}
-      VITE_RSA_PUBLIC_KEY: ${VITE_RSA_PUBLIC_KEY}
 
     networks:
       - gakuren-network
