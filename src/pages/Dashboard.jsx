@@ -26,7 +26,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Get user data from sessionStorage
   const userData = JSON.parse(sessionStorage.getItem("userData") || "{}");
   const menuItems = JSON.parse(sessionStorage.getItem("menuItems") || "[]");
   const permissions = JSON.parse(sessionStorage.getItem("permissions") || "[]");
@@ -52,7 +51,6 @@ const Dashboard = () => {
     Setting: Settings,
   };
 
-  // Mock data
   const stats = [
     { title: "Kehadiran Guru", value: "18", total: "21", icon: "👨‍🏫" },
     { title: "Kehadiran Siswa", value: "421", total: "433", icon: "👥" },
@@ -175,13 +173,11 @@ const Dashboard = () => {
   for (let i = 0; i < menusArray.length; i++) {
     const labelText = menusArray[i];
 
-    // Find matching icon from map, default to FileText if not found
     const IconComponent = iconMap[labelText] || FileText;
 
     mockMenuItems.push({
       icon: IconComponent,
       label: labelText,
-      // Set active: true only for the very first item (usually Dashboard)
       ...(i === 0 && { active: true }),
     });
   }
@@ -193,7 +189,6 @@ const Dashboard = () => {
       </Helmet>
 
       <div className="flex h-screen bg-gray-50">
-        {/* Sidebar */}
         <aside
           className={`${sidebarOpen ? "w-64" : "w-20"} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col`}>
           <div className="p-6 border-b border-gray-200">
@@ -234,9 +229,7 @@ const Dashboard = () => {
           </div>
         </aside>
 
-        {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
           <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">
@@ -272,10 +265,8 @@ const Dashboard = () => {
             </div>
           </header>
 
-          {/* Scrollable Content */}
           <main className="flex-1 overflow-auto">
             <div className="p-8">
-              {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {stats.map((stat, idx) => (
                   <div
@@ -313,7 +304,6 @@ const Dashboard = () => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Recent Records Table */}
                 <div className="lg:col-span-2">
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-100">
@@ -379,9 +369,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Right Sidebar - Permissions & Users */}
                 <div className="space-y-6">
-                  {/* Permohonan Perizinan */}
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-100">
                       <h3 className="text-base font-bold text-slate-900">
@@ -428,21 +416,6 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  {/* Quick Actions */}
-                  {/* <div className="bg-gradient-to-br from-brand-500 to-brand-700 rounded-2xl shadow-sm p-6 text-white">
-                    <h3 className="font-bold mb-4">Akses Cepat</h3>
-                    <div className="space-y-2">
-                      <button className="w-full px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition">
-                        Lihat Laporan
-                      </button>
-                      <button className="w-full px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition">
-                        Kelola Kelas
-                      </button>
-                      <button className="w-full px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition">
-                        Pengaturan
-                      </button>
-                    </div>
-                  </div> */}
                 </div>
               </div>
             </div>

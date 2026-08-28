@@ -1,18 +1,13 @@
-// API Configuration
 const API_CONFIG = {
-  // Base URL for API (Vite uses import.meta.env.VITE_* for environment variables)
   BASE_URL: import.meta.env.VITE_API_URL,
 
-  // Endpoints
   LOGIN: '/v1/auth/login',
   LOGOUT: '/v1/auth/logout',
   REFRESH_TOKEN: '/v1/auth/refresh',
 
-  // Timeouts
-  REQUEST_TIMEOUT: 30000, // 30 seconds
+  REQUEST_TIMEOUT: 30000,
 }
 
-// Token keys in sessionStorage
 export const TOKEN_KEYS = {
   ACCESS_TOKEN: 'accessToken',
   REFRESH_TOKEN: 'refreshToken',
@@ -23,12 +18,10 @@ export const TOKEN_KEYS = {
   IS_AUTHENTICATED: 'isAuthenticated',
 }
 
-// Build full API URL
 export const getApiUrl = (endpoint) => {
   return `${API_CONFIG.BASE_URL}${endpoint}`
 }
 
-// Error messages
 export const ERROR_MESSAGES = {
   INVALID_CREDENTIALS: 'Email atau password salah',
   SERVER_ERROR: 'Terjadi kesalahan pada server',

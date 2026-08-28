@@ -5,7 +5,6 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import { isUserAuthenticated } from './utils/api'
 
-// Protected Route Component
 function ProtectedRoute({ children }) {
   return isUserAuthenticated() ? children : <Navigate to="/login" />
 }

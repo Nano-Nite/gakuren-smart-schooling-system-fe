@@ -16,7 +16,6 @@ export default function Login() {
     e.preventDefault()
     setError('')
     
-    // Validation
     if (!email || !password) {
       setError('Email dan password tidak boleh kosong')
       return
@@ -30,11 +29,9 @@ export default function Login() {
     setIsLoading(true)
 
     try {
-      // Call login API
       await loginUser(email, password)
       setIsLoading(false)
       
-      // Redirect to dashboard
       navigate('/dashboard')
     } catch (err) {
       console.error('Login error:', err)
@@ -57,7 +54,6 @@ export default function Login() {
       
       <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-brand-100 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
-          {/* Logo & Header */}
           <div className="text-center mb-8 animate-fade-up">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg mb-4">
               <LogIn className="w-8 h-8 text-white" />
@@ -66,10 +62,8 @@ export default function Login() {
             <p className="text-brand-600">Masuk ke akun Anda untuk melanjutkan</p>
           </div>
 
-          {/* Login Card */}
           <div className="bg-white rounded-2xl shadow-panel p-8 animate-fade-up" style={{ animationDelay: '0.1s' }}>
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Email Field */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-brand-900 mb-2">
                   Email
@@ -88,7 +82,6 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Password Field */}
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-brand-900 mb-2">
                   Password
@@ -119,7 +112,6 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Error Message */}
               {error && (
                 <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex gap-3">
                   <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -127,7 +119,6 @@ export default function Login() {
                 </div>
               )}
 
-              {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center gap-2 text-brand-600 cursor-pointer hover:text-brand-700 transition">
                   <input
@@ -146,7 +137,6 @@ export default function Login() {
                 </a>
               </div>
 
-              {/* Login Button */}
               <button
                 type="submit"
                 disabled={isLoading}
@@ -163,7 +153,6 @@ export default function Login() {
               </button>
             </form>
 
-            {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-brand-200"></div>
@@ -173,7 +162,6 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Demo Login */}
             <button
               type="button"
               onClick={handleDemoLogin}
@@ -183,7 +171,6 @@ export default function Login() {
               Coba Demo
             </button>
 
-            {/* Sign Up Link */}
             <p className="text-center text-sm text-brand-600 mt-6">
               Belum punya akun?{' '}
               <a href="#" className="text-brand-600 font-semibold hover:text-brand-700 transition">
@@ -192,7 +179,6 @@ export default function Login() {
             </p>
           </div>
 
-          {/* Footer */}
           <div className="mt-8 text-center text-xs text-brand-500 space-y-1">
             <p>© 2026 Gakuren — Sistem Manajemen Sekolah</p>
             <p className="space-x-4">

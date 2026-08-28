@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 
-// Lightweight scroll-reveal hook using IntersectionObserver.
-// Keeps animation logic out of components and avoids extra dependencies.
 export function useReveal(threshold = 0.15) {
   const ref = useRef(null)
   const [visible, setVisible] = useState(false)

@@ -4,17 +4,10 @@ import API_CONFIG, {
   ERROR_MESSAGES,
 } from "../config/api";
 
-/**
- * Make API request with automatic token handling
- * @param {string} endpoint - API endpoint (e.g., '/v1/auth/login')
- * @param {Object} options - Fetch options
- * @returns {Promise<Object>} API response data
- */
 export const loginRequest = async (endpoint, options = {}) => {
   const url = getApiUrl(endpoint);
   const accessToken = sessionStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN);
 
-  // Encrypt password if present and send in header
   let encryptedPassword = null;
   let requestBody = { ...options.body };
 
@@ -22,9 +15,8 @@ export const loginRequest = async (endpoint, options = {}) => {
     try {
       encryptedPassword = await encryptRSA(
         options.body.password,
-        atob(import.meta.env.VITE_RSA_PUBLIC_KEY),
+        import.meta.env.VITE_RSA_PUBLIC_KEY,
       );
-      // Keep only email in body, remove password
       const { password, ...bodyWithoutPassword } = requestBody;
       requestBody = bodyWithoutPassword;
     } catch (error) {
@@ -38,7 +30,6 @@ export const loginRequest = async (endpoint, options = {}) => {
     ...options.headers,
   };
 
-  // Add authorization header if token exists
   if (encryptedPassword) {
     headers.Authorization = `Bearer ${encryptedPassword}`;
   }
@@ -49,7 +40,6 @@ export const loginRequest = async (endpoint, options = {}) => {
     ...options,
   };
 
-  // Convert body to JSON if it's an object
   if (requestBody && typeof requestBody === "object") {
     config.body = JSON.stringify(requestBody);
   }
@@ -58,7 +48,6 @@ export const loginRequest = async (endpoint, options = {}) => {
     const response = await fetch(url, config);
     const data = await response.json();
 
-    // Handle unauthorized (token expired)
     if (response.status === 401) {
       clearAuthData();
       throw new Error(data.message || ERROR_MESSAGES.UNAUTHORIZED);
@@ -106,7 +95,6 @@ export const logoutRequest = async (endpoint, options = {}) => {
     const response = await fetch(url, config);
     const data = await response.json();
 
-    // Handle unauthorized (token expired)
     if (response.status === 401) {
       clearAuthData();
       throw new Error(data.message || ERROR_MESSAGES.UNAUTHORIZED);
@@ -125,26 +113,56 @@ export const logoutRequest = async (endpoint, options = {}) => {
   }
 };
 
-// Encrypt plain text using a Public Key
+function decodeBase64(value) {
+  const normalized = value
+    .replace(/\s+/g, "")
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+  const padded = normalized.padEnd(
+    normalized.length + ((4 - (normalized.length % 4)) % 4),
+    "=",
+  );
+
+  return window.atob(padded);
+}
+
+function normalizePublicKey(publicKey) {
+  if (!publicKey || typeof publicKey !== "string") {
+    throw new Error("VITE_RSA_PUBLIC_KEY is not configured");
+  }
+
+  let key = publicKey.trim().replace(/^['\"]|['\"]$/g, "");
+
+  // Support either a PEM value or a Base64-encoded PEM value in Vite env.
+  if (!key.includes("-----BEGIN")) {
+    key = decodeBase64(key);
+  }
+
+  key = key.replace(/\\n/g, "\n");
+
+  if (!key.includes("-----BEGIN PUBLIC KEY-----")) {
+    throw new Error("VITE_RSA_PUBLIC_KEY must contain an SPKI public key");
+  }
+
+  return key;
+}
+
 export async function encryptRSA(plainText, publicKey) {
   try {
     const encoder = new TextEncoder();
     const data = encoder.encode(plainText);
 
-    // 1. Remove PEM headers, footers, and whitespace
-    const base64String = publicKey
+    const base64String = normalizePublicKey(publicKey)
       .replace(/-----BEGIN [A-Z\s]+-----/g, "")
       .replace(/-----END [A-Z\s]+-----/g, "")
       .replace(/\s+/g, "");
 
-    // 2. Convert base64 string to binary ArrayBuffer
-    const binaryDerString = window.atob(base64String);
+    const binaryDerString = decodeBase64(base64String);
     const binaryDerBuffer = new Uint8Array(binaryDerString.length);
     for (let i = 0; i < binaryDerString.length; i++) {
       binaryDerBuffer[i] = binaryDerString.charCodeAt(i);
     }
 
-    // 3. Import the public key for RSA-OAEP encryption
     const cryptoKey = await window.crypto.subtle.importKey(
       "spki",
       binaryDerBuffer.buffer,
@@ -153,14 +171,12 @@ export async function encryptRSA(plainText, publicKey) {
       ["encrypt"],
     );
 
-    // 4. Encrypt the data
     const encryptedBuffer = await window.crypto.subtle.encrypt(
       { name: "RSA-OAEP" },
       cryptoKey,
       data,
     );
 
-    // 5. Convert binary buffer to Base64 string for transmission
     return btoa(String.fromCharCode(...new Uint8Array(encryptedBuffer)));
   } catch (error) {
     console.error("RSA encryption error:", error);
@@ -168,22 +184,11 @@ export async function encryptRSA(plainText, publicKey) {
   }
 }
 
-/**
- * Preserve object key order without sorting using Map
- * @param {Object} obj - Object to preserve order
- * @returns {string} JSON string with preserved key order
- */
 const preserveKeyOrder = (obj) => {
   const map = new Map(Object.entries(obj));
   return JSON.stringify(Object.fromEntries(map));
 };
 
-/**
- * Login user with email and password
- * @param {string} email - User email
- * @param {string} password - User password
- * @returns {Promise<Object>} Login response with token and user data
- */
 export const loginUser = async (email, password) => {
   const response = await loginRequest(API_CONFIG.LOGIN, {
     method: "POST",
@@ -194,7 +199,6 @@ export const loginUser = async (email, password) => {
     throw new Error(response.message || ERROR_MESSAGES.INVALID_CREDENTIALS);
   }
 
-  // Store authentication data
   const { token, user_data, menu, permission } = response.data;
   sessionStorage.setItem(TOKEN_KEYS.ACCESS_TOKEN, token.access_token);
   sessionStorage.setItem(TOKEN_KEYS.REFRESH_TOKEN, token.refresh_token);
@@ -207,9 +211,6 @@ export const loginUser = async (email, password) => {
   return response;
 };
 
-/**
- * Logout user
- */
 export const logoutUser = async (email) => {
   const response = await logoutRequest(API_CONFIG.LOGOUT, {
     method: "POST",
@@ -223,9 +224,6 @@ export const logoutUser = async (email) => {
   return response;
 };
 
-/**
- * Clear all authentication data
- */
 export const clearAuthData = () => {
   sessionStorage.removeItem(TOKEN_KEYS.ACCESS_TOKEN);
   sessionStorage.removeItem(TOKEN_KEYS.REFRESH_TOKEN);
@@ -236,36 +234,19 @@ export const clearAuthData = () => {
   sessionStorage.removeItem(TOKEN_KEYS.IS_AUTHENTICATED);
 };
 
-/**
- * Check if user is authenticated
- * @returns {boolean}
- */
 export const isUserAuthenticated = () => {
   return sessionStorage.getItem(TOKEN_KEYS.IS_AUTHENTICATED) === "true";
 };
 
-/**
- * Get user data from session
- * @returns {Object|null}
- */
 export const getUserData = () => {
   const userData = sessionStorage.getItem(TOKEN_KEYS.USER_DATA);
   return userData ? JSON.parse(userData) : null;
 };
 
-/**
- * Get access token
- * @returns {string|null}
- */
 export const getAccessToken = () => {
   return sessionStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN);
 };
 
-/**
- * Check if user has specific permission
- * @param {string} permission - Permission to check (e.g., 'dashboard.view')
- * @returns {boolean}
- */
 export const hasPermission = (permission) => {
   const permissions = sessionStorage.getItem(TOKEN_KEYS.PERMISSIONS);
   if (!permissions) return false;

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { WifiOff } from 'lucide-react'
 
-// Surfaces PWA offline capability to the user instead of hiding it silently.
 export default function OfflineBanner() {
   const [online, setOnline] = useState(navigator.onLine)
 
