@@ -4,6 +4,9 @@ const API_CONFIG = {
   LOGIN: '/v1/auth/login',
   LOGOUT: '/v1/auth/logout',
   REFRESH_TOKEN: '/v1/auth/refresh',
+  GET_CLASSES: '/v1/school/class/get',
+  GET_STUDENTS: '/v1/school/student/get',
+  GET_TEACHER_STAFF: '/v1/school/teacher-staff/get',
 
   REQUEST_TIMEOUT: 30000,
 }
@@ -13,6 +16,7 @@ export const TOKEN_KEYS = {
   REFRESH_TOKEN: 'refreshToken',
   TOKEN_EXPIRY: 'tokenExpiry',
   USER_DATA: 'userData',
+  TENANT_ID: 'tenantId',
   MENU_ITEMS: 'menuItems',
   PERMISSIONS: 'permissions',
   IS_AUTHENTICATED: 'isAuthenticated',

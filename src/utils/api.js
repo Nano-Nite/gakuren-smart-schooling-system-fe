@@ -4,6 +4,14 @@ import API_CONFIG, {
   ERROR_MESSAGES,
 } from "../config/api";
 
+let networkAvailable = navigator.onLine;
+
+export const isNetworkAvailable = () => navigator.onLine && networkAvailable;
+export const setNetworkAvailable = available => {
+  networkAvailable = available;
+  window.dispatchEvent(new CustomEvent("gakuren:network", { detail: { online: available } }));
+};
+
 export const loginRequest = async (endpoint, options = {}) => {
   const url = getApiUrl(endpoint);
   const accessToken = sessionStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN);
@@ -195,10 +203,17 @@ export const loginUser = async (email, password) => {
   }
 
   const { token, user_data, menu, permission } = response.data;
+  const tenantId = response.data.tenant_id
+    ?? response.data.tenant_uuid
+    ?? user_data?.tenant_id
+    ?? user_data?.tenant_uuid
+    ?? user_data?.TenantID
+    ?? user_data?.tenant?.id;
   sessionStorage.setItem(TOKEN_KEYS.ACCESS_TOKEN, token.access_token);
   sessionStorage.setItem(TOKEN_KEYS.REFRESH_TOKEN, token.refresh_token);
   sessionStorage.setItem(TOKEN_KEYS.TOKEN_EXPIRY, token.expired_in);
   sessionStorage.setItem(TOKEN_KEYS.USER_DATA, JSON.stringify(user_data || {}));
+  if (tenantId) sessionStorage.setItem(TOKEN_KEYS.TENANT_ID, tenantId);
   sessionStorage.setItem(TOKEN_KEYS.MENU_ITEMS, JSON.stringify(Array.isArray(menu) ? menu : []));
   sessionStorage.setItem(TOKEN_KEYS.PERMISSIONS, JSON.stringify(Array.isArray(permission) ? permission : []));
   sessionStorage.setItem(TOKEN_KEYS.IS_AUTHENTICATED, "true");
@@ -224,6 +239,7 @@ export const clearAuthData = () => {
   sessionStorage.removeItem(TOKEN_KEYS.REFRESH_TOKEN);
   sessionStorage.removeItem(TOKEN_KEYS.TOKEN_EXPIRY);
   sessionStorage.removeItem(TOKEN_KEYS.USER_DATA);
+  sessionStorage.removeItem(TOKEN_KEYS.TENANT_ID);
   sessionStorage.removeItem(TOKEN_KEYS.MENU_ITEMS);
   sessionStorage.removeItem(TOKEN_KEYS.PERMISSIONS);
   sessionStorage.removeItem(TOKEN_KEYS.IS_AUTHENTICATED);
@@ -253,5 +269,48 @@ export const hasPermission = (permission) => {
     return permissionsList.includes(permission);
   } catch {
     return false;
+  }
+};
+
+export const authenticatedRequest = async (endpoint, options = {}) => {
+  const accessToken = getAccessToken();
+  const userData = getUserData();
+  const tenantId = sessionStorage.getItem(TOKEN_KEYS.TENANT_ID)
+    ?? userData?.tenant_id
+    ?? userData?.tenant_uuid
+    ?? userData?.TenantID
+    ?? userData?.tenant?.id;
+
+  if (!accessToken) throw new Error(ERROR_MESSAGES.UNAUTHORIZED);
+  if (!tenantId) throw new Error("Tenant ID tidak ditemukan. Silakan masuk kembali.");
+
+  const config = {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      tenant_uuid: tenantId,
+      ...options.headers,
+    },
+  };
+  if (options.body && typeof options.body === "object") config.body = JSON.stringify(options.body);
+
+  try {
+    const response = await fetch(getApiUrl(endpoint), config);
+    const data = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      clearAuthData();
+      throw new Error(data.message || ERROR_MESSAGES.UNAUTHORIZED);
+    }
+    if (!response.ok || data.error) throw new Error(data.message || ERROR_MESSAGES.SERVER_ERROR);
+    setNetworkAvailable(true);
+    return data;
+  } catch (error) {
+    if (error.name === "AbortError") throw error;
+    if (error.message === "Failed to fetch") {
+      setNetworkAvailable(false);
+      throw new Error(ERROR_MESSAGES.NETWORK_ERROR);
+    }
+    throw error;
   }
 };
