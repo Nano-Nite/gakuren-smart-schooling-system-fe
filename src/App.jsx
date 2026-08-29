@@ -14,7 +14,7 @@ import SignUp from './pages/SignUp'
 import ModulePlaceholder from './pages/ModulePlaceholder'
 import { getDefaultAuthorizedRoute } from './utils/permissions'
 import { isNetworkAvailable, isUserAuthenticated, setNetworkAvailable } from './utils/api'
-import { getMenuItems, hasAnyPermission } from './utils/permissions'
+import { getMenuItems, hasAnyPermission, MENU_ROUTES } from './utils/permissions'
 import AccessDenied from './pages/AccessDenied'
 import OfflineUnavailable from './pages/OfflineUnavailable'
 
@@ -44,7 +44,15 @@ function ProtectedRoute({ children, permissions, menu }) {
 }
 
 function DefaultRedirect() {
-  return <Navigate to={isUserAuthenticated() ? getDefaultAuthorizedRoute() : "/"} replace />
+  if (!isUserAuthenticated()) return <Navigate to="/" replace />
+  const lastRoute = localStorage.getItem('gakuren:last-menu-route')
+  const assignedRoutes = getMenuItems().map(menu => MENU_ROUTES[menu]).filter(Boolean)
+  return <Navigate to={assignedRoutes.includes(lastRoute) ? lastRoute : getDefaultAuthorizedRoute()} replace />
+}
+
+function HomeOrInstalledApp() {
+  const launchedAsApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+  return launchedAsApp && isUserAuthenticated() ? <DefaultRedirect /> : <Home />
 }
 
 export default function App() {
@@ -52,7 +60,7 @@ export default function App() {
     <HelmetProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<HomeOrInstalledApp />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>

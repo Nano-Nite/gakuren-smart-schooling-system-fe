@@ -6,6 +6,7 @@ import './index.css'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import { PageLoadingProvider } from './context/PageLoadingContext.jsx'
 import OfflineBanner from './components/OfflineBanner.jsx'
+import PwaInstallBanner from './components/PwaInstallBanner.jsx'
 
 registerSW({
   onNeedRefresh() {
@@ -18,6 +19,6 @@ registerSW({
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ThemeProvider><PageLoadingProvider><OfflineBanner /><App /></PageLoadingProvider></ThemeProvider>
+    <ThemeProvider><PageLoadingProvider><OfflineBanner /><PwaInstallBanner /><App /></PageLoadingProvider></ThemeProvider>
   </React.StrictMode>
 )

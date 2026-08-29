@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Camera, Check, CheckCircle2, Clock3, MapPin, MinusCircle, QrCode, RefreshCw, ScanLine, ShieldCheck, Smartphone, UserRound, WifiOff } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, CameraOff, Check, CheckCircle2, Clock3, MapPin, QrCode, RefreshCw, ScanLine, ShieldCheck, WifiOff } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import Select from "../components/Select";
 import { isNetworkAvailable, setNetworkAvailable } from "../utils/api";
+import AttendanceStats from "../components/AttendanceStats";
 
 const scans = [
   { name: "Darius Tadarus S.Si, M.Kom", role: "Guru", time: "06:37:58", method: "QR Dinamis" },
@@ -10,13 +11,6 @@ const scans = [
   { name: "Siti Aisyah, S.Pd", role: "Guru", time: "06:48:24", method: "QR Dinamis" },
   { name: "Raffi Pratama", role: "Siswa", time: "06:55:03", method: "Scan Offline" },
   { name: "Dewi Lestari", role: "Siswa", time: "06:58:39", method: "Scan Kamera" },
-];
-
-const stats = [
-  { label: "Hadir", value: "421", suffix: "/ 490", percent: "99.4%", Icon: UserRound, color: "border-emerald-200 bg-emerald-50 text-emerald-600" },
-  { label: "Terlambat", value: "10", percent: "4%", Icon: Clock3, color: "border-orange-200 bg-orange-50 text-orange-600" },
-  { label: "Izin / Sakit", value: "5", percent: "2%", Icon: Smartphone, color: "border-purple-200 bg-purple-50 text-purple-600" },
-  { label: "Alfa", value: "1", percent: "0.04%", Icon: MinusCircle, color: "border-rose-200 bg-rose-50 text-rose-600" },
 ];
 
 function QrPreview({ seed }) {
@@ -34,12 +28,23 @@ function CameraScanner({ offline = false }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const frameRef = useRef(null);
+  const scanSessionRef = useRef(0);
   const [active, setActive] = useState(false);
+  const [switchingCamera, setSwitchingCamera] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState("");
+  const [cameras, setCameras] = useState([]);
+  const [selectedCamera, setSelectedCamera] = useState("");
+  const [cameraPermission, setCameraPermission] = useState("unknown");
+  const cameraOptions = [
+    { value: "", label: "Kamera otomatis" },
+    ...cameras.filter(camera => camera.value),
+  ];
 
   const stopCamera = () => {
+    scanSessionRef.current += 1;
     if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    frameRef.current = null;
     streamRef.current?.getTracks().forEach(track => track.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
@@ -48,15 +53,65 @@ function CameraScanner({ offline = false }) {
 
   useEffect(() => stopCamera, []);
 
-  const startCamera = async () => {
+  useEffect(() => {
+    if (!navigator.permissions?.query) return undefined;
+    let permissionStatus;
+    let updatePermission;
+    const readPermission = async () => {
+      try {
+        permissionStatus = await navigator.permissions.query({ name: "camera" });
+        updatePermission = () => setCameraPermission(permissionStatus.state);
+        updatePermission();
+        permissionStatus.addEventListener?.("change", updatePermission);
+      } catch {
+        setCameraPermission("unknown");
+      }
+    };
+    readPermission();
+    return () => {
+      if (permissionStatus && updatePermission) permissionStatus.removeEventListener?.("change", updatePermission);
+    };
+  }, []);
+
+  const loadCameras = async currentDeviceId => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoInputs = devices
+      .filter(device => device.kind === "videoinput")
+      .map((device, index) => ({
+        value: device.deviceId,
+        label: device.label || `Kamera ${index + 1}`,
+      }));
+    setCameras(videoInputs);
+    if (currentDeviceId) setSelectedCamera(currentDeviceId);
+  };
+
+  useEffect(() => {
+    loadCameras().catch(() => {});
+    const refreshCameras = () => loadCameras(selectedCamera).catch(() => {});
+    navigator.mediaDevices?.addEventListener?.("devicechange", refreshCameras);
+    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshCameras);
+  }, [selectedCamera]);
+
+  const startCamera = async (deviceId = selectedCamera) => {
     setError("");
     setResult("");
+    setSwitchingCamera(Boolean(streamRef.current));
+    stopCamera();
+    const scanSession = scanSessionRef.current;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
+      // Device IDs can change after reconnecting hardware or restarting a virtual camera.
+      // Prefer the selected source, but allow Chromium to fall back to a working camera.
+      const video = deviceId ? { deviceId: { ideal: deviceId } } : true;
+      const stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
       streamRef.current = stream;
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
       setActive(true);
+      setCameraPermission("granted");
+      setSwitchingCamera(false);
+      const activeDeviceId = stream.getVideoTracks()[0]?.getSettings().deviceId || deviceId;
+      await loadCameras(activeDeviceId);
 
       if (!("BarcodeDetector" in window)) {
         setError("Kamera aktif, tetapi pemindaian QR otomatis belum didukung browser ini.");
@@ -64,7 +119,7 @@ function CameraScanner({ offline = false }) {
       }
       const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
       const detect = async () => {
-        if (!streamRef.current || !videoRef.current) return;
+        if (scanSession !== scanSessionRef.current || !streamRef.current || !videoRef.current) return;
         try {
           const codes = await detector.detect(videoRef.current);
           if (codes[0]?.rawValue) {
@@ -75,34 +130,57 @@ function CameraScanner({ offline = false }) {
         } catch {
           // A video frame may not be ready yet; continue scanning.
         }
-        frameRef.current = requestAnimationFrame(detect);
+        if (scanSession === scanSessionRef.current) frameRef.current = requestAnimationFrame(detect);
       };
       detect();
     } catch (cameraError) {
-      setError(cameraError.name === "NotAllowedError" ? "Izin kamera ditolak. Izinkan akses kamera lalu coba lagi." : "Kamera tidak dapat dibuka pada perangkat ini.");
+      const cameraErrors = {
+        NotAllowedError: "Izin kamera ditolak. Izinkan akses kamera untuk Gakuren di pengaturan browser atau perangkat.",
+        NotFoundError: "Tidak ada kamera yang terdeteksi pada perangkat ini.",
+        NotReadableError: "Kamera sedang digunakan aplikasi lain atau tidak dapat diakses. Tutup aplikasi kamera lain lalu coba lagi.",
+        TrackStartError: "Kamera sedang digunakan aplikasi lain. Tutup aplikasi tersebut lalu coba lagi.",
+        OverconstrainedError: "Kamera yang dipilih sudah tidak tersedia. Pilih Kamera otomatis lalu coba lagi.",
+        SecurityError: "Kamera hanya dapat digunakan melalui HTTPS atau localhost.",
+      };
+      if (cameraError.name === "NotAllowedError") setCameraPermission("denied");
+      setError(cameraErrors[cameraError.name] || `Kamera tidak dapat dibuka (${cameraError.name || "kesalahan tidak diketahui"}).`);
+      setSwitchingCamera(false);
       stopCamera();
     }
   };
 
-  return <div className="w-full max-w-lg text-center">
-    <div className={`scanner-stage relative mx-auto grid aspect-square max-w-sm place-items-center overflow-hidden rounded-3xl border-2 border-dashed ${offline ? "border-amber-400" : "border-blue-300"}`}>
+  const changeCamera = async deviceId => {
+    setSelectedCamera(deviceId);
+    if (streamRef.current) await startCamera(deviceId);
+  };
+
+  return <div className="min-w-0 w-full max-w-lg text-center">
+    <div className="mx-auto mb-4 max-w-md text-center">
+      <h2 className="text-xl font-bold">{offline ? "Scan QR dalam mode offline" : "Arahkan kamera ke QR Code"}</h2>
+      <p className="mt-1 text-sm leading-6 text-slate-500">{offline ? "Hasil pemindaian akan disimpan dan disinkronkan saat internet kembali." : "Pastikan seluruh kode terlihat jelas di dalam bingkai."}</p>
+    </div>
+    <div className={`scanner-stage relative mx-auto grid aspect-square w-full max-w-sm place-items-center overflow-hidden rounded-3xl border-2 border-dashed ${offline ? "border-amber-400" : "border-blue-300"}`}>
       <video ref={videoRef} playsInline muted className={`h-full w-full object-cover ${active ? "block" : "hidden"}`} />
       {!active && !result && <Camera className="scanner-placeholder h-20 w-20" />}
       {active && <><span className={`pointer-events-none absolute inset-8 rounded-2xl border-2 ${offline ? "border-amber-400" : "border-blue-400"}`} /><span className={`pointer-events-none absolute inset-x-10 top-1/2 h-0.5 animate-pulse ${offline ? "bg-amber-400" : "bg-blue-400"}`} /></>}
       {result && <div className="p-6 text-center text-white"><CheckCircle2 className="mx-auto h-16 w-16 text-emerald-400" /><p className="mt-3 font-semibold">QR berhasil dipindai</p></div>}
     </div>
-    <h2 className="mt-6 text-xl font-bold">{offline ? "Scan QR dalam mode offline" : "Arahkan kamera ke QR Code"}</h2>
-    <p className="mt-2 text-sm leading-6 text-slate-500">{offline ? "Hasil pemindaian akan disimpan dan disinkronkan saat internet kembali." : "Pastikan seluruh kode terlihat jelas di dalam bingkai."}</p>
-    {result && <div className="mt-4 break-all rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-left text-xs text-emerald-700">{result}</div>}
-    {error && <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">{error}</p>}
-    <div className="mt-5 flex justify-center gap-3">{active ? <button onClick={stopCamera} className="rounded-xl border border-rose-200 px-5 py-3 text-sm font-semibold text-rose-600">Tutup Kamera</button> : <button onClick={startCamera} className={`action-lift inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white ${offline ? "bg-amber-500 hover:bg-amber-600" : "bg-blue-600 hover:bg-blue-700"}`}><Camera className="h-4 w-4" />{result ? "Scan Lagi" : "Aktifkan Kamera"}</button>}</div>
+    <div className="mx-auto mt-5 max-w-md text-left">
+      <div className="flex items-end gap-3">
+        <div className="min-w-0 flex-1"><div className="mb-1.5 flex items-center justify-between gap-2"><p className="text-xs font-medium text-slate-500">Sumber kamera</p>{switchingCamera ? <span className="text-[10px] font-medium text-blue-500">Mengganti kamera…</span> : cameraPermission !== "unknown" && <span className={`whitespace-nowrap text-[10px] font-medium ${cameraPermission === "granted" ? "text-emerald-500" : cameraPermission === "denied" ? "text-rose-500" : "text-amber-500"}`}>{cameraPermission === "granted" ? "Izin diberikan" : cameraPermission === "denied" ? "Izin diblokir" : "Menunggu izin"}</span>}</div><Select value={selectedCamera} onChange={changeCamera} options={cameraOptions} ariaLabel="Pilih sumber kamera" className="w-full" placement="top" /></div>
+        {active ? <button onClick={stopCamera} aria-label="Tutup kamera" title="Tutup kamera" className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-rose-200 text-rose-600"><CameraOff className="h-4 w-4" /></button> : <button onClick={startCamera} aria-label="Aktifkan kamera" title="Aktifkan kamera" className={`action-lift grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white ${offline ? "bg-amber-500 hover:bg-amber-600" : "bg-blue-600 hover:bg-blue-700"}`}><Camera className="h-4 w-4" /></button>}
+      </div>
+      {cameraPermission === "denied" && <p className="mt-2 text-xs leading-5 text-rose-500">Chromium memblokir permintaan kamera. Buka menu tiga titik pada aplikasi → Info aplikasi → Izin → Kamera, pilih Izinkan, lalu muat ulang aplikasi.</p>}
+      {result && <div className="mt-3 break-all rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700">{result}</div>}
+      {error && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">{error}</p>}
+    </div>
   </div>;
 }
 
 function AttendanceSidebar({ className = "" }) {
   return <aside className={`space-y-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 ${className}`}>
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card"><div className="mb-4 flex items-center justify-between"><div><h2 className="font-bold">Ringkasan Hari Ini</h2><p className="mt-1 text-xs text-slate-500">Kehadiran real-time</p></div><span className="text-[10px] text-slate-400">Update 07:00 WIB</span></div><div className="grid grid-cols-2 gap-2.5">{stats.map(({ label, value, suffix, percent, Icon, color }) => <article key={label} className={`flex min-h-[92px] items-center gap-3 rounded-xl border p-3 ${color}`}><Icon className="h-9 w-9 shrink-0" strokeWidth={2} /><div className="min-w-0"><p className="text-xs font-medium">{label}</p><p className="mt-0.5 whitespace-nowrap text-2xl font-bold leading-none">{value} <span className="text-sm font-normal opacity-70">{suffix}</span></p><p className="mt-2 text-[10px] opacity-80">{percent}</p></div></article>)}</div></section>
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card"><div className="flex items-center justify-between border-b border-slate-200 p-4"><div><h2 className="font-bold">Scan Terbaru</h2><p className="mt-1 text-xs text-slate-500">Aktivitas masuk terkini</p></div><button className="text-xs font-semibold text-blue-600">Lihat Semua</button></div><div className="qr-recent-list divide-y divide-slate-100">{scans.map((scan, index) => <div key={`${scan.name}-${index}`} className="flex items-center gap-3 p-3.5"><div className="qr-scan-avatar grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold">{scan.name.split(" ").slice(0, 2).map(word => word[0]).join("")}</div><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{scan.name}</p><div className="mt-1 flex flex-wrap items-center gap-1.5"><span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600">{scan.role}</span><span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">{scan.method}</span><span className="text-[10px] text-slate-400">{scan.time} WIB</span></div></div><CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" /></div>)}</div></section>
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card"><div className="mb-4 flex items-center justify-between"><div><h2 className="font-bold">Ringkasan Hari Ini</h2><p className="mt-1 text-xs text-slate-500">Kehadiran real-time</p></div><span className="text-[10px] text-slate-400">Update 07:00 WIB</span></div><AttendanceStats /></section>
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card"><div className="flex items-center justify-between border-b border-slate-200 p-4"><div><h2 className="font-bold">Scan Terbaru</h2><p className="mt-1 text-xs text-slate-500">Aktivitas masuk terkini</p></div><button className="text-xs font-semibold text-blue-600">Lihat Semua</button></div><div className="qr-recent-list divide-y divide-slate-100">{scans.map((scan, index) => <div key={`${scan.name}-${index}`} className="flex items-center gap-3 p-3.5"><div className="qr-scan-avatar grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold">{scan.name.split(" ").slice(0, 2).map(word => word[0]).join("")}</div><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold">{scan.name}</p><div className="mt-1 flex flex-wrap items-center gap-1.5"><span className="qr-role-pill rounded-full px-2 py-0.5 text-[10px] font-semibold">{scan.role}</span><span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">{scan.method}</span><span className="text-[10px] text-slate-400">{scan.time} WIB</span></div></div><CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" /></div>)}</div></section>
   </aside>;
 }
 
@@ -164,7 +242,7 @@ export default function QrCodeManagement() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><Select value={location} onChange={setLocation} ariaLabel="Lokasi absensi" className="w-full sm:w-52" options={["Gerbang Utama", "Gerbang Belakang", "Ruang Guru"]} /><div className="flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-600"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />QR aktif • diperbarui otomatis</div></div>
             <div className="mx-auto w-full max-w-[420px]"><QrPreview seed={seed} /><div className="mt-3 flex items-center justify-center gap-2 text-xs text-slate-500"><ShieldCheck className="h-4 w-4 text-emerald-500" />Kode aman dan berubah secara berkala</div></div>
             <div className="flex justify-center"><button onClick={() => setSeed(value => value + 1)} className="action-lift inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-600 hover:bg-blue-100"><RefreshCw className="h-4 w-4" />Buat ulang QR</button></div>
-            <article className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-500/25 dark:bg-emerald-950/30 sm:p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center"><div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-bold text-white">DT</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold">Darius Tadarus S.Si, M.Kom</h3><span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-semibold text-blue-600">Guru</span></div><p className="mt-1 text-xs text-slate-500">Matematika • ID 234235-2354235</p><div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-600"><span className="flex items-center gap-1.5"><Clock3 className="h-4 w-4" />06:37:58 WIB</span><span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" />{location}</span></div></div><div className="grid h-14 w-14 shrink-0 place-items-center rounded-full border-2 border-emerald-500 text-emerald-500"><Check className="h-8 w-8" /></div></div></article>
+            <article className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-500/25 dark:bg-emerald-950/30 sm:p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center"><div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-bold text-white">DT</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold">Darius Tadarus S.Si, M.Kom</h3><span className="qr-role-pill rounded-full px-2.5 py-1 text-[10px] font-semibold">Guru</span></div><p className="mt-1 text-xs text-slate-500">Matematika • ID 234235-2354235</p><div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-600"><span className="flex items-center gap-1.5"><Clock3 className="h-4 w-4" />06:37:58 WIB</span><span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" />{location}</span></div></div><div className="grid h-14 w-14 shrink-0 place-items-center rounded-full border-2 border-emerald-500 text-emerald-500"><Check className="h-8 w-8" /></div></div></article>
           </div>
 
           <AttendanceSidebar />

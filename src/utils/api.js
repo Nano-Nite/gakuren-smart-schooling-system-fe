@@ -4,12 +4,16 @@ import API_CONFIG, {
   ERROR_MESSAGES,
 } from "../config/api";
 
-let networkAvailable = navigator.onLine;
+const NETWORK_STATUS_KEY = "gakuren:network-status";
+const persistedNetworkStatus = localStorage.getItem(NETWORK_STATUS_KEY);
+let networkAvailable = navigator.onLine && persistedNetworkStatus !== "offline";
 
 export const isNetworkAvailable = () => navigator.onLine && networkAvailable;
 export const setNetworkAvailable = available => {
-  networkAvailable = available;
-  window.dispatchEvent(new CustomEvent("gakuren:network", { detail: { online: available } }));
+  const nextStatus = Boolean(available && navigator.onLine);
+  networkAvailable = nextStatus;
+  localStorage.setItem(NETWORK_STATUS_KEY, nextStatus ? "online" : "offline");
+  window.dispatchEvent(new CustomEvent("gakuren:network", { detail: { online: nextStatus } }));
 };
 
 export const loginRequest = async (endpoint, options = {}) => {

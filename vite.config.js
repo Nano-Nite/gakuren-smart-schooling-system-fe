@@ -17,7 +17,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons/icon-192.svg', 'icons/icon-512.svg'],
+      includeAssets: ['favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
         name: 'Gakuren — Aplikasi Manajemen Sekolah',
         short_name: 'Gakuren',
@@ -25,27 +25,40 @@ export default defineConfig({
         theme_color: '#4F46E5',
         background_color: '#F8FAFC',
         display: 'standalone',
-        start_url: '/',
+        start_url: '/?source=pwa',
         scope: '/',
         orientation: 'portrait-primary',
         icons: [
           {
-            src: 'icons/icon-192.svg',
+            src: 'icons/icon-192.png',
             sizes: '192x192',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any'
           },
           {
-            src: 'icons/icon-512.svg',
+            src: 'icons/icon-512.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ]
       },
       workbox: {
+        cleanupOutdatedCaches: true,
+        navigateFallback: 'index.html',
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
         runtimeCaching: [
+          {
+            urlPattern: ({ url, request }) =>
+              url.origin === self.location.origin &&
+              ['script', 'style', 'worker'].includes(request.destination),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'gakuren-app-assets',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 }
+            }
+          },
           {
             urlPattern: ({ request }) => request.destination === 'image',
             handler: 'CacheFirst',
@@ -53,16 +66,13 @@ export default defineConfig({
               cacheName: 'gakuren-images',
               expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 }
             }
-          },
-          {
-            urlPattern: ({ request }) => request.destination === 'document',
-            handler: 'NetworkFirst',
-            options: { cacheName: 'gakuren-pages' }
           }
         ]
       },
       devOptions: {
-        enabled: true
+        enabled: true,
+        navigateFallback: '/index.html',
+        navigateFallbackAllowlist: [/^\/.*$/]
       }
     })
   ]

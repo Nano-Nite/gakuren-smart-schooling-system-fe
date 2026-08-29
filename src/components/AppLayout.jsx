@@ -28,7 +28,10 @@ export default function AppLayout() {
 
   useEffect(() => {
     document.title = `${pageTitles[activeMenu] || activeMenu || "Gakuren"} — Gakuren`;
-  }, [activeMenu]);
+    if (Object.values(MENU_ROUTES).includes(location.pathname)) {
+      localStorage.setItem("gakuren:last-menu-route", location.pathname);
+    }
+  }, [activeMenu, location.pathname]);
 
   useEffect(() => {
     const closeAccountMenu = event => {
