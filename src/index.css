@@ -140,6 +140,12 @@
     z-index: 1;
   }
 
+  /* An empty table reserves only its header; feedback fills and centers in the body. */
+  .data-table-card > div:has(> table tbody:empty) {
+    flex: 0 0 auto;
+    overflow-y: visible;
+  }
+
   .data-table-card > footer {
     margin-top: auto;
   }
@@ -743,6 +749,11 @@
 .dark .bg-purple-50 { background-color: rgba(139, 92, 246, 0.14); }
 .dark .bg-rose-50,
 .dark .hover\:bg-rose-50:hover { background-color: rgba(244, 63, 94, 0.14); }
+
+/* Timeline circles must be opaque so connector lines stop at their edges. */
+.dark .approval-timeline-node-cutout {
+  background-color: var(--mui-paper) !important;
+}
 
 .dark .text-blue-600,
 .dark .text-brand-600,

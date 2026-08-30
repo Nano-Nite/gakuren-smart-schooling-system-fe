@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
-export default function FormDrawer({ open, title, onClose, onSubmit, children, submitLabel = "Simpan", footerActions }) {
+export default function FormDrawer({ open, title, onClose, onSubmit, children, submitLabel = "Simpan", submitting = false, footerActions }) {
   const [rendered, setRendered] = useState(open);
   const [visible, setVisible] = useState(false);
   const panelRef = useRef(null);
@@ -66,7 +66,7 @@ export default function FormDrawer({ open, title, onClose, onSubmit, children, s
         </header>
         <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-7">{children}</div>
         <footer className="flex shrink-0 justify-end gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
-          {footerActions || <><button type="button" onClick={onClose} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Batal</button><button type="submit" className="action-lift rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">{retainedSubmitLabel.current}</button></>}
+          {footerActions || <><button type="button" disabled={submitting} onClick={onClose} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Batal</button><button type="submit" disabled={submitting} className="action-lift rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70">{retainedSubmitLabel.current}</button></>}
         </footer>
       </form>
     </div>

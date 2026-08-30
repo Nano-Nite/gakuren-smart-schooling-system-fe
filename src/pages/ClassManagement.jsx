@@ -10,8 +10,7 @@ import { authenticatedRequest } from "../utils/api";
 import StatusBadge from "../components/StatusBadge";
 import StatusRowActions from "../components/StatusRowActions";
 
-const emptyForm = { name: "", level: "10", teacher: "", students: 0, status: "Aktif" };
-const fields = [["Nama Kelas", "name", "text", "Contoh: X IPA - 1"], ["Tingkat", "level", "text", "Contoh: 10"], ["Wali Kelas", "teacher", "text", "Contoh: Ahmad Fauzi, S.Pd"], ["Jumlah Siswa", "students", "number", "Contoh: 30"]];
+const emptyForm = { name: "", abbr_name: "", level: "10", teacher: "", students: 0, status: "Aktif" };
 const columns = [["Nama Kelas", "name"], ["Tingkat", "level"], ["Wali Kelas", "teacher"], ["Jumlah Siswa", "students"], ["Status", "status"]];
 const sortApiKeys = { teacher: "homeroom_teacher", students: "total_student" };
 const statusApiValues = { Aktif: "active", Nonaktif: "inactive", Pending: "pending" };
@@ -34,6 +33,9 @@ export default function ClassManagement() {
   const [deleting, setDeleting] = useState(null);
   const [activating, setActivating] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     if (!access.canView) return undefined;
@@ -81,17 +83,54 @@ export default function ClassManagement() {
   const displayedRows = rows;
 
   const changeSort = key => { setPage(1); setSort(current => ({ key, direction: current.key === key && current.direction === "asc" ? "desc" : "asc" })); };
-  const openCreate = () => { setForm(emptyForm); setEditing("new"); };
-  const openEdit = row => { setForm(row); setEditing(row.id); };
+  const openCreate = () => {
+    if (!access.canCreate) return;
+    setForm(emptyForm);
+    setFormError("");
+    setEditing("new");
+  };
+  const openEdit = row => { setForm(row); setFormError(""); setEditing(row.id); };
   const openDetail = row => { setForm(row); setSelected(row); };
   const confirmActivate = () => {
     setActivating(null);
     setRefreshKey(value => value + 1);
   };
-  const save = event => {
+  const save = async event => {
     event.preventDefault();
+    if (saving) return;
+    setFormError("");
+
+    if (editing === "new") {
+      if (!access.canCreate) {
+        setFormError("Anda tidak memiliki izin untuk membuat kelas.");
+        return;
+      }
+
+      setSaving(true);
+      try {
+        await authenticatedRequest(API_CONFIG.CREATE_CLASS, {
+          method: "POST",
+          body: {
+            name: form.name.trim(),
+            abbr_name: form.abbr_name.trim() || null,
+            level: Number(form.level),
+            homeroom_teacher: form.teacher.trim() || null,
+          },
+        });
+        setEditing(null);
+        setSuccessMessage(`Kelas ${form.name.trim()} berhasil dibuat.`);
+        setRefreshKey(value => value + 1);
+        window.setTimeout(() => setSuccessMessage(""), 5000);
+      } catch (requestError) {
+        setFormError(requestError.message);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     const value = { ...form, students: Number(form.students) };
-    setRows(current => editing === "new" ? [...current, { ...value, id: Date.now() }] : current.map(row => row.id === editing ? { ...value, id: editing } : row));
+    setRows(current => current.map(row => row.id === editing ? { ...value, id: editing } : row));
     setEditing(null);
   };
   const confirmDelete = () => { setRows(current => current.filter(item => item.id !== deleting.id)); setDeleting(null); };
@@ -99,6 +138,7 @@ export default function ClassManagement() {
   return <>
     <Helmet><title>Kelas — Gakuren</title></Helmet>
     <div className="p-4 sm:p-6">
+      {successMessage && <div role="status" className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700"><CheckCircle2 className="h-5 w-5" />{successMessage}</div>}
       <section className="data-table-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
         <div className="flex min-w-0 flex-col gap-2 border-b border-slate-200 p-3 md:flex-row md:items-center md:justify-between lg:gap-4 lg:p-4">
           <div className="flex min-w-0 w-full flex-1 flex-row items-center gap-2 md:w-auto lg:gap-3">
@@ -136,7 +176,16 @@ export default function ClassManagement() {
       </section>
     </div>
 
-    <FormDrawer open={editing !== null} title={editing === "new" ? "Tambah Kelas" : "Edit Kelas"} onClose={() => setEditing(null)} onSubmit={save}><div className="space-y-5">{fields.map(([label, key, type, placeholder]) => <label key={key} className="block text-sm"><span className="mb-2 block font-semibold">{label} <b className="text-rose-500">*</b></span><input required min={type === "number" ? 0 : undefined} type={type} value={form[key]} placeholder={placeholder} onChange={event => setForm(value => ({ ...value, [key]: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3.5 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>)}</div></FormDrawer>
+    <FormDrawer open={editing !== null} title={editing === "new" ? "Tambah Kelas" : "Edit Kelas"} onClose={() => { if (!saving) setEditing(null); }} onSubmit={save} submitLabel={saving ? "Menyimpan..." : "Simpan"} submitting={saving}>
+      <div className="space-y-5">
+        {formError && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">{formError}</div>}
+        <label className="block text-sm"><span className="mb-2 block font-semibold">Nama Kelas <b className="text-rose-500">*</b></span><input required maxLength={100} value={form.name} placeholder="Contoh: X-IPS-1" onChange={event => setForm(value => ({ ...value, name: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3.5 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>
+        {editing === "new" && <label className="block text-sm"><span className="mb-2 block font-semibold">Singkatan Kelas <span className="font-normal text-slate-400">(opsional)</span></span><input maxLength={30} value={form.abbr_name} placeholder="Contoh: X IPS 1" onChange={event => setForm(value => ({ ...value, abbr_name: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3.5 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>}
+        <label className="block text-sm"><span className="mb-2 block font-semibold">Tingkat <b className="text-rose-500">*</b></span><input required min="1" max="12" step="1" type="number" value={form.level} placeholder="Contoh: 10" onChange={event => setForm(value => ({ ...value, level: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3.5 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>
+        <label className="block text-sm"><span className="mb-2 block font-semibold">Wali Kelas <span className="font-normal text-slate-400">(opsional)</span></span><input value={form.teacher} placeholder="UUID guru, atau kosongkan" onChange={event => setForm(value => ({ ...value, teacher: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3.5 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /><span className="mt-1.5 block text-xs text-slate-500">Wali kelas dapat ditentukan nanti jika belum tersedia.</span></label>
+        {editing !== "new" && <label className="block text-sm"><span className="mb-2 block font-semibold">Jumlah Siswa <b className="text-rose-500">*</b></span><input required min="0" type="number" value={form.students} onChange={event => setForm(value => ({ ...value, students: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3.5 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>}
+      </div>
+    </FormDrawer>
     <FormDrawer
       open={selected !== null}
       title="Detail Kelas"

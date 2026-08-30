@@ -5,9 +5,11 @@ const API_CONFIG = {
   LOGOUT: '/v1/auth/logout',
   REFRESH_TOKEN: '/v1/auth/refresh',
   GET_CLASSES: '/v1/school/class/get',
+  CREATE_CLASS: '/v1/school/class/create',
   GET_STUDENTS: '/v1/school/student/get',
   GET_TEACHER_STAFF: '/v1/school/teacher-staff/get',
   GET_MY_APPROVALS: '/v1/school/approval/my-approval',
+  EXECUTE_MY_APPROVAL: '/v1/school/approval/my-approval/execute',
 
   REQUEST_TIMEOUT: 30000,
 }

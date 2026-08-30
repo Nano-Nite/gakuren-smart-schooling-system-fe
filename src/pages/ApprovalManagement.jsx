@@ -8,6 +8,14 @@ import { authenticatedRequest, getUserData } from "../utils/api";
 
 const moduleColors = { Kelas: "bg-blue-50 text-blue-600", Siswa: "bg-emerald-50 text-emerald-600", Absensi: "bg-violet-50 text-violet-600", SDM: "bg-cyan-50 text-cyan-700", Akademik: "bg-sky-50 text-sky-600", Sarpras: "bg-pink-50 text-pink-600" };
 
+const approvalFieldSchemas = {
+  class: [["name", "Nama Kelas"], ["abbr_name", "Singkatan Kelas"], ["level", "Tingkat"], ["homeroom_teacher", "Wali Kelas"]],
+  student: [["name", "Nama Siswa"], ["nis", "NIS"], ["class_name", "Kelas"], ["phone", "No. HP / WhatsApp"], ["gender", "Jenis Kelamin"]],
+  teacher: [["name", "Nama"], ["nip", "NIP"], ["email", "Email"], ["phone", "No. HP / WhatsApp"], ["position", "Jabatan"]],
+};
+
+const commonApprovalFieldLabels = { name: "Nama", status: "Status", email: "Email", phone: "No. HP / WhatsApp", address: "Alamat", gender: "Jenis Kelamin", description: "Deskripsi", note: "Catatan" };
+
 export default function ApprovalManagement() {
   const currentUser = getUserData() || {};
   const currentUserName = currentUser.user_name || currentUser.name || currentUser.full_name || null;
@@ -28,6 +36,10 @@ export default function ApprovalManagement() {
   const [detailError, setDetailError] = useState("");
   const detailRequest = useRef(null);
   const [note, setNote] = useState("");
+  const [executing, setExecuting] = useState(false);
+  const [actionProgress, setActionProgress] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [statusById, setStatusById] = useState({});
   const [notesById, setNotesById] = useState({});
   const setSelected = value => {
@@ -61,6 +73,7 @@ export default function ApprovalManagement() {
     setDetail(row);
     setDetailLoading(true);
     setDetailError("");
+    setActionError("");
     setNote("");
     try {
       const response = await authenticatedRequest(`${API_CONFIG.GET_MY_APPROVALS}?uuid=${encodeURIComponent(row.uuid)}`, {
@@ -114,7 +127,7 @@ export default function ApprovalManagement() {
             filter: Object.keys(filters).length ? filters : null,
             page,
             row_per_page: pageSize,
-            sort_by: [{ status: "desc" }],
+            sort_by: [{ ticket_number: "desc" }],
           },
         });
         const payload = response.data || {};
@@ -176,15 +189,93 @@ export default function ApprovalManagement() {
     return () => animation.cancel();
   }, [notesById, selected]);
 
-  const decide = decision => {
-    setStatusById(current => ({ ...current, [detail.id]: decision }));
-    setNotesById(current => ({ ...current, [detail.id]: note.trim() }));
-    setSelected(null);
+  const decide = async decision => {
+    const command = { approved: "approve", rejected: "reject" }[decision] || decision;
+    if (!detail || executing || !["approve", "reject"].includes(command)) return;
+
+    const allowed = command === "approve" ? canApprove : canReject;
+    const normalizeIdentity = value => String(value || "").trim().toLowerCase();
+    const userUuid = currentUser.uuid || currentUser.user_uuid || currentUser.UserUUID || currentUser.id;
+    const userRole = currentUser.role_name || currentUser.role?.name || currentUser.RoleName;
+    const sameUuid = detail.requesterUuid && userUuid && normalizeIdentity(detail.requesterUuid) === normalizeIdentity(userUuid);
+    const sameRole = detail.role && userRole && normalizeIdentity(detail.role) === normalizeIdentity(userRole);
+
+    if (!allowed || sameUuid || sameRole || String(detail.status || "").toLowerCase() !== "active") {
+      setActionError("Anda tidak memiliki izin untuk memproses pengajuan ini.");
+      return;
+    }
+
+    const decisionNote = note.trim();
+    setExecuting(true);
+    setActionProgress(command === "approve" ? "Menyetujui pengajuan..." : "Menolak pengajuan...");
+    setActionError("");
+    try {
+      await authenticatedRequest(API_CONFIG.EXECUTE_MY_APPROVAL, {
+        method: "PATCH",
+        body: { uuid: detail.uuid, command, note: decisionNote || null },
+      });
+      const nextStatus = command === "approve" ? "Approved" : "Rejected";
+      setStatusById(current => ({ ...current, [detail.id]: nextStatus }));
+      setNotesById(current => ({ ...current, [detail.id]: decisionNote }));
+      setSuccessMessage(`Pengajuan ${detail.id} berhasil ${command === "approve" ? "disetujui" : "ditolak"}.`);
+      setSelected(null);
+      setRefreshKey(value => value + 1);
+      window.setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (requestError) {
+      setActionError(requestError.message);
+    } finally {
+      setExecuting(false);
+      setActionProgress("");
+    }
+  };
+
+  const cancelApproval = async () => {
+    if (!detail || executing) return;
+    const normalizeIdentity = value => String(value || "").trim().toLowerCase();
+    const userUuid = currentUser.uuid || currentUser.user_uuid || currentUser.UserUUID || currentUser.id;
+    const ownsRequest = (detail.requesterUuid && userUuid && normalizeIdentity(detail.requesterUuid) === normalizeIdentity(userUuid))
+      || (detail.applicant && currentUserName && normalizeIdentity(detail.applicant) === normalizeIdentity(currentUserName));
+    const hasApprovalProgress = (detail.progress || []).some(step => {
+      const actionCode = String(step.action_code || "").toUpperCase();
+      return actionCode !== "SUBMIT" && (String(step.state || "").toLowerCase() === "past" || step.approve_date || step.act_by);
+    });
+    const cancellationNote = note.trim();
+
+    if (!ownsRequest || String(detail.status || "").toLowerCase() !== "active" || hasApprovalProgress) {
+      setActionError("Pengajuan ini tidak dapat dibatalkan oleh akun Anda.");
+      return;
+    }
+    if (!cancellationNote) {
+      setActionError("Alasan pembatalan wajib diisi.");
+      return;
+    }
+
+    setExecuting(true);
+    setActionProgress("Membatalkan pengajuan...");
+    setActionError("");
+    try {
+      await authenticatedRequest(API_CONFIG.EXECUTE_MY_APPROVAL, {
+        method: "PATCH",
+        body: { uuid: detail.uuid, command: "cancel", note: cancellationNote },
+      });
+      setStatusById(current => ({ ...current, [detail.id]: "Cancelled" }));
+      setNotesById(current => ({ ...current, [detail.id]: cancellationNote }));
+      setSuccessMessage(`Pengajuan ${detail.id} berhasil dibatalkan.`);
+      setSelected(null);
+      setRefreshKey(value => value + 1);
+      window.setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (requestError) {
+      setActionError(requestError.message);
+    } finally {
+      setExecuting(false);
+      setActionProgress("");
+    }
   };
 
   return <>
     <Helmet><title>Persetujuan — Gakuren</title></Helmet>
     <div className="p-4 sm:p-6">
+      {successMessage && <div role="status" className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700"><Check className="h-5 w-5" />{successMessage}</div>}
       <section className="approval-table data-table-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
         <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200 px-3 pt-2 sm:px-4">
           {[["mine", "Pengajuan Saya"], ["waiting", "Menunggu Saya"], ["processed", "Sudah Diproses"], ["all", "Semua"]].map(([value, label]) => <button key={value} onClick={() => { setActiveTab(value); setPage(1); }} className={`relative shrink-0 px-3 py-3 text-xs font-semibold transition sm:px-4 ${activeTab === value ? "text-blue-600 dark:text-blue-300" : "text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white"}`}>{label}{activeTab === value && <span className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-blue-600 dark:bg-blue-300" />}</button>)}
@@ -202,7 +293,7 @@ export default function ApprovalManagement() {
       </section>
     </div>
 
-    {detail && <ApprovalDetailDrawer approval={detail} currentUser={currentUser} loading={detailLoading} error={detailError} note={note} setNote={setNote} canApprove={canApprove} canReject={canReject} onClose={() => setSelected(null)} onDecide={decide} onCancel={() => decide("cancelled")} onRetry={() => openApprovalDetail(detail)} />}
+    {detail && <ApprovalDetailDrawer approval={detail} currentUser={currentUser} loading={detailLoading} error={detailError} actionError={actionError} actionProgress={actionProgress} executing={executing} note={note} setNote={setNote} canApprove={canApprove} canReject={canReject} onClose={() => { if (!executing) setSelected(null); }} onDecide={decide} onCancel={cancelApproval} onRetry={() => openApprovalDetail(detail)} />}
     {selected && <div className="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="true" aria-label="Detail pengajuan"><button className="absolute inset-0 bg-slate-950/30 backdrop-blur-[1px]" onClick={() => setSelected(null)} aria-label="Tutup detail" /><aside className="relative flex h-full w-full max-w-xl flex-col bg-white shadow-2xl animate-[slideInRight_200ms_ease-out]"><header className="flex items-start justify-between border-b border-slate-200 px-5 py-5"><div><h2 className="text-lg font-bold">{selected.title}</h2><p className="mt-1 text-sm text-slate-500">{selected.id}</p></div><button onClick={() => setSelected(null)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></header><div className="flex-1 space-y-5 overflow-y-auto p-5"><div className="flex items-center justify-between"><span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700"><Clock3 className="h-4 w-4" />Menunggu Persetujuan</span><span className="rounded bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-600">{selected.action}</span></div><section className="grid grid-cols-3 gap-3 rounded-xl border border-slate-200 p-4 text-xs"><div><p className="text-slate-500">Pemohon</p><p className="mt-2 font-bold">{selected.applicant}</p><p className="mt-1 text-slate-500">{selected.role}</p></div><div className="border-l pl-3"><p className="text-slate-500">Diajukan</p><p className="mt-2 font-bold">{selected.date}</p><p className="mt-1 text-slate-500">{selected.time}</p></div><div className="border-l pl-3"><p className="text-slate-500">Modul</p><p className="mt-2"><span className={`rounded px-2 py-1 font-medium ${moduleColors[selected.module]}`}>{selected.module}</span></p></div></section><section><h3 className="mb-3 text-sm font-bold">Rincian Pengajuan</h3><dl className="space-y-3 rounded-xl border border-slate-200 p-4">{selected.details.map(([label, value]) => <div key={label} className="grid grid-cols-[140px_1fr] gap-3 text-sm"><dt className="text-slate-500">{label}</dt><dd className="font-medium">{value}</dd></div>)}</dl></section><section><h3 className="mb-3 text-sm font-bold">Progres Persetujuan</h3><div className="relative ml-2 border-l-2 border-emerald-400 pl-6"><span className="absolute -left-3 -top-0 grid h-6 w-6 place-items-center rounded-full bg-emerald-600 text-xs font-bold text-white">1</span><p className="text-sm font-semibold">{selected.applicant} — Diajukan</p><p className="mt-1 text-xs text-slate-500">{selected.date}, {selected.time}</p><div className="relative mt-6"><span className="absolute -left-[35px] top-0 grid h-6 w-6 place-items-center rounded-full bg-blue-600 text-xs font-bold text-white">2</span><p className="text-sm font-semibold text-blue-600">Menunggu keputusan Anda</p><p className="mt-1 text-xs text-slate-500">Tahap aktif</p></div></div></section><label className="block"><span className="mb-2 block text-sm font-bold">Catatan (opsional)</span><textarea maxLength={500} value={note} onChange={event => setNote(event.target.value)} placeholder="Tulis catatan atau instruksi tambahan..." className="h-28 w-full resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /><span className="-mt-6 mr-3 block text-right text-xs text-slate-400">{note.length} / 500</span></label></div><footer className="grid grid-cols-2 gap-3 border-t border-slate-200 p-5">{canReject && <button onClick={() => decide("rejected")} className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-500 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50"><X className="h-4 w-4" />Tolak</button>}{canApprove && <button onClick={() => decide("approved")} className={`${!canReject ? "col-span-2" : ""} inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700`}><Check className="h-4 w-4" />Setujui</button>}{!canApprove && !canReject && <p className="col-span-2 rounded-lg bg-slate-50 p-3 text-center text-sm text-slate-500">Anda tidak memiliki izin untuk memproses pengajuan ini.</p>}</footer></aside></div>}
   </>;
 }
@@ -211,6 +302,7 @@ function Status({ value }) {
   const normalized = String(value || "").toLowerCase();
   if (normalized === "approved") return <span className="inline-flex rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700">Disetujui</span>;
   if (normalized === "rejected") return <span className="inline-flex rounded-lg bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700">Ditolak</span>;
+  if (["cancel", "cancelled", "canceled"].includes(normalized)) return <span className="inline-flex rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 dark:border-rose-400/40 dark:bg-rose-400/15 dark:text-rose-200">Dibatalkan</span>;
   if (normalized === "active") return <span className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold text-amber-700"><Clock3 className="h-3.5 w-3.5" />Menunggu</span>;
   return <span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600">{value || "-"}</span>;
 }
@@ -225,6 +317,7 @@ function formatDateTime(value) {
 }
 
 function formatFieldLabel(key) {
+  if (commonApprovalFieldLabels[key]) return commonApprovalFieldLabels[key];
   return String(key)
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/[_-]+/g, " ")
@@ -249,9 +342,9 @@ function sanitizeRequestValue(value) {
   return Object.fromEntries(Object.entries(value).filter(([key]) => !isSensitiveRequestField(key)).map(([key, child]) => [key, sanitizeRequestValue(child)]));
 }
 
-function ApprovalDetailDrawer({ approval, currentUser, loading, error, note, setNote, canApprove, canReject, onClose, onDecide, onCancel, onRetry }) {
+function ApprovalDetailDrawer({ approval, currentUser, loading, error, actionError, actionProgress, executing, note, setNote, canApprove, canReject, onClose, onDecide, onCancel, onRetry }) {
   const isActive = String(approval.status || "").toLowerCase() === "active";
-  const requestEntries = Object.entries(approval.requestData || {}).filter(([key]) => !isSensitiveRequestField(key));
+  const requestEntries = getApprovalRequestEntries(approval.requestData || {}, approval.entityType);
   const timeline = approval.progress || [];
   const cancelIndex = timeline.findIndex(step => String(step.action_code || "").toUpperCase() === "CANCEL");
   const normalizeIdentity = value => String(value || "").trim().toLowerCase();
@@ -270,12 +363,12 @@ function ApprovalDetailDrawer({ approval, currentUser, loading, error, note, set
   });
   const canCancel = initiatedByCurrentUser && !hasApprovalProgress;
 
-  return <div className="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="true" aria-label="Detail pengajuan">
-    <button className="absolute inset-0 bg-slate-950/30 backdrop-blur-[1px]" onClick={onClose} aria-label="Tutup detail" />
+  return <div className="fixed inset-0 z-[70] flex justify-end" role="dialog" aria-modal="true" aria-label="Detail pengajuan">
+    <button disabled={executing} className="absolute inset-0 bg-slate-950/30 backdrop-blur-[1px]" onClick={onClose} aria-label="Tutup detail" />
     <aside className="relative flex h-full w-full max-w-xl flex-col bg-white shadow-2xl">
       <header className="flex items-start justify-between border-b border-slate-200 px-5 py-5">
         <div><h2 className="text-lg font-bold">{approval.title}</h2><p className="mt-1 text-sm text-slate-500">{approval.id}</p></div>
-        <button onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+        <button disabled={executing} onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-40"><X className="h-5 w-5" /></button>
       </header>
       <div className="flex-1 space-y-5 overflow-y-auto p-5">
         {loading && <div className="grid min-h-52 place-items-center"><div className="text-center"><RefreshCw className="mx-auto h-8 w-8 animate-spin text-blue-500" /><p className="mt-3 text-sm text-slate-500">Memuat detail pengajuan...</p></div></div>}
@@ -286,9 +379,11 @@ function ApprovalDetailDrawer({ approval, currentUser, loading, error, note, set
             <div><p className="text-slate-500">Pemohon</p><p className="mt-2 font-bold">{approval.applicant}</p><p className="mt-1 text-slate-500">{approval.role}</p></div>
             <div className="border-l pl-3"><p className="text-slate-500">Diajukan</p><p className="mt-2 font-bold">{approval.date}</p><p className="mt-1 text-slate-500">{approval.time}</p><p className="mt-2 text-slate-500">{approval.stage}</p></div>
           </section>
-          <section><h3 className="mb-3 text-sm font-bold">Rincian Pengajuan</h3><dl className="divide-y divide-slate-100 rounded-xl border border-slate-200 px-4">{requestEntries.length ? requestEntries.map(([key, value]) => <div key={key} className="grid grid-cols-[140px_minmax(0,1fr)] gap-3 py-3 text-sm"><dt className="text-slate-500">{formatFieldLabel(key)}</dt><dd className="whitespace-pre-wrap break-words font-medium">{formatFieldValue(sanitizeRequestValue(value))}</dd></div>) : <div className="py-4 text-sm text-slate-500">Tidak ada data permintaan.</div>}</dl></section>
+          <section><h3 className="mb-3 text-sm font-bold">Rincian Pengajuan</h3><dl className="divide-y divide-slate-100 rounded-xl border border-slate-200 px-4">{requestEntries.length ? requestEntries.map(([key, value, label]) => <div key={key} className="grid grid-cols-[140px_minmax(0,1fr)] gap-3 py-3 text-sm"><dt className="text-slate-500">{label}</dt><dd className="whitespace-pre-wrap break-words font-medium">{formatFieldValue(sanitizeRequestValue(value))}</dd></div>) : <div className="py-4 text-sm text-slate-500">Tidak ada data permintaan.</div>}</dl></section>
           <article><h3 className="mb-3 text-sm font-bold">Progres Persetujuan</h3><div className="space-y-0">{timeline.length ? timeline.map((step, index) => <ProgressStep key={`${step.action_code || step.role_name}-${index}`} step={step} index={index} isLast={index === timeline.length - 1} cancelIndex={cancelIndex} />) : <p className="text-sm text-slate-500">Belum ada progres persetujuan.</p>}</div></article>
-          {isActive && (canProcessApproval || canCancel) && <label className="block"><span className="mb-2 block text-sm font-bold">Catatan {canCancel ? <b className="text-rose-500">*</b> : "(opsional)"}</span><textarea required={canCancel} maxLength={120} value={note} onChange={event => setNote(event.target.value)} placeholder={canCancel ? "Alasan pembatalan wajib diisi..." : "Tulis catatan atau instruksi tambahan..."} className="h-28 w-full resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /><span className="-mt-6 mr-3 block text-right text-xs text-slate-400">{note.length} / 120</span></label>}
+          {actionError && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">{actionError}</div>}
+          {executing && <div role="status" className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-3 text-sm text-blue-700"><RefreshCw className="h-4 w-4 animate-spin" />{actionProgress}</div>}
+          {isActive && (canProcessApproval || canCancel) && <label className="block"><span className="mb-2 block text-sm font-bold">Catatan {canCancel ? <b className="text-rose-500">*</b> : "(opsional)"}</span><textarea disabled={executing} required={canCancel} maxLength={120} value={note} onChange={event => setNote(event.target.value)} placeholder={canCancel ? "Alasan pembatalan wajib diisi..." : "Tulis catatan atau instruksi tambahan..."} className="h-28 w-full resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-wait disabled:bg-slate-50" /><span className="-mt-6 mr-3 block text-right text-xs text-slate-400">{note.length} / 120</span></label>}
         </>}
       </div>
       {!loading && !error && isActive && <footer className="border-t border-slate-200 p-5">{canCancel ? <button disabled={!note.trim()} title={!note.trim() ? "Isi alasan pembatalan terlebih dahulu." : undefined} onClick={onCancel} className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-rose-500 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"><X className="h-4 w-4" />Batalkan Pengajuan</button> : <div className="grid grid-cols-2 gap-3">{canReject && <button disabled={decisionDisabled} title={decisionDisabled ? "Pembuat pengajuan tidak dapat memproses pengajuannya sendiri." : undefined} onClick={() => onDecide("rejected")} className="inline-flex min-w-0 items-center justify-center gap-2 rounded-lg border border-rose-500 px-3 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"><X className="h-4 w-4 shrink-0" /><span className="truncate">Tolak</span></button>}{canApprove && <button disabled={decisionDisabled} title={decisionDisabled ? "Pembuat pengajuan tidak dapat memproses pengajuannya sendiri." : undefined} onClick={() => onDecide("approved")} className={`${!canReject ? "col-span-2" : ""} inline-flex min-w-0 items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40`}><Check className="h-4 w-4 shrink-0" /><span className="truncate">Setujui</span></button>}{!canApprove && !canReject && <p className="col-span-2 rounded-lg bg-slate-50 p-3 text-center text-sm text-slate-500">Anda tidak memiliki izin untuk memproses pengajuan ini.</p>}</div>}</footer>}
@@ -305,7 +400,7 @@ function ProgressStep({ step, index, isLast, cancelIndex }) {
   const shouldPulse = isCancelled || (cancelIndex < 0 && state === "current");
   const title = isSubmission ? "Pengajuan dibuat" : actionCode === "CANCEL" ? "Pengajuan dibatalkan" : step.role_name || "-";
   const approvedAt = formatDateTime(step.approve_date);
-  const nodeClass = isAffectedByCancellation ? (isCancelled ? "bg-rose-600 text-white" : "border-2 border-rose-400 bg-rose-50 text-rose-600") : state === "past" ? "bg-emerald-600 text-white" : state === "current" ? "bg-amber-500 text-white" : "border-2 border-slate-300 bg-white text-slate-500";
+  const nodeClass = isAffectedByCancellation ? (isCancelled ? "bg-rose-600 text-white" : "approval-timeline-node-cutout border-2 border-rose-400 bg-rose-50 text-rose-600") : state === "past" ? "bg-emerald-600 text-white" : state === "current" ? "bg-amber-500 text-white" : "approval-timeline-node-cutout border-2 border-slate-300 bg-white text-slate-500";
   const nodeSizeClass = shouldPulse ? "-ml-1 h-9 w-9 text-sm" : "h-7 w-7 text-xs";
   const lineClass = cancelIndex >= 0 && index >= cancelIndex ? "bg-rose-400" : state === "past" ? "bg-emerald-400" : "bg-slate-200";
   const titleClass = isAffectedByCancellation ? "text-rose-600" : state === "current" ? "text-amber-600" : "";
@@ -314,4 +409,27 @@ function ProgressStep({ step, index, isLast, cancelIndex }) {
     <span className={`relative z-10 grid place-items-center rounded-full font-bold ${nodeSizeClass} ${nodeClass}`}>{shouldPulse && <span aria-hidden="true" className={`absolute inset-0 -z-10 animate-ping rounded-full opacity-40 ${isCancelled ? "bg-rose-400" : "bg-amber-400"}`} />}<span className="relative z-10">{isCancelled ? <X className="h-4 w-4" /> : state === "past" ? <Check className="h-4 w-4" /> : index + 1}</span></span>
     <div className="pt-1"><p className={`text-sm font-semibold ${titleClass}`}>{title}</p>{isSubmission ? <p className="mt-1 text-xs text-slate-600">{step.act_by || "-"} • {step.role_name || "-"}</p> : step.act_by && <p className={`mt-1 text-xs ${isAffectedByCancellation ? "text-rose-500" : "text-slate-600"}`}>Diproses oleh {step.act_by}</p>}{step.approve_date && <p className={`mt-1 text-xs ${isAffectedByCancellation ? "text-rose-500" : "text-slate-500"}`}>{approvedAt.date}, {approvedAt.time}</p>}{state === "current" && !isAffectedByCancellation && <p className="mt-1 text-xs text-amber-600">Menunggu persetujuan</p>}{step.note && <p className={`mt-2 rounded-lg p-2.5 text-xs italic ${isAffectedByCancellation ? "bg-rose-50 text-rose-600" : "bg-slate-50 text-slate-600"}`}>{step.note}</p>}</div>
   </div>;
+}
+
+const normalizeApprovalFieldKey = key => String(key || "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+
+function getApprovalFieldSchema(entityType, requestData) {
+  const normalizedType = String(entityType || "").toLowerCase();
+  const normalizedKeys = new Set(Object.keys(requestData || {}).map(normalizeApprovalFieldKey));
+  if (normalizedType.includes("class") || normalizedType.includes("kelas") || normalizedKeys.has("abbrname") || normalizedKeys.has("homeroomteacher")) return approvalFieldSchemas.class;
+  if (normalizedType.includes("student") || normalizedType.includes("siswa") || normalizedKeys.has("nis")) return approvalFieldSchemas.student;
+  if (normalizedType.includes("teacher") || normalizedType.includes("staff") || normalizedType.includes("guru") || normalizedKeys.has("nip")) return approvalFieldSchemas.teacher;
+  return [];
+}
+
+function getApprovalRequestEntries(requestData, entityType) {
+  const visibleEntries = Object.entries(requestData || {}).filter(([key]) => !isSensitiveRequestField(key));
+  const entriesByKey = new Map(visibleEntries.map(([key, value]) => [normalizeApprovalFieldKey(key), { key, value }]));
+  const configuredEntries = getApprovalFieldSchema(entityType, requestData || {}).filter(([key]) => entriesByKey.has(normalizeApprovalFieldKey(key))).map(([key, label]) => {
+    const normalizedKey = normalizeApprovalFieldKey(key);
+    const entry = entriesByKey.get(normalizedKey);
+    entriesByKey.delete(normalizedKey);
+    return [entry.key, entry.value, label];
+  });
+  return [...configuredEntries, ...Array.from(entriesByKey.values(), ({ key, value }) => [key, value, formatFieldLabel(key)])];
 }
