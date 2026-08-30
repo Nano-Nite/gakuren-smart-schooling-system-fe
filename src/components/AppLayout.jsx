@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Box, Calendar, ChevronDown, ChevronLeft, ChevronRight, CircleUser, FileText, LayoutDashboard, LockKeyhole, LogOut, Menu, QrCode, Settings, Shield, Signal, User, Users, X } from "lucide-react";
+import { Box, Calendar, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, CircleUser, FileText, LayoutDashboard, LockKeyhole, LogOut, Menu, QrCode, Settings, Shield, Signal, User, Users, X } from "lucide-react";
 import { logoutUser } from "../utils/api";
 import { getAssignedMenuItems, getPermissions, hasMenuAccess, MENU_ROUTES } from "../utils/permissions";
 import ThemeToggle from "./ThemeToggle";
 import PageSkeleton from "./PageSkeleton";
 import { usePageLoading } from "../context/PageLoadingContext";
 
-const icons = { Dashboard: LayoutDashboard, "QR Code": QrCode, "Teacher and Staff": Users, "Student Management": User, "Class Management": Box, Attendance: Calendar, Absence: Shield, Report: Signal, Setting: Settings };
-const subtitles = { Dashboard: "Ringkasan aktivitas sekolah", "QR Code": "Scan QR untuk mencatat kehadiran", "Class Management": "Kelola data kelas di sekolah" };
-const pageTitles = { "QR Code": "Scan QR Code", "Student Management": "Siswa", "Class Management": "Kelas" };
+const icons = { Dashboard: LayoutDashboard, "QR Code": QrCode, "Teacher and Staff": Users, "Student Management": User, "Class Management": Box, Attendance: Calendar, Absence: Shield, Approval: CheckSquare, Report: Signal, Setting: Settings };
+const subtitles = { Dashboard: "Ringkasan aktivitas sekolah", "QR Code": "Scan QR untuk mencatat kehadiran", "Class Management": "Kelola data kelas di sekolah", Approval: "Tinjau dan proses pengajuan yang menunggu persetujuan" };
+const pageTitles = { "QR Code": "Scan QR Code", "Student Management": "Siswa", "Class Management": "Kelas", Approval: "Persetujuan" };
 
 export default function AppLayout() {
   const navigate = useNavigate();
@@ -78,8 +78,8 @@ export default function AppLayout() {
     </aside>
     <div className="flex min-w-0 flex-1 flex-col">
       <header className="flex h-[72px] shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:px-6">
-        <div className="flex min-w-0 items-center gap-3"><button aria-label="Buka navigasi" onClick={() => setMobileOpen(true)} className="sidebar-toggle rounded-lg border p-2 shadow-sm lg:hidden"><Menu className="h-5 w-5" /></button><div className="min-w-0"><h1 className="truncate text-lg font-bold"><span className="sm:hidden">{pageTitles[activeMenu] || activeMenu || "Gakuren"}</span><span className="hidden sm:inline">{activeMenu || "Gakuren"}</span></h1><p className="truncate text-xs text-slate-500">{subtitles[activeMenu] || "Kelola data sekolah"}</p></div></div>
-        <div className="flex items-center gap-2"><ThemeToggle /><div ref={accountMenuRef} className="relative shrink-0">
+        <div className="flex min-w-0 flex-1 items-center gap-3"><button aria-label="Buka navigasi" onClick={() => setMobileOpen(true)} className="sidebar-toggle rounded-lg border p-2 shadow-sm lg:hidden"><Menu className="h-5 w-5" /></button><div className="min-w-0"><h1 className="truncate text-lg font-bold"><span className="sm:hidden">{pageTitles[activeMenu] || activeMenu || "Gakuren"}</span><span className="hidden sm:inline">{activeMenu || "Gakuren"}</span></h1><p className="truncate text-xs text-slate-500">{subtitles[activeMenu] || "Kelola data sekolah"}</p></div></div>
+        <div className="flex shrink-0 items-center gap-2"><ThemeToggle /><div ref={accountMenuRef} className="relative shrink-0">
           <button type="button" aria-haspopup="menu" aria-expanded={accountOpen} onClick={() => setAccountOpen(value => !value)} className={`flex items-center gap-3 rounded-xl p-1.5 hover:bg-slate-50 ${accountOpen ? "bg-slate-50" : ""}`}><img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.user_name || "Admin")}&background=DBEAFE&color=1D4ED8&bold=true`} alt="" className="h-10 w-10 rounded-full" /><div className="hidden text-left sm:block"><p className="text-sm font-bold">{user.user_name || "Admin"}</p><p className="text-[10px] text-slate-400">{user.role_name || "Administrator"}</p></div><ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${accountOpen ? "rotate-180" : ""}`} /></button>
           <div role="menu" className={`absolute right-0 top-[calc(100%+8px)] z-50 w-48 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl transition-all duration-200 ${accountOpen ? "visible translate-y-0 scale-100 opacity-100" : "invisible -translate-y-2 scale-95 opacity-0"}`}>
             <button role="menuitem" onClick={() => { navigateWithLoading("/profile"); setAccountOpen(false); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"><CircleUser className="h-4 w-4" />Profile</button>

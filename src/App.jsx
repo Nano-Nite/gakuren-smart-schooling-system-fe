@@ -8,6 +8,7 @@ import ClassManagement from './pages/ClassManagement'
 import StudentManagement from './pages/StudentManagement'
 import TeacherStaffManagement from './pages/TeacherStaffManagement'
 import QrCodeManagement from './pages/QrCodeManagement'
+import ApprovalManagement from './pages/ApprovalManagement'
 import AppLayout from './components/AppLayout'
 import Profile from './pages/Profile'
 import SignUp from './pages/SignUp'
@@ -69,6 +70,7 @@ export default function App() {
             <Route path="/teachers" element={<ProtectedRoute menu="Teacher and Staff" permissions={["teacherandstaff.view", "teacherandstaff.read"]}><TeacherStaffManagement /></ProtectedRoute>} />
             <Route path="/students" element={<ProtectedRoute menu="Student Management" permissions={["student.view", "student.read"]}><StudentManagement /></ProtectedRoute>} />
             <Route path="/classes" element={<ProtectedRoute menu="Class Management" permissions={["class.view", "class.read"]}><ClassManagement /></ProtectedRoute>} />
+            <Route path="/approvals" element={<ProtectedRoute menu="Approval"><ApprovalManagement /></ProtectedRoute>} />
             <Route path="/attendance" element={<ProtectedRoute menu="Attendance" permissions={["attendance.view", "attendance.read"]}><ModulePlaceholder title="Attendance" /></ProtectedRoute>} />
             <Route path="/absence" element={<ProtectedRoute menu="Absence" permissions={["absence.view", "absence.read"]}><ModulePlaceholder title="Absence" /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute menu="Report" permissions={["report.view", "report.read"]}><ModulePlaceholder title="Report" /></ProtectedRoute>} />

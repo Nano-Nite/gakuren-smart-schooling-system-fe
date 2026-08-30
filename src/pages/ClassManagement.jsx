@@ -54,14 +54,17 @@ export default function ClassManagement() {
         });
         const payload = response.data || {};
         setError("");
-        setRows((payload.result || []).map(item => ({
-          id: item.UUID,
-          name: item.Name,
-          level: item.Level,
-          teacher: item.HomeroomTeacher || "-",
-          students: item.TotalStudent ?? 0,
-          status: statusLabels[String(item.Status).toLowerCase()] || item.Status,
-        })));
+        setRows((payload.result || []).map(item => {
+          const itemStatus = item.status ?? item.Status;
+          return {
+            id: item.uuid ?? item.UUID,
+            name: item.name ?? item.Name,
+            level: item.level ?? item.Level,
+            teacher: item.homeroom_teacher ?? item.HomeroomTeacher ?? "-",
+            students: item.total_student ?? item.TotalStudent ?? 0,
+            status: statusLabels[String(itemStatus).toLowerCase()] || itemStatus || "-",
+          };
+        }));
         setStatistics(payload.data_statistic || { start_row: 0, end_row: 0, total_row: 0, max_page: 1 });
       } catch (requestError) {
         if (requestError.name !== "AbortError") {
@@ -96,7 +99,7 @@ export default function ClassManagement() {
   return <>
     <Helmet><title>Kelas — Gakuren</title></Helmet>
     <div className="p-4 sm:p-6">
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+      <section className="data-table-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
         <div className="flex min-w-0 flex-col gap-2 border-b border-slate-200 p-3 md:flex-row md:items-center md:justify-between lg:gap-4 lg:p-4">
           <div className="flex min-w-0 w-full flex-1 flex-row items-center gap-2 md:w-auto lg:gap-3">
             <button title="Muat ulang" onClick={() => setRefreshKey(value => value + 1)} disabled={loading} className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /></button>

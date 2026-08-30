@@ -26,6 +26,7 @@ export default {
       animation: {
         'fade-up': 'fadeUp 0.6s ease-out forwards',
         float: 'float 6s ease-in-out infinite',
+        'slide-in-right': 'slideInRight 0.2s ease-out',
       },
       keyframes: {
         fadeUp: {
@@ -35,6 +36,10 @@ export default {
         float: {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-10px)' },
+        },
+        slideInRight: {
+          '0%': { opacity: 0, transform: 'translateX(24px)' },
+          '100%': { opacity: 1, transform: 'translateX(0)' },
         },
       },
     },

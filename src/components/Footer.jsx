@@ -1,18 +1,1 @@
-export default function Footer() {
-  return (
-    <footer className="border-t border-slate-100 py-8">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row lg:px-8">
-        <a href="#" className="flex items-center gap-2 text-sm font-bold text-slate-900">
-          <span className="grid h-6 w-6 place-items-center text-white">
-            <img src="/favicon.svg" alt="Gakuren logo" />
-          </span>
-        </a>
-        <p className="text-xs text-slate-500">© 2026 CodeLine. Seluruh hak cipta dilindungi.</p>
-        <div className="flex gap-5 text-xs font-medium text-brand-600">
-          <a href="#" className="hover:text-brand-700">Kebijakan Privasi</a>
-          <a href="#" className="hover:text-brand-700">Syarat & Ketentuan</a>
-        </div>
-      </div>
-    </footer>
-  )
-}
+export default function Footer(){return <footer id="kontak" className="bg-[#07111f] py-12 text-slate-300"><div className="mx-auto grid max-w-7xl gap-10 px-5 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr] lg:px-8"><div><a href="#" className="flex items-center gap-2.5 font-bold text-white"><img src="/favicon.svg" alt="" className="h-8 w-8"/>Gakuren</a><p className="mt-4 max-w-sm text-sm leading-6 text-slate-400">Sistem operasional sekolah yang mengubah data kehadiran menjadi tindakan lebih cepat.</p></div><nav aria-label="Navigasi footer"><h2 className="text-sm font-bold text-white">Navigasi</h2><div className="mt-4 grid gap-3 text-sm"><a href="#solusi">Solusi</a><a href="#cara-kerja">Cara Kerja</a><a href="#keamanan">Keamanan</a><a href="#harga">Harga</a><a href="#roadmap">Roadmap</a></div></nav><div><h2 className="text-sm font-bold text-white">Kontak</h2><p className="mt-4 text-sm text-slate-400">Kontak resmi akan ditambahkan di sini.</p><a href="#" className="mt-4 inline-block text-sm text-brand-200">Kebijakan Privasi</a></div></div><div className="mx-auto mt-10 max-w-7xl border-t border-white/10 px-5 pt-6 text-xs text-slate-500 lg:px-8">© 2026 Gakuren. Seluruh hak cipta dilindungi.</div></footer>}

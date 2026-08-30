@@ -36,6 +36,7 @@ export const MENU_PERMISSIONS = {
   "Teacher and Staff": "teacherandstaff.view",
   "Student Management": "student.view",
   "Class Management": "class.view",
+  Approval: "appr.view",
   Attendance: "attendance.view",
   Absence: "absence.view",
   Report: "report.view",
@@ -48,6 +49,7 @@ export const MENU_RESOURCES = {
   "Teacher and Staff": "teacherandstaff",
   "Student Management": "student",
   "Class Management": "class",
+  Approval: "appr",
   Attendance: "attendance",
   Absence: "absence",
   Report: "report",
@@ -60,6 +62,7 @@ export const MENU_ROUTES = {
   "Teacher and Staff": "/teachers",
   "Student Management": "/students",
   "Class Management": "/classes",
+  Approval: "/approvals",
   Attendance: "/attendance",
   Absence: "/absence",
   Report: "/reports",
@@ -72,7 +75,7 @@ export const getMenuReadPermissions = label => {
 };
 
 export const hasMenuAccess = (label, permissions = getPermissions()) =>
-  hasAnyPermission(getMenuReadPermissions(label), permissions);
+  label === "Approval" || hasAnyPermission(getMenuReadPermissions(label), permissions);
 
 // Menus are authoritative from the backend. Permission affects access, not visibility.
 export const getAssignedMenuItems = (menus = getMenuItems()) =>

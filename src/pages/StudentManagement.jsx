@@ -127,7 +127,7 @@ export default function StudentManagement() {
   return <>
     <Helmet><title>Siswa — Gakuren</title></Helmet>
     <div className="p-4 sm:p-6">
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+      <section className="data-table-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
         <div className="flex min-w-0 flex-col gap-3 border-b border-slate-200 p-3 md:flex-row md:items-center md:justify-between lg:p-4">
           <div className="flex min-w-0 flex-1 items-center gap-2 lg:gap-3">
             <button title="Muat ulang" disabled={loading} onClick={() => setRefreshKey(value => value + 1)} className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /></button>

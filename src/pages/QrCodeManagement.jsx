@@ -231,10 +231,10 @@ export default function QrCodeManagement() {
   return <>
     <Helmet><title>QR Code — Gakuren</title></Helmet>
     <div className="qr-page mx-auto max-w-[1680px] space-y-4 p-4 sm:p-6 lg:grid lg:grid-cols-[minmax(0,1.65fr)_minmax(340px,.92fr)] lg:items-start lg:gap-5 lg:space-y-0">
-      <section className="qr-dashboard-shell overflow-visible rounded-2xl border-0 bg-transparent shadow-none lg:col-span-2 lg:grid lg:grid-cols-[minmax(0,1.65fr)_minmax(340px,.92fr)] lg:gap-x-5">
-        <div className="qr-workspace-surface flex rounded-t-2xl border border-b-0 border-slate-200 bg-white p-1.5 sm:px-4 sm:pt-3 lg:col-start-1 lg:row-start-1">
-          <button onClick={() => setTab("create")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition sm:flex-none ${tab === "create" ? "bg-blue-50 text-blue-600" : "text-slate-500 hover:bg-slate-50"}`}><QrCode className="h-4 w-4" />Buat QR Absensi</button>
-          <button onClick={() => setTab("scan")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition sm:flex-none ${tab === "scan" ? "bg-blue-50 text-blue-600" : "text-slate-500 hover:bg-slate-50"}`}><ScanLine className="h-4 w-4" />Scan QR</button>
+      <section className="qr-dashboard-shell overflow-visible rounded-2xl border-0 bg-transparent shadow-none lg:col-span-2 lg:grid lg:grid-cols-[minmax(0,1.65fr)_minmax(340px,.92fr)] lg:grid-rows-[52px_auto] lg:gap-x-5">
+        <div className="qr-workspace-surface flex items-center rounded-t-2xl border border-b-0 border-slate-200 bg-white p-1.5 lg:col-start-1 lg:row-start-1">
+          <button onClick={() => setTab("create")} className={`flex flex-1 self-stretch items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition sm:flex-none sm:self-auto ${tab === "create" ? "bg-blue-50 text-blue-600" : "text-slate-500 hover:bg-slate-50"}`}><QrCode className="h-4 w-4" />Buat QR Absensi</button>
+          <button onClick={() => setTab("scan")} className={`flex flex-1 self-stretch items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition sm:flex-none sm:self-auto ${tab === "scan" ? "bg-blue-50 text-blue-600" : "text-slate-500 hover:bg-slate-50"}`}><ScanLine className="h-4 w-4" />Scan QR</button>
         </div>
 
         {tab === "create" ? <div className="grid gap-5 lg:contents">
@@ -246,7 +246,7 @@ export default function QrCodeManagement() {
           </div>
 
           <AttendanceSidebar />
-        </div> : <><div className="qr-workspace-surface grid min-h-[540px] place-items-center rounded-b-2xl border border-t-0 border-slate-200 bg-white p-5 lg:col-start-1 lg:row-start-2"><CameraScanner /></div><AttendanceSidebar className="mt-4 lg:mt-0" /></>}
+        </div> : <><div className="qr-workspace-surface grid min-h-[540px] content-start justify-items-center rounded-b-2xl border border-t-0 border-slate-200 bg-white p-5 pt-6 lg:col-start-1 lg:row-start-2 lg:pt-5"><CameraScanner /></div><AttendanceSidebar className="mt-4 lg:mt-0" /></>}
       </section>
 
       <section className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-card sm:flex-row sm:items-center lg:col-start-1"><div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600"><WifiOff className="h-6 w-6" /></div><div className="flex-1"><h2 className="font-bold">Antrean Offline</h2><p className="mt-1 text-xs text-slate-500">40 data menunggu sinkronisasi otomatis</p></div><button className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-600">Lihat Detail <ArrowRight className="h-4 w-4" /></button></section>

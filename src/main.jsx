@@ -8,14 +8,20 @@ import { PageLoadingProvider } from './context/PageLoadingContext.jsx'
 import OfflineBanner from './components/OfflineBanner.jsx'
 import PwaInstallBanner from './components/PwaInstallBanner.jsx'
 
-registerSW({
-  onNeedRefresh() {
-    console.info('Versi baru Gakuren tersedia — akan diperbarui otomatis.')
-  },
-  onOfflineReady() {
-    console.info('Gakuren siap digunakan secara offline.')
-  },
-})
+if (import.meta.env.PROD) {
+  registerSW({
+    onNeedRefresh() {
+      console.info('Versi baru Gakuren tersedia — akan diperbarui otomatis.')
+    },
+    onOfflineReady() {
+      console.info('Gakuren siap digunakan secara offline.')
+    },
+  })
+} else if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => registration.unregister())
+  })
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

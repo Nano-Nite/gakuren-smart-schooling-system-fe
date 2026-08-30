@@ -37,6 +37,7 @@
     margin: 0;
     width: 100%;
     scroll-behavior: smooth;
+    scroll-padding-top: 72px;
   }
   body {
     margin: 0;
@@ -62,6 +63,205 @@
     transform: scale(0.96);
   }
 
+  /* Full-screen drawer scrims must never inherit the global button press scale. */
+  button[aria-label="Tutup detail"],
+  button[aria-label="Tutup detail"]:active {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  [aria-label="Detail pengajuan"] > button[aria-label="Tutup detail"] {
+    transform: none !important;
+    transform-origin: center !important;
+  }
+
+  [aria-label="Detail pengajuan"] > aside {
+    max-width: none;
+    animation: none !important;
+  }
+
+  .approval-table tbody tr:hover,
+  .approval-table > [class*="divide-y"] > button:hover {
+    background-color: rgb(239 246 255 / 0.5) !important;
+  }
+
+  .dark .approval-table tbody tr:hover,
+  .dark .approval-table > [class*="divide-y"] > button:hover {
+    background-color: rgba(144, 202, 249, 0.12) !important;
+  }
+
+  @media (min-width: 640px) {
+    [aria-label="Detail pengajuan"] > aside {
+      width: 55%;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    [aria-label="Detail pengajuan"] > aside {
+      width: 44%;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    [aria-label="Detail pengajuan"] > aside {
+      width: 33.333333%;
+    }
+  }
+
+  [aria-label="Detail pengajuan"] dd,
+  [aria-label="Detail pengajuan"] p {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .approval-table table th,
+  .approval-table table td {
+    overflow: hidden;
+  }
+
+  /* Keep all management table cards stable as filtering changes row totals. */
+  .data-table-card {
+    display: flex;
+    height: calc(100dvh - 104px);
+    flex-direction: column;
+  }
+
+  /* Keep the card/footer stable when a larger rows-per-page value is selected. */
+  .data-table-card > div:has(> table),
+  .data-table-card > div.divide-y {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+  }
+
+  .data-table-card > div:has(> table) thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .data-table-card > footer {
+    margin-top: auto;
+  }
+
+  .data-table-card > .grid.place-items-center {
+    flex: 1 1 auto;
+    align-content: center;
+    justify-items: center;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  @media (min-width: 640px) {
+    .data-table-card {
+      height: calc(100dvh - 120px);
+    }
+  }
+
+  .approval-table table td > span {
+    max-width: 100%;
+  }
+
+  /* Approval color hierarchy: neutral metadata, blue interaction, amber pending. */
+  .approval-table tbody td:nth-child(3) > span,
+  [aria-label="Detail pengajuan"] aside > div > div:first-child > span:last-child,
+  [aria-label="Detail pengajuan"] aside > div > section:first-of-type > div:last-child span {
+    border: 1px solid #e2e8f0;
+    background-color: #f1f5f9 !important;
+    color: #475569 !important;
+  }
+
+  .approval-table thead th:nth-child(3),
+  .approval-table tbody td:nth-child(3) {
+    text-align: center;
+  }
+
+  .approval-table tbody td:nth-child(3) > span {
+    display: inline-flex;
+    width: auto;
+    min-width: 6.75rem;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  .dark .approval-table tbody td:nth-child(3) > span,
+  .dark [aria-label="Detail pengajuan"] aside > div > div:first-child > span:last-child,
+  .dark [aria-label="Detail pengajuan"] aside > div > section:first-of-type > div:last-child span {
+    border-color: #475569;
+    background-color: #29313d !important;
+    color: #cbd5e1 !important;
+  }
+
+  [aria-label="Detail pengajuan"] aside > div > div:first-child > span[data-approval-action="create"] {
+    border-color: #bbf7d0 !important;
+    background-color: #dcfce7 !important;
+    color: #15803d !important;
+  }
+
+  [aria-label="Detail pengajuan"] aside > div > div:first-child > span[data-approval-action="update"] {
+    border-color: #ddd6fe !important;
+    background-color: #ede9fe !important;
+    color: #7c3aed !important;
+  }
+
+  [aria-label="Detail pengajuan"] aside > div > div:first-child > span[data-approval-action="delete"] {
+    border-color: #fecaca !important;
+    background-color: #fee2e2 !important;
+    color: #dc2626 !important;
+  }
+
+  .dark [aria-label="Detail pengajuan"] aside > div > div:first-child > span[data-approval-action="create"] {
+    border-color: #166534 !important;
+    background-color: #14532d !important;
+    color: #86efac !important;
+  }
+
+  .dark [aria-label="Detail pengajuan"] aside > div > div:first-child > span[data-approval-action="update"] {
+    border-color: #6d28d9 !important;
+    background-color: #4c1d95 !important;
+    color: #c4b5fd !important;
+  }
+
+  .dark [aria-label="Detail pengajuan"] aside > div > div:first-child > span[data-approval-action="delete"] {
+    border-color: #991b1b !important;
+    background-color: #7f1d1d !important;
+    color: #fca5a5 !important;
+  }
+
+  @media (min-width: 768px) {
+    .approval-table > div:first-child label {
+      min-width: 13rem;
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .approval-table table th:nth-child(2),
+    .approval-table table td:nth-child(2),
+    .approval-table table th:nth-child(4),
+    .approval-table table td:nth-child(4) {
+      display: none;
+    }
+
+    .approval-table table th:nth-child(1) { width: 34% !important; }
+    .approval-table table th:nth-child(3) { width: 16% !important; }
+    .approval-table table th:nth-child(5) { width: 22% !important; }
+    .approval-table table th:nth-child(6) { width: 28% !important; }
+  }
+
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .approval-table table th:nth-child(4),
+    .approval-table table td:nth-child(4) {
+      display: none;
+    }
+
+    .approval-table table th:nth-child(1) { width: 28% !important; }
+    .approval-table table th:nth-child(2) { width: 19% !important; }
+    .approval-table table th:nth-child(3) { width: 13% !important; }
+    .approval-table table th:nth-child(5) { width: 18% !important; }
+    .approval-table table th:nth-child(6) { width: 22% !important; }
+  }
+
   button:focus-visible,
   a[href]:focus-visible {
     outline: 2px solid #2563eb;
@@ -79,18 +279,24 @@
 @layer utilities {
   .reveal {
     opacity: 0;
+    transform: translateY(24px) scale(0.985);
   }
   .reveal.is-visible {
-    animation: fadeUp 0.6s ease-out forwards;
+    animation: landingReveal 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .reveal-left {
+    transform: translateX(-28px);
   }
   @media (prefers-reduced-motion: reduce) {
     .reveal,
     .reveal.is-visible {
       opacity: 1;
       animation: none;
+      transform: none;
     }
     html {
       scroll-behavior: auto;
+      scroll-snap-type: none;
     }
   }
 }
@@ -104,6 +310,144 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@layer components {
+  .landing-wrap { @apply mx-auto max-w-7xl px-5 lg:px-8; }
+  .landing-card { @apply rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900; }
+  .landing-card h3 { @apply mt-5 text-lg font-bold text-slate-950 dark:text-white; }
+  .landing-card p { @apply mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300; }
+  .status-label { @apply mt-4 inline-flex w-fit rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-violet-700 dark:bg-violet-950 dark:text-violet-200; }
+}
+
+@keyframes landingReveal {
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* Landing-page motion: GPU-friendly transforms with a quiet, responsive feel. */
+.hero-copy > * {
+  opacity: 0;
+  animation: heroEntrance 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.hero-copy > :nth-child(2) { animation-delay: 90ms; }
+.hero-copy > :nth-child(3) { animation-delay: 180ms; }
+.hero-copy > :nth-child(4) { animation-delay: 270ms; }
+.hero-copy > :nth-child(5) { animation-delay: 360ms; }
+.hero-visual {
+  --pointer-x: 0px;
+  --pointer-y: 0px;
+  opacity: 0;
+  animation: visualEntrance 1s 180ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.dashboard-float {
+  transform: translate3d(var(--pointer-x), var(--pointer-y), 0);
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: dashboardFloat 6s ease-in-out infinite;
+}
+.hero-chip { animation: chipFloat 4.5s ease-in-out infinite; }
+.hero-chip-two { animation-delay: -2.2s; }
+.hero-orb { animation: orbDrift 10s ease-in-out infinite alternate; }
+.scroll-cue { animation: scrollCue 2s ease-in-out infinite; }
+
+.feature-card,
+.testimonial-card {
+  transition: transform 350ms cubic-bezier(0.22, 1, 0.36, 1), border-color 350ms ease, box-shadow 350ms ease;
+}
+.feature-card:hover {
+  transform: translateY(-8px);
+  border-color: rgb(144 202 249);
+  box-shadow: 0 22px 45px -24px rgba(30, 136, 229, 0.38);
+}
+.feature-card > span { transition: transform 350ms cubic-bezier(0.22, 1, 0.36, 1); }
+.feature-card:hover > span { transform: rotate(-6deg) scale(1.1); }
+.feature-card a svg { transition: transform 200ms ease; }
+.feature-card:hover a svg { transform: translateX(4px); }
+.testimonial-card:hover { transform: translateY(-6px) rotate(0.4deg); box-shadow: 0 22px 50px -28px rgba(15, 23, 42, 0.35); }
+.feature-card.reveal {
+  filter: blur(8px);
+  transform: translateY(90px) scale(.94);
+}
+.feature-card.reveal.is-visible {
+  animation: cardCascade 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.reveal:not(.is-visible) .stagger-grid > :not(.stagger-decoration) {
+  opacity: 0;
+  filter: blur(8px);
+  transform: translateY(90px) scale(.94);
+}
+.reveal.is-visible .stagger-grid > :not(.stagger-decoration) {
+  animation: cardCascade 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.reveal.is-visible .stagger-grid > :nth-child(1) { animation-delay: 250ms; }
+.reveal.is-visible .stagger-grid > :nth-child(2) { animation-delay: 570ms; }
+.reveal.is-visible .stagger-grid > :nth-child(3) { animation-delay: 890ms; }
+.reveal.is-visible .stagger-grid > :nth-child(4) { animation-delay: 1210ms; }
+.reveal.is-visible .stagger-grid > article:nth-of-type(1) { animation-delay: 250ms; }
+.reveal.is-visible .stagger-grid > article:nth-of-type(2) { animation-delay: 570ms; }
+.reveal.is-visible .stagger-grid > article:nth-of-type(3) { animation-delay: 890ms; }
+.reveal.is-visible .stagger-grid > article:nth-of-type(4) { animation-delay: 1210ms; }
+.cta-panel { background-size: 180% 180%; }
+.cta-panel.is-visible { animation-duration: .75s, 8s; animation-name: landingReveal, gradientShift; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease; animation-fill-mode: forwards; animation-iteration-count: 1, infinite; }
+.cta-glow { animation: glowDrift 6s ease-in-out infinite alternate; }
+
+@keyframes heroEntrance { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes visualEntrance { from { opacity: 0; transform: translateX(36px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes dashboardFloat { 0%, 100% { translate: 0 0; } 50% { translate: 0 -9px; } }
+@keyframes chipFloat { 0%, 100% { translate: 0 0; } 50% { translate: 0 -7px; } }
+@keyframes orbDrift { to { transform: translate(20%, -18%) scale(1.08); } }
+@keyframes scrollCue { 0%, 100% { translate: -50% 0; } 50% { translate: -50% 6px; } }
+@keyframes gradientShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes glowDrift { to { transform: translate(-80px, 80px) scale(1.2); } }
+@keyframes cardCascade { from { opacity: 0; filter: blur(8px); transform: translateY(90px) scale(.94); } to { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); } }
+
+.story-aurora {
+  background:
+    radial-gradient(circle at var(--story-position) 45%, color-mix(in srgb, var(--story-color) 28%, transparent), transparent 28%),
+    radial-gradient(circle at 80% 80%, rgba(30, 136, 229, .12), transparent 32%);
+  filter: saturate(1.2);
+  transition: background 500ms ease;
+}
+.story-aurora::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: .12;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+.story-ring { transition: border-color 500ms ease; will-change: transform; }
+.landing-section {
+  min-height: calc(100svh - 73px);
+  scroll-margin-top: 73px;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+.story-chapter-bg {
+  background:
+    radial-gradient(circle at 72% 45%, color-mix(in srgb, var(--story-color) 26%, transparent), transparent 30%),
+    radial-gradient(circle at 15% 75%, rgba(30, 136, 229, .1), transparent 34%);
+}
+.story-chapter-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: .12;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+}
+.story-chapter-copy { animation: storyCopyIn .9s cubic-bezier(.16, 1, .3, 1) both; }
+@keyframes storyCopyIn { from { opacity: 0; filter: blur(8px); transform: translateY(44px); } to { opacity: 1; filter: blur(0); transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-copy > *, .hero-visual, .dashboard-float, .hero-chip, .hero-orb, .scroll-cue, .cta-panel, .cta-glow {
+    opacity: 1;
+    animation: none !important;
+    transform: none !important;
+    translate: none !important;
+  }
+  .feature-card:hover, .testimonial-card:hover { transform: none; }
+  .reveal .stagger-grid > * { opacity: 1 !important; filter: none !important; transform: none !important; animation: none !important; }
+  .story-chapter { height: auto; min-height: 100vh; }
+  .story-ring { transform: none !important; }
 }
 
 #root {
@@ -134,6 +478,197 @@
 
 .drawer-scrim {
   background-color: rgba(0, 0, 0, 0.42);
+}
+
+/* Approval progress: completed work recedes while the active decision stands out. */
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div {
+  border-left-color: #cbd5e1 !important;
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > span {
+  background-color: #94a3b8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 4px #f1f5f9;
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > p {
+  color: #64748b !important;
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > p:first-of-type {
+  color: #475569 !important;
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div {
+  padding-bottom: 0.25rem;
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div > span {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 4px #dbeafe, 0 0 0 5px #93c5fd;
+  overflow: visible;
+  transform-origin: center;
+  will-change: transform, box-shadow;
+  animation: approvalNodePulse 1.25s ease-in-out infinite !important;
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div > span::after {
+  position: absolute;
+  inset: -3px;
+  z-index: 2;
+  border: 3px solid #60a5fa;
+  border-radius: 9999px;
+  pointer-events: none;
+  transform-origin: center;
+  will-change: opacity, transform;
+  content: "";
+  animation: approvalCurrentPulse 1.4s ease-out infinite;
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div > p:first-of-type {
+  color: #1d4ed8 !important;
+  font-weight: 700;
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div > p:last-of-type {
+  color: #64748b !important;
+  font-weight: 500;
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div::after {
+  position: absolute;
+  top: 1.75rem;
+  bottom: -1rem;
+  left: -1.55rem;
+  border-left: 2px dashed #93c5fd;
+  content: "";
+}
+
+.dark [aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div {
+  border-left-color: #475569 !important;
+}
+
+.dark [aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > span {
+  background-color: #64748b !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 0 0 4px #1e293b;
+}
+
+.dark [aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > p:first-of-type {
+  color: #94a3b8 !important;
+}
+
+.dark [aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > p,
+.dark [aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div > p:last-of-type {
+  color: #64748b !important;
+}
+
+.dark [aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div > span {
+  background-color: #60a5fa !important;
+  color: #0f172a !important;
+  box-shadow: 0 0 0 4px #172554, 0 0 0 5px #3b82f6;
+}
+
+@keyframes approvalCurrentPulse {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.75);
+  }
+}
+
+@keyframes approvalNodePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.35), 0 0 0 5px rgba(59, 130, 246, 0.18);
+  }
+  50% {
+    transform: scale(1.22);
+    box-shadow: 0 0 0 5px rgba(96, 165, 250, 0.48), 0 0 0 10px rgba(59, 130, 246, 0.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div > span::after {
+    animation: none;
+    display: none;
+  }
+
+  [aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div > span {
+    animation: none !important;
+  }
+}
+
+.dark [aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div > p:first-of-type {
+  color: #93c5fd !important;
+}
+
+/* Timeline runs from the active step at the top to completed history below. */
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div {
+  display: flex;
+  flex-direction: column;
+  border-left: 0 !important;
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div::before {
+  position: absolute;
+  z-index: 0;
+  top: 0.75rem;
+  bottom: 1.75rem;
+  left: -1px;
+  width: 2px;
+  background: linear-gradient(to bottom, #60a5fa 0 48%, #cbd5e1 48% 100%);
+  content: "";
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div[data-past-note]:not([data-past-note=""])::after {
+  order: 2;
+  margin-top: 0.65rem;
+  border-left: 2px solid #cbd5e1;
+  border-radius: 0.25rem;
+  background-color: #f8fafc;
+  padding: 0.55rem 0.75rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-style: italic;
+  line-height: 1.25rem;
+  content: "Catatan: " attr(data-past-note);
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div {
+  order: -1;
+  margin-top: 0 !important;
+  margin-bottom: 1.75rem;
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div::after {
+  display: none;
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > span {
+  z-index: 1;
+  top: auto !important;
+  bottom: 1.05rem;
+  left: -0.75rem;
+}
+
+[aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div > div > span {
+  z-index: 1;
+  left: -2.25rem;
+}
+
+.dark [aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div::before {
+  background: linear-gradient(to bottom, #60a5fa 0 48%, #475569 48% 100%);
+}
+
+.dark [aria-label="Detail pengajuan"] aside > div > section:nth-of-type(3) > div[data-past-note]:not([data-past-note=""])::after {
+  border-left-color: #475569;
+  background-color: rgba(148, 163, 184, 0.08);
+  color: #94a3b8;
 }
 
 [data-theme="dark"] .drawer-scrim {
@@ -244,6 +779,24 @@
 
 .dark .text-slate-400,
 .dark .text-gray-400 { color: rgba(255, 255, 255, 0.44); }
+
+/* Keep shared interactive text readable when light-theme hover utilities fire. */
+.dark .hover\:text-slate-900:hover,
+.dark .hover\:text-slate-800:hover,
+.dark .hover\:text-slate-700:hover,
+.dark .hover\:text-slate-600:hover {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.dark .hover\:text-slate-500:hover {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.dark .hover\:text-blue-600:hover,
+.dark .hover\:text-brand-600:hover,
+.dark .hover\:text-brand-700:hover {
+  color: var(--mui-primary);
+}
 
 .dark .border-slate-100,
 .dark .border-slate-200,

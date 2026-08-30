@@ -7,6 +7,7 @@ const API_CONFIG = {
   GET_CLASSES: '/v1/school/class/get',
   GET_STUDENTS: '/v1/school/student/get',
   GET_TEACHER_STAFF: '/v1/school/teacher-staff/get',
+  GET_MY_APPROVALS: '/v1/school/approval/my-approval',
 
   REQUEST_TIMEOUT: 30000,
 }

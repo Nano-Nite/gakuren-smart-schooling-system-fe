@@ -7,83 +7,75 @@ import {
   CloudOff,
   RefreshCw,
   Lock,
+  MessageCircle,
+  MapPin,
+  ScanLine,
+  TriangleAlert,
+  FileSpreadsheet,
+  Trophy,
 } from 'lucide-react'
 
 export const navLinks = [
-  { label: 'Fitur', href: '#fitur' },
-  { label: 'Harga', href: '#harga' },
-  { label: 'Integrasi', href: '#integrasi' },
-  { label: 'Tentang', href: '#tentang' },
-  { label: 'Bantuan', href: '#bantuan' },
+  { label: 'Solusi', href: '#solusi' },
+  { label: 'Cara Kerja', href: '#cara-kerja' },
+  { label: 'Dampak', href: '#dampak' },
+  { label: 'Roadmap', href: '#roadmap' },
 ]
 
 export const trustBadges = [
   {
     icon: ShieldCheck,
-    title: 'Aman & Terpercaya',
-    desc: 'Data terenkripsi',
+    title: 'Data Terpercaya',
+    desc: 'Cegah titip absen',
   },
   {
     icon: Users,
-    title: 'Mudah Digunakan',
-    desc: 'Siap dalam hitungan menit',
+    title: 'Respons Lebih Cepat',
+    desc: 'Notifikasi real-time',
   },
   {
     icon: CloudOff,
-    title: 'Cloud & Offline',
-    desc: 'Tetap jalan tanpa internet',
+    title: 'Satu Alur Kerja',
+    desc: 'Guru dan siswa',
   },
 ]
 
 export const features = [
   {
-    icon: CalendarCheck,
+    icon: MessageCircle,
     color: 'bg-blue-50 text-blue-600',
-    title: 'Absensi Cerdas',
-    desc: 'Absensi dengan QR dinamis, GPS, verifikasi wajah, dan mode offline. Data tersinkron otomatis.',
+    eyebrow: 'Respons real-time',
+    title: 'Orang tua langsung tahu',
+    desc: 'Saat siswa tidak hadir, sekolah dapat memberi kabar lewat WhatsApp saat itu juga—bukan menunggu rekap akhir hari.',
   },
   {
-    icon: ShieldCheck,
-    color: 'bg-emerald-50 text-emerald-600',
-    title: 'Izin & Sakit',
-    desc: 'Pengajuan izin atau sakit lebih mudah dengan persetujuan berjenjang dan notifikasi real-time.',
-  },
-  {
-    icon: Users,
-    color: 'bg-violet-50 text-violet-600',
-    title: 'Manajemen Guru & Pegawai',
-    desc: 'Kelola data guru dan pegawai, jabatan, kontrak, hingga riwayat kepegawaian dengan rapi.',
-  },
-  {
-    icon: Wallet,
-    color: 'bg-orange-50 text-orange-600',
-    title: 'Payroll & Penggajian',
-    desc: 'Hitung gaji otomatis berdasarkan kehadiran, tunjangan, potongan, dan aturan sekolah Anda.',
-  },
-  {
-    icon: LineChart,
-    color: 'bg-rose-50 text-rose-600',
-    title: 'Laporan Lengkap',
-    desc: 'Laporan kehadiran, izin, keterlambatan, hingga laporan payroll siap cetak dalam berbagai format.',
-  },
-  {
-    icon: CloudOff,
-    color: 'bg-sky-50 text-sky-600',
-    title: 'Offline & Sinkronisasi',
-    desc: 'Aplikasi tetap berjalan tanpa internet. Data akan tersinkron otomatis saat koneksi tersedia.',
-  },
-  {
-    icon: RefreshCw,
-    color: 'bg-indigo-50 text-indigo-600',
-    title: 'Integrasi Dapodik',
-    desc: 'Sinkron data guru, pegawai, dan siswa dari Dapodik dengan mudah dan aman.',
-  },
-  {
-    icon: Lock,
+    icon: TriangleAlert,
     color: 'bg-amber-50 text-amber-600',
-    title: 'Keamanan & Hak Akses',
-    desc: 'Kontrol akses berbasis role & permission. Data sekolah Anda aman dan terlindungi.',
+    eyebrow: 'Kedisiplinan digital',
+    title: 'Terlambat dan bolos tercatat',
+    desc: 'Gantikan buku piket dengan catatan digital yang terhubung ke riwayat kehadiran dan poin tata tertib siswa.',
   },
+  {
+    icon: MapPin,
+    color: 'bg-emerald-50 text-emerald-600',
+    eyebrow: 'Integritas data',
+    title: 'Kehadiran yang bisa dipercaya',
+    desc: 'Geofencing dan identifikasi unik membantu mencegah titip absen, sehingga data siap menjadi dasar laporan sekolah.',
+  },
+  {
+    icon: ScanLine,
+    color: 'bg-indigo-50 text-indigo-600',
+    eyebrow: 'Satu aplikasi',
+    title: 'Guru dan siswa, satu alur',
+    desc: 'Guru mencatat kehadirannya lalu mengabsen siswa dari dashboard kelas yang sama. Kepala sekolah memantau secara langsung.',
+  },
+]
+
+export const futureCapabilities = [
+  { icon: LineChart, title: 'Early warning', desc: 'Temukan pola absen tidak wajar sebelum menjadi masalah yang lebih besar.' },
+  { icon: FileSpreadsheet, title: 'Export siap kerja', desc: 'Rekap DHGTK, e-Rapor, dinas, BOS, dan PIP tanpa merapikan data dari nol.' },
+  { icon: ShieldCheck, title: 'Pelaporan aman', desc: 'Kanal laporan bullying dengan privasi, SLA respons, dan jejak tindak lanjut.' },
+  { icon: Trophy, title: 'Budaya disiplin positif', desc: 'Badge, sertifikat, dan apresiasi untuk kehadiran terbaik.' },
 ]
 
 export const testimonials = [
