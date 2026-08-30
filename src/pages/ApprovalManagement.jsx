@@ -252,7 +252,8 @@ function sanitizeRequestValue(value) {
 function ApprovalDetailDrawer({ approval, currentUser, loading, error, note, setNote, canApprove, canReject, onClose, onDecide, onCancel, onRetry }) {
   const isActive = String(approval.status || "").toLowerCase() === "active";
   const requestEntries = Object.entries(approval.requestData || {}).filter(([key]) => !isSensitiveRequestField(key));
-  const timeline = [{ state: "past", role_name: approval.role, act_by: approval.applicant, approve_date: approval.requestedDate, initiator: true }, ...(approval.progress || [])];
+  const timeline = approval.progress || [];
+  const cancelIndex = timeline.findIndex(step => String(step.action_code || "").toUpperCase() === "CANCEL");
   const normalizeIdentity = value => String(value || "").trim().toLowerCase();
   const userUuid = currentUser.uuid || currentUser.user_uuid || currentUser.UserUUID || currentUser.id;
   const userRole = currentUser.role_name || currentUser.role?.name || currentUser.RoleName;
@@ -263,7 +264,10 @@ function ApprovalDetailDrawer({ approval, currentUser, loading, error, note, set
   const initiatedByCurrentUser = sameUuid || sameName;
   const decisionDisabled = sameUuid || sameRole;
   const canProcessApproval = (canApprove || canReject) && !decisionDisabled;
-  const hasApprovalProgress = (approval.progress || []).some(step => String(step.state || "").toLowerCase() === "past" || step.approve_date || step.act_by);
+  const hasApprovalProgress = timeline.some(step => {
+    const actionCode = String(step.action_code || "").toUpperCase();
+    return actionCode !== "SUBMIT" && (String(step.state || "").toLowerCase() === "past" || step.approve_date || step.act_by);
+  });
   const canCancel = initiatedByCurrentUser && !hasApprovalProgress;
 
   return <div className="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="true" aria-label="Detail pengajuan">
@@ -283,7 +287,7 @@ function ApprovalDetailDrawer({ approval, currentUser, loading, error, note, set
             <div className="border-l pl-3"><p className="text-slate-500">Diajukan</p><p className="mt-2 font-bold">{approval.date}</p><p className="mt-1 text-slate-500">{approval.time}</p><p className="mt-2 text-slate-500">{approval.stage}</p></div>
           </section>
           <section><h3 className="mb-3 text-sm font-bold">Rincian Pengajuan</h3><dl className="divide-y divide-slate-100 rounded-xl border border-slate-200 px-4">{requestEntries.length ? requestEntries.map(([key, value]) => <div key={key} className="grid grid-cols-[140px_minmax(0,1fr)] gap-3 py-3 text-sm"><dt className="text-slate-500">{formatFieldLabel(key)}</dt><dd className="whitespace-pre-wrap break-words font-medium">{formatFieldValue(sanitizeRequestValue(value))}</dd></div>) : <div className="py-4 text-sm text-slate-500">Tidak ada data permintaan.</div>}</dl></section>
-          <article><h3 className="mb-3 text-sm font-bold">Progres Persetujuan</h3><div className="space-y-0">{timeline.map((step, index) => <ProgressStep key={`${step.initiator ? "initiator" : step.role_name}-${index}`} step={step} index={index} isLast={index === timeline.length - 1} />)}</div></article>
+          <article><h3 className="mb-3 text-sm font-bold">Progres Persetujuan</h3><div className="space-y-0">{timeline.length ? timeline.map((step, index) => <ProgressStep key={`${step.action_code || step.role_name}-${index}`} step={step} index={index} isLast={index === timeline.length - 1} cancelIndex={cancelIndex} />) : <p className="text-sm text-slate-500">Belum ada progres persetujuan.</p>}</div></article>
           {isActive && (canProcessApproval || canCancel) && <label className="block"><span className="mb-2 block text-sm font-bold">Catatan {canCancel ? <b className="text-rose-500">*</b> : "(opsional)"}</span><textarea required={canCancel} maxLength={120} value={note} onChange={event => setNote(event.target.value)} placeholder={canCancel ? "Alasan pembatalan wajib diisi..." : "Tulis catatan atau instruksi tambahan..."} className="h-28 w-full resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /><span className="-mt-6 mr-3 block text-right text-xs text-slate-400">{note.length} / 120</span></label>}
         </>}
       </div>
@@ -292,15 +296,22 @@ function ApprovalDetailDrawer({ approval, currentUser, loading, error, note, set
   </div>;
 }
 
-function ProgressStep({ step, index, isLast }) {
+function ProgressStep({ step, index, isLast, cancelIndex }) {
   const state = String(step.state || "future").toLowerCase();
+  const actionCode = String(step.action_code || "").toUpperCase();
+  const isSubmission = actionCode === "SUBMIT";
+  const isCancelled = actionCode === "CANCEL";
+  const isAffectedByCancellation = cancelIndex >= 0 && index >= cancelIndex;
+  const shouldPulse = isCancelled || (cancelIndex < 0 && state === "current");
+  const title = isSubmission ? "Pengajuan dibuat" : actionCode === "CANCEL" ? "Pengajuan dibatalkan" : step.role_name || "-";
   const approvedAt = formatDateTime(step.approve_date);
-  const nodeClass = state === "past" ? "bg-emerald-600 text-white" : state === "current" ? "bg-amber-500 text-white" : "border-2 border-slate-300 bg-white text-slate-500";
-  const nodeSizeClass = state === "current" ? "-ml-1 h-9 w-9 text-sm" : "h-7 w-7 text-xs";
-  const lineClass = state === "past" ? "bg-emerald-400" : "bg-slate-200";
+  const nodeClass = isAffectedByCancellation ? (isCancelled ? "bg-rose-600 text-white" : "border-2 border-rose-400 bg-rose-50 text-rose-600") : state === "past" ? "bg-emerald-600 text-white" : state === "current" ? "bg-amber-500 text-white" : "border-2 border-slate-300 bg-white text-slate-500";
+  const nodeSizeClass = shouldPulse ? "-ml-1 h-9 w-9 text-sm" : "h-7 w-7 text-xs";
+  const lineClass = cancelIndex >= 0 && index >= cancelIndex ? "bg-rose-400" : state === "past" ? "bg-emerald-400" : "bg-slate-200";
+  const titleClass = isAffectedByCancellation ? "text-rose-600" : state === "current" ? "text-amber-600" : "";
   return <div className="relative grid grid-cols-[28px_1fr] gap-3 pb-6 last:pb-0">
     {!isLast && <span className={`absolute left-[13px] top-7 h-[calc(100%-1.25rem)] w-0.5 ${lineClass}`} />}
-    <span className={`relative z-10 grid place-items-center rounded-full font-bold ${nodeSizeClass} ${nodeClass}`}>{state === "current" && <span aria-hidden="true" className="absolute inset-0 -z-10 animate-ping rounded-full bg-amber-400 opacity-40" />}<span className="relative z-10">{state === "past" ? <Check className="h-4 w-4" /> : index + 1}</span></span>
-    <div className="pt-1"><p className={`text-sm font-semibold ${state === "current" ? "text-amber-600" : ""}`}>{step.initiator ? "Pengajuan dibuat" : step.role_name || "-"}</p>{step.initiator ? <p className="mt-1 text-xs text-slate-600">{step.act_by || "-"} • {step.role_name || "-"}</p> : step.act_by && <p className="mt-1 text-xs text-slate-600">Diproses oleh {step.act_by}</p>}{step.approve_date && <p className="mt-1 text-xs text-slate-500">{approvedAt.date}, {approvedAt.time}</p>}{state === "current" && <p className="mt-1 text-xs text-amber-600">Menunggu persetujuan</p>}{step.note && <p className="mt-2 rounded-lg bg-slate-50 p-2.5 text-xs italic text-slate-600">{step.note}</p>}</div>
+    <span className={`relative z-10 grid place-items-center rounded-full font-bold ${nodeSizeClass} ${nodeClass}`}>{shouldPulse && <span aria-hidden="true" className={`absolute inset-0 -z-10 animate-ping rounded-full opacity-40 ${isCancelled ? "bg-rose-400" : "bg-amber-400"}`} />}<span className="relative z-10">{isCancelled ? <X className="h-4 w-4" /> : state === "past" ? <Check className="h-4 w-4" /> : index + 1}</span></span>
+    <div className="pt-1"><p className={`text-sm font-semibold ${titleClass}`}>{title}</p>{isSubmission ? <p className="mt-1 text-xs text-slate-600">{step.act_by || "-"} • {step.role_name || "-"}</p> : step.act_by && <p className={`mt-1 text-xs ${isAffectedByCancellation ? "text-rose-500" : "text-slate-600"}`}>Diproses oleh {step.act_by}</p>}{step.approve_date && <p className={`mt-1 text-xs ${isAffectedByCancellation ? "text-rose-500" : "text-slate-500"}`}>{approvedAt.date}, {approvedAt.time}</p>}{state === "current" && !isAffectedByCancellation && <p className="mt-1 text-xs text-amber-600">Menunggu persetujuan</p>}{step.note && <p className={`mt-2 rounded-lg p-2.5 text-xs italic ${isAffectedByCancellation ? "bg-rose-50 text-rose-600" : "bg-slate-50 text-slate-600"}`}>{step.note}</p>}</div>
   </div>;
 }
