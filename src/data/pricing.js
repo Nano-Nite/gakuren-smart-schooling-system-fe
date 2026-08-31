@@ -24,7 +24,7 @@ export const pricingPlans = [
   {
     code: 'PRO', name: 'Pro', price: 599000, priceLabel: 'Mulai Rp599.000', billingPeriod: 'per sekolah / bulan',
     capacity: 'Hingga 2.500 siswa', setupFee: 'Rp1.000.000', recommended: false,
-    description: 'Untuk sekolah besar yang membutuhkan pengawasan, analisis, dan penyesuaian sistem lebih lanjut.', cta: 'Pilih Pro',
+    description: 'Untuk sekolah besar yang membutuhkan pengawasan, analisis, dan penyesuaian sistem lebih lanjut.', cta: 'Konsultasikan Pro',
     features: [development('Semua fitur Standar'), contact('Pencegahan manipulasi lanjutan'), contact('Verifikasi kehadiran tambahan'), development('Laporan lanjutan'), development('Peringatan dini pola kehadiran'), contact('Dukungan beberapa lokasi'), contact('Identitas visual sekolah'), contact('Dukungan prioritas')],
   },
   {
