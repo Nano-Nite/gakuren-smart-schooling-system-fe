@@ -306,7 +306,12 @@ export const authenticatedRequest = async (endpoint, options = {}) => {
       clearAuthData();
       throw new Error(data.message || ERROR_MESSAGES.UNAUTHORIZED);
     }
-    if (!response.ok || data.error) throw new Error(data.message || ERROR_MESSAGES.SERVER_ERROR);
+    if (!response.ok || data.error) {
+      const requestError = new Error(data.message || ERROR_MESSAGES.SERVER_ERROR);
+      requestError.status = response.status;
+      requestError.serverError = typeof data.error === "string" ? data.error : "";
+      throw requestError;
+    }
     setNetworkAvailable(true);
     return data;
   } catch (error) {

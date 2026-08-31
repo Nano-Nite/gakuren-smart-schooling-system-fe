@@ -15,6 +15,18 @@
   --mui-success: #2e7d32;
   --mui-warning: #ed6c02;
   --mui-error: #d32f2f;
+  --feedback-info-bg: #eff6ff;
+  --feedback-info-border: #bfdbfe;
+  --feedback-info-text: #1d4ed8;
+  --feedback-success-bg: #ecfdf5;
+  --feedback-success-border: #a7f3d0;
+  --feedback-success-text: #047857;
+  --feedback-warning-bg: #fffbeb;
+  --feedback-warning-border: #fde68a;
+  --feedback-warning-text: #b45309;
+  --feedback-error-bg: #fff1f2;
+  --feedback-error-border: #fecdd3;
+  --feedback-error-text: #be123c;
 }
 
 .dark {
@@ -30,6 +42,18 @@
   --mui-success: #66bb6a;
   --mui-warning: #ffa726;
   --mui-error: #f44336;
+  --feedback-info-bg: rgba(59, 130, 246, 0.16);
+  --feedback-info-border: rgba(96, 165, 250, 0.48);
+  --feedback-info-text: #bfdbfe;
+  --feedback-success-bg: rgba(16, 185, 129, 0.16);
+  --feedback-success-border: rgba(52, 211, 153, 0.45);
+  --feedback-success-text: #a7f3d0;
+  --feedback-warning-bg: rgba(245, 158, 11, 0.17);
+  --feedback-warning-border: rgba(251, 191, 36, 0.48);
+  --feedback-warning-text: #fde68a;
+  --feedback-error-bg: rgba(244, 63, 94, 0.17);
+  --feedback-error-border: rgba(251, 113, 133, 0.48);
+  --feedback-error-text: #fecdd3;
 }
 
 @layer base {
@@ -733,22 +757,55 @@
 }
 
 .dark .bg-brand-50,
-.dark .bg-blue-50,
 .dark .hover\:bg-blue-50:hover,
 .dark .hover\:bg-blue-50\/50:hover {
   background-color: rgba(144, 202, 249, 0.12);
 }
 
-.dark .bg-emerald-50,
-.dark .bg-emerald-100,
 .dark .hover\:bg-emerald-50:hover {
   background-color: rgba(16, 185, 129, 0.14);
 }
 
 .dark .bg-orange-50 { background-color: rgba(249, 115, 22, 0.14); }
 .dark .bg-purple-50 { background-color: rgba(139, 92, 246, 0.14); }
-.dark .bg-rose-50,
 .dark .hover\:bg-rose-50:hover { background-color: rgba(244, 63, 94, 0.14); }
+
+/* Shared semantic feedback palette. These mappings keep alerts, banners,
+   validation messages, and status callouts readable throughout the app. */
+.bg-blue-50 { background-color: var(--feedback-info-bg); }
+.border-blue-200,
+.border-blue-300 { border-color: var(--feedback-info-border); }
+.text-blue-500,
+.text-blue-600,
+.text-blue-700,
+.text-blue-800 { color: var(--feedback-info-text); }
+
+.bg-emerald-50,
+.bg-emerald-100 { background-color: var(--feedback-success-bg); }
+.border-emerald-200,
+.border-emerald-300 { border-color: var(--feedback-success-border); }
+.text-emerald-500,
+.text-emerald-600,
+.text-emerald-700,
+.text-emerald-800 { color: var(--feedback-success-text); }
+
+.bg-amber-50,
+.bg-amber-100 { background-color: var(--feedback-warning-bg); }
+.border-amber-200,
+.border-amber-300 { border-color: var(--feedback-warning-border); }
+.text-amber-500,
+.text-amber-600,
+.text-amber-700,
+.text-amber-800 { color: var(--feedback-warning-text); }
+
+.bg-rose-50,
+.bg-rose-100 { background-color: var(--feedback-error-bg); }
+.border-rose-200,
+.border-rose-300 { border-color: var(--feedback-error-border); }
+.text-rose-500,
+.text-rose-600,
+.text-rose-700,
+.text-rose-800 { color: var(--feedback-error-text); }
 
 /* Timeline circles must be opaque so connector lines stop at their edges. */
 .dark .approval-timeline-node-cutout {
