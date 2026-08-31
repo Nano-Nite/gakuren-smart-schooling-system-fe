@@ -6,10 +6,9 @@ import { getAssignedMenuItems, getPermissions, hasMenuAccess, MENU_ROUTES } from
 import ThemeToggle from "./ThemeToggle";
 import PageSkeleton from "./PageSkeleton";
 import { usePageLoading } from "../context/PageLoadingContext";
+import { useLocale } from "../context/LocaleContext";
 
 const icons = { Dashboard: LayoutDashboard, "QR Code": QrCode, "Teacher and Staff": Users, "Student Management": User, "Class Management": Box, Attendance: Calendar, Absence: Shield, Approval: CheckSquare, Report: Signal, Setting: Settings };
-const subtitles = { Dashboard: "Ringkasan aktivitas sekolah", "QR Code": "Scan QR untuk mencatat kehadiran", "Class Management": "Kelola data kelas di sekolah", Approval: "Tinjau dan proses pengajuan yang menunggu persetujuan" };
-const pageTitles = { "QR Code": "Scan QR Code", "Student Management": "Siswa", "Class Management": "Kelas", Approval: "Persetujuan" };
 
 export default function AppLayout() {
   const navigate = useNavigate();
@@ -21,17 +20,18 @@ export default function AppLayout() {
   const previousPath = useRef(location.pathname);
   const navigationStarted = useRef(false);
   const { isPageLoading, startLoading, stopLoading } = usePageLoading();
+  const { t } = useLocale();
   const permissions = useMemo(() => getPermissions(), []);
   const menus = useMemo(() => getAssignedMenuItems(), []);
   const user = useMemo(() => { try { return JSON.parse(sessionStorage.getItem("userData") || "{}"); } catch { return {}; } }, []);
   const activeMenu = location.pathname === "/profile" ? "Profile" : menus.find(label => MENU_ROUTES[label] === location.pathname) || menus[0];
 
   useEffect(() => {
-    document.title = `${pageTitles[activeMenu] || activeMenu || "Gakuren"} — Gakuren`;
+    document.title = `${activeMenu ? t(`menu.${activeMenu}`, activeMenu) : "Gakuren"} — Gakuren`;
     if (Object.values(MENU_ROUTES).includes(location.pathname)) {
       localStorage.setItem("gakuren:last-menu-route", location.pathname);
     }
-  }, [activeMenu, location.pathname]);
+  }, [activeMenu, location.pathname, t]);
 
   useEffect(() => {
     const closeAccountMenu = event => {
@@ -73,18 +73,18 @@ export default function AppLayout() {
         <button aria-label={expanded ? "Ciutkan sidebar" : "Perluas sidebar"} onClick={() => setExpanded(value => !value)} className="sidebar-toggle absolute -right-3 top-6 z-10 hidden h-7 w-7 items-center justify-center rounded-full border shadow-sm transition-colors lg:flex">{expanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
         <button aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)} className="ml-auto rounded-lg p-2 lg:hidden"><X className="h-5 w-5" /></button>
       </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-3">{menus.map(label => { const Icon = icons[label] || FileText; const active = MENU_ROUTES[label] === location.pathname; const allowed = hasMenuAccess(label, permissions); return <button key={label} title={!expanded ? label : allowed ? undefined : `${label} — akses terbatas`} onClick={() => goTo(label)} className={`flex w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2.5 text-sm ${active ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-600 hover:bg-slate-50"}`}><Icon className={`h-[18px] w-[18px] shrink-0 transition-transform duration-500 ${expanded ? "lg:translate-x-0" : "lg:translate-x-[15px]"}`} /><span className={`min-w-0 flex-1 truncate whitespace-nowrap text-left transition-all duration-300 ${expanded ? "lg:max-w-[150px] lg:opacity-100" : "lg:max-w-0 lg:opacity-0"}`}>{label}</span>{!allowed && <LockKeyhole className={`h-3.5 w-3.5 shrink-0 text-amber-500 transition-opacity ${expanded ? "opacity-100" : "lg:opacity-0"}`} />}</button>; })}</nav>
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-3">{menus.map(label => { const Icon = icons[label] || FileText; const active = MENU_ROUTES[label] === location.pathname; const allowed = hasMenuAccess(label, permissions); const displayLabel = t(`menu.${label}`, label); return <button key={label} title={!expanded ? displayLabel : allowed ? undefined : `${displayLabel} — akses terbatas`} onClick={() => goTo(label)} className={`flex w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2.5 text-sm ${active ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-600 hover:bg-slate-50"}`}><Icon className={`h-[18px] w-[18px] shrink-0 transition-transform duration-500 ${expanded ? "lg:translate-x-0" : "lg:translate-x-[15px]"}`} /><span className={`min-w-0 flex-1 truncate whitespace-nowrap text-left transition-all duration-300 ${expanded ? "lg:max-w-[150px] lg:opacity-100" : "lg:max-w-0 lg:opacity-0"}`}>{displayLabel}</span>{!allowed && <LockKeyhole className={`h-3.5 w-3.5 shrink-0 text-amber-500 transition-opacity ${expanded ? "opacity-100" : "lg:opacity-0"}`} />}</button>; })}</nav>
       <div className={`m-3 overflow-hidden rounded-xl bg-slate-50 transition-all duration-300 ${expanded ? "p-3 opacity-100" : "lg:m-0 lg:max-h-0 lg:p-0 lg:opacity-0"}`}><p className="whitespace-nowrap text-[10px] text-slate-500">Tahun Ajaran</p><p className="mt-1 whitespace-nowrap text-xs font-semibold text-blue-600">2026/2027 - Genap</p></div>
     </aside>
     <div className="flex min-w-0 flex-1 flex-col">
       <header className="flex h-[72px] shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:px-6">
-        <div className="flex min-w-0 flex-1 items-center gap-3"><button aria-label="Buka navigasi" onClick={() => setMobileOpen(true)} className="sidebar-toggle rounded-lg border p-2 shadow-sm lg:hidden"><Menu className="h-5 w-5" /></button><div className="min-w-0"><h1 className="truncate text-lg font-bold"><span className="sm:hidden">{pageTitles[activeMenu] || activeMenu || "Gakuren"}</span><span className="hidden sm:inline">{activeMenu || "Gakuren"}</span></h1><p className="truncate text-xs text-slate-500">{subtitles[activeMenu] || "Kelola data sekolah"}</p></div></div>
+        <div className="flex min-w-0 flex-1 items-center gap-3"><button aria-label="Buka navigasi" onClick={() => setMobileOpen(true)} className="sidebar-toggle rounded-lg border p-2 shadow-sm lg:hidden"><Menu className="h-5 w-5" /></button><div className="min-w-0"><h1 className="truncate text-lg font-bold">{activeMenu ? t(`menu.${activeMenu}`, activeMenu) : "Gakuren"}</h1><p className="truncate text-xs text-slate-500">{t(`subtitle.${activeMenu}`, t("subtitle.fallback"))}</p></div></div>
         <div className="flex shrink-0 items-center gap-2"><ThemeToggle /><div ref={accountMenuRef} className="relative shrink-0">
           <button type="button" aria-haspopup="menu" aria-expanded={accountOpen} onClick={() => setAccountOpen(value => !value)} className={`flex items-center gap-3 rounded-xl p-1.5 hover:bg-slate-50 ${accountOpen ? "bg-slate-50" : ""}`}><img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.user_name || "Admin")}&background=DBEAFE&color=1D4ED8&bold=true`} alt="" className="h-10 w-10 rounded-full" /><div className="hidden text-left sm:block"><p className="text-sm font-bold">{user.user_name || "Admin"}</p><p className="text-[10px] text-slate-400">{user.role_name || "Administrator"}</p></div><ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${accountOpen ? "rotate-180" : ""}`} /></button>
           <div role="menu" className={`absolute right-0 top-[calc(100%+8px)] z-50 w-48 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl transition-all duration-200 ${accountOpen ? "visible translate-y-0 scale-100 opacity-100" : "invisible -translate-y-2 scale-95 opacity-0"}`}>
-            <button role="menuitem" onClick={() => { navigateWithLoading("/profile"); setAccountOpen(false); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"><CircleUser className="h-4 w-4" />Profile</button>
+            <button role="menuitem" onClick={() => { navigateWithLoading("/profile"); setAccountOpen(false); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"><CircleUser className="h-4 w-4" />{t("common.profile")}</button>
             <div className="my-1 border-t border-slate-100" />
-            <button role="menuitem" onClick={logout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-rose-600 hover:bg-rose-50"><LogOut className="h-4 w-4" />Logout</button>
+            <button role="menuitem" onClick={logout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-rose-600 hover:bg-rose-50"><LogOut className="h-4 w-4" />{t("common.logout")}</button>
           </div>
         </div></div>
       </header>

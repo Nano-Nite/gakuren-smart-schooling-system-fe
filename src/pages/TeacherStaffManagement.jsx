@@ -11,7 +11,7 @@ import { authenticatedRequest } from "../utils/api";
 import { getCrudPermissions } from "../utils/permissions";
 
 const columns = [["Nama", "name"], ["NIP", "nip"], ["Email", "email"], ["No. HP / WhatsApp", "phone"], ["Jabatan", "position"], ["Status", "status"]];
-const statuses = { Aktif: "active", Nonaktif: "inactive", Pending: "pending" };
+const statuses = { Aktif: "active", Nonaktif: "inactive", Menunggu: "pending" };
 const statusLabels = { active: "Aktif", inactive: "Nonaktif", pending: "Pending" };
 const emptyForm = { name: "", nip: "", email: "", phone: "", position: "", status: "Aktif" };
 const textFields = [["Nama", "name", "text", "Contoh: Ahmad Fauzi, S.Pd"], ["NIP", "nip", "text", "Masukkan NIP"], ["Email", "email", "email", "Contoh: nama@sekolah.sch.id"], ["No. HP / WhatsApp", "phone", "tel", "Contoh: 081234567890"], ["Jabatan", "position", "text", "Contoh: Guru Matematika"]];

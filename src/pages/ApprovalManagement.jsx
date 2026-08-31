@@ -147,7 +147,7 @@ export default function ApprovalManagement() {
             time: validDate ? new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }).format(requestedAt) : "-",
             action: item.action || "UPDATE",
             status: item.status,
-            details: [["Workflow", item.workflow_name || "-"], ["Nomor Tiket", item.ticket_number || "-"], ["Tahap", `${item.current_step ?? 0} dari ${item.total_step ?? 0}`], ["Status", item.status || "-"]],
+            details: [["Alur Kerja", item.workflow_name || "-"], ["Nomor Tiket", item.ticket_number || "-"], ["Tahap", `${item.current_step ?? 0} dari ${item.total_step ?? 0}`], ["Status", item.status || "-"]],
           };
         }));
         setStatistics(payload.data_statistic || { start_row: 0, end_row: 0, total_row: 0, max_page: 1 });

@@ -5,6 +5,7 @@ import App from './App.jsx'
 import './index.css'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import { PageLoadingProvider } from './context/PageLoadingContext.jsx'
+import { LocaleProvider } from './context/LocaleContext.jsx'
 import OfflineBanner from './components/OfflineBanner.jsx'
 import PwaInstallBanner from './components/PwaInstallBanner.jsx'
 
@@ -25,6 +26,6 @@ if (import.meta.env.PROD) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ThemeProvider><PageLoadingProvider><OfflineBanner /><PwaInstallBanner /><App /></PageLoadingProvider></ThemeProvider>
+    <LocaleProvider><ThemeProvider><PageLoadingProvider><OfflineBanner /><PwaInstallBanner /><App /></PageLoadingProvider></ThemeProvider></LocaleProvider>
   </React.StrictMode>
 )

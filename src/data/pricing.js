@@ -19,19 +19,19 @@ export const pricingPlans = [
     code: 'STANDARD', name: 'Standard', price: 299000, priceLabel: 'Rp299.000', billingPeriod: 'per sekolah / bulan',
     capacity: 'Hingga 1.000 siswa', setupFee: 'Rp500.000', recommended: true,
     description: 'Untuk sekolah yang membutuhkan kontrol, fleksibilitas, dan laporan operasional yang lebih lengkap.', cta: 'Pilih Standard',
-    features: [development('Semua fitur Basic'), development('QR dinamis'), contact('Validasi lokasi'), contact('Identifikasi perangkat'), available('Dukungan offline PWA', 'Progressive Web App: aplikasi web yang dapat dipasang dan mendukung penggunaan offline terbatas.'), available('Sinkronisasi data'), development('Export Excel'), contact('Audit aktivitas', 'Riwayat aktivitas dan perubahan data.'), available('Multi-role dan permission'), available('Approval bertahap')],
+    features: [development('Semua fitur Dasar'), development('QR dinamis'), contact('Validasi lokasi'), contact('Identifikasi perangkat'), available('Dukungan luring PWA', 'Aplikasi web progresif yang dapat dipasang dan mendukung penggunaan luring terbatas.'), available('Sinkronisasi data'), development('Ekspor Excel'), contact('Audit aktivitas', 'Riwayat aktivitas dan perubahan data.'), available('Multi-peran dan hak akses'), available('Persetujuan bertahap')],
   },
   {
     code: 'PRO', name: 'Pro', price: 599000, priceLabel: 'Mulai Rp599.000', billingPeriod: 'per sekolah / bulan',
     capacity: 'Hingga 2.500 siswa', setupFee: 'Rp1.000.000', recommended: false,
     description: 'Untuk sekolah besar yang membutuhkan pengawasan, analisis, dan penyesuaian sistem lebih lanjut.', cta: 'Pilih Pro',
-    features: [development('Semua fitur Standard'), contact('Pencegahan manipulasi lanjutan'), contact('Verifikasi kehadiran tambahan'), development('Laporan lanjutan'), development('Early warning pola kehadiran'), contact('Dukungan beberapa lokasi'), contact('Branding sekolah'), contact('Dukungan prioritas')],
+    features: [development('Semua fitur Standar'), contact('Pencegahan manipulasi lanjutan'), contact('Verifikasi kehadiran tambahan'), development('Laporan lanjutan'), development('Peringatan dini pola kehadiran'), contact('Dukungan beberapa lokasi'), contact('Identitas visual sekolah'), contact('Dukungan prioritas')],
   },
   {
     code: 'ENTERPRISE', name: 'Enterprise', price: 1000000, priceLabel: 'Mulai Rp1.000.000', billingPeriod: 'per bulan',
     capacity: 'Multi-sekolah', setupFee: 'Sesuai kebutuhan', recommended: false,
     description: 'Untuk yayasan atau organisasi yang mengelola beberapa sekolah dan membutuhkan konfigurasi khusus.', cta: 'Hubungi Kami',
-    features: [development('Semua fitur Pro'), development('Pengelolaan multi-sekolah'), development('Dashboard yayasan'), contact('Konfigurasi workflow khusus'), contact('Custom domain'), contact('API dan integrasi', 'Antarmuka untuk menghubungkan Gakuren dengan sistem lain.'), contact('Service level agreement', 'Kesepakatan tingkat layanan dan dukungan.'), contact('Dukungan implementasi'), contact('Penyesuaian kebutuhan organisasi')],
+    features: [development('Semua fitur Pro'), development('Pengelolaan multi-sekolah'), development('Dasbor yayasan'), contact('Konfigurasi alur kerja khusus'), contact('Domain khusus'), contact('API dan integrasi', 'Antarmuka untuk menghubungkan Gakuren dengan sistem lain.'), contact('Kesepakatan tingkat layanan', 'Kesepakatan tingkat layanan dan dukungan.'), contact('Dukungan implementasi'), contact('Penyesuaian kebutuhan organisasi')],
   },
 ]
 
@@ -39,11 +39,11 @@ export const comparisonGroups = [
   { category: 'Data sekolah', features: ['Data siswa, guru, dan kelas', 'Pengelolaan multi-sekolah'] },
   { category: 'Kehadiran', features: ['Absensi dasar', 'QR kehadiran', 'QR dinamis', 'Dukungan offline PWA'] },
   { category: 'Integritas data', features: ['Validasi lokasi', 'Identifikasi perangkat', 'Audit aktivitas'] },
-  { category: 'Workflow', features: ['Pengajuan izin dan sakit', 'Multi-role dan permission', 'Approval bertahap'] },
-  { category: 'Laporan dan export', features: ['Rekap kehadiran', 'Export Excel', 'Laporan lanjutan'] },
-  { category: 'Analisis', features: ['Early warning pola kehadiran'] },
-  { category: 'Kustomisasi', features: ['Branding sekolah', 'Custom domain', 'API dan integrasi'] },
-  { category: 'Dukungan', features: ['Dukungan prioritas', 'Service level agreement', 'Dukungan implementasi'] },
+  { category: 'Alur kerja', features: ['Pengajuan izin dan sakit', 'Multi-peran dan hak akses', 'Persetujuan bertahap'] },
+  { category: 'Laporan dan ekspor', features: ['Rekap kehadiran', 'Ekspor Excel', 'Laporan lanjutan'] },
+  { category: 'Analisis', features: ['Peringatan dini pola kehadiran'] },
+  { category: 'Kustomisasi', features: ['Identitas visual sekolah', 'Domain khusus', 'API dan integrasi'] },
+  { category: 'Dukungan', features: ['Dukungan prioritas', 'Kesepakatan tingkat layanan', 'Dukungan implementasi'] },
 ]
 
 export const pricingFaqs = [

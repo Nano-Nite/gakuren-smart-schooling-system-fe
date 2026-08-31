@@ -18,7 +18,7 @@ const columns = [
   ["Jenis Kelamin", "gender"],
   ["Status", "status"],
 ];
-const statusApiValues = { Aktif: "active", Nonaktif: "inactive", Pending: "pending" };
+const statusApiValues = { Aktif: "active", Nonaktif: "inactive", Menunggu: "pending" };
 const statusLabels = { active: "Aktif", inactive: "Nonaktif", pending: "Pending" };
 const emptyForm = { name: "", nis: "", class_name: "", phone: "", gender: "Laki-Laki", status: "Aktif" };
 
@@ -132,7 +132,7 @@ export default function StudentManagement() {
           <div className="flex min-w-0 flex-1 items-center gap-2 lg:gap-3">
             <button title="Muat ulang" disabled={loading} onClick={() => setRefreshKey(value => value + 1)} className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /></button>
             <label className="relative min-w-0 flex-1 lg:max-w-56"><Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" /><input value={query} onChange={event => { setQuery(event.target.value); setPage(1); }} placeholder="Cari data" className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-9 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />{query && <button aria-label="Hapus pencarian" onClick={() => { setQuery(""); setPage(1); }} className="absolute right-1.5 top-1.5 rounded p-2 text-slate-400 hover:bg-slate-100"><X className="h-4 w-4" /></button>}</label>
-            <Select value={status} onChange={value => { setStatus(value); setPage(1); }} ariaLabel="Filter status" className="w-36 shrink-0 sm:w-40" options={[{ value: "Semua", label: "Semua Status" }, "Aktif", "Nonaktif", "Pending"]} />
+            <Select value={status} onChange={value => { setStatus(value); setPage(1); }} ariaLabel="Filter status" className="w-36 shrink-0 sm:w-40" options={[{ value: "Semua", label: "Semua Status" }, "Aktif", "Nonaktif", "Menunggu"]} />
           </div>
           <div className="flex w-full justify-end gap-2 md:w-auto">
             {access.canCreate && <button className="action-lift inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 shadow-sm"><Download className="h-4 w-4" /><span className="hidden xl:inline">Import</span></button>}

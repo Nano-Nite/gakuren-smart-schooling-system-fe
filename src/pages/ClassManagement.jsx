@@ -13,7 +13,7 @@ import StatusRowActions from "../components/StatusRowActions";
 const emptyForm = { name: "", abbr_name: "", level: "10", teacher: "", students: 0, status: "Aktif" };
 const columns = [["Nama Kelas", "name"], ["Tingkat", "level"], ["Wali Kelas", "teacher"], ["Jumlah Siswa", "students"], ["Status", "status"]];
 const sortApiKeys = { teacher: "homeroom_teacher", students: "total_student" };
-const statusApiValues = { Aktif: "active", Nonaktif: "inactive", Pending: "pending" };
+const statusApiValues = { Aktif: "active", Nonaktif: "inactive", Menunggu: "pending" };
 const statusLabels = { active: "Aktif", inactive: "Nonaktif", pending: "Pending" };
 
 export default function ClassManagement() {
@@ -144,7 +144,7 @@ export default function ClassManagement() {
           <div className="flex min-w-0 w-full flex-1 flex-row items-center gap-2 md:w-auto lg:gap-3">
             <button title="Muat ulang" onClick={() => setRefreshKey(value => value + 1)} disabled={loading} className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /></button>
             <label className="relative min-w-0 flex-1 lg:max-w-56"><Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" /><input value={query} onChange={event => { setQuery(event.target.value); setPage(1); }} placeholder="Cari data" className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-9 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />{query && <button aria-label="Hapus pencarian" onClick={() => { setQuery(""); setPage(1); }} className="absolute right-1.5 top-1.5 rounded p-2 text-slate-400 hover:bg-slate-100"><X className="h-4 w-4" /></button>}</label>
-            <Select value={status} onChange={value => { setStatus(value); setPage(1); }} ariaLabel="Filter status" className="w-36 shrink-0 sm:w-40" options={[{ value: "Semua", label: "Semua Status" }, "Aktif", "Nonaktif", "Pending"]} />
+            <Select value={status} onChange={value => { setStatus(value); setPage(1); }} ariaLabel="Filter status" className="w-36 shrink-0 sm:w-40" options={[{ value: "Semua", label: "Semua Status" }, "Aktif", "Nonaktif", "Menunggu"]} />
           </div>
           <div className="flex w-full shrink-0 flex-row justify-end gap-1.5 md:w-auto lg:gap-2">
             {access.canCreate && <button title="Import" aria-label="Import" className="action-lift flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 shadow-sm hover:bg-slate-50 xl:px-4"><Download className="h-4 w-4" /><span className="hidden xl:inline">Import</span></button>}

@@ -72,7 +72,7 @@ export const features = [
 ]
 
 export const futureCapabilities = [
-  { icon: LineChart, title: 'Early warning', desc: 'Temukan pola absen tidak wajar sebelum menjadi masalah yang lebih besar.' },
+  { icon: LineChart, title: 'Peringatan dini', desc: 'Temukan pola absen tidak wajar sebelum menjadi masalah yang lebih besar.' },
   { icon: FileSpreadsheet, title: 'Export siap kerja', desc: 'Rekap DHGTK, e-Rapor, dinas, BOS, dan PIP tanpa merapikan data dari nol.' },
   { icon: ShieldCheck, title: 'Pelaporan aman', desc: 'Kanal laporan bullying dengan privasi, SLA respons, dan jejak tindak lanjut.' },
   { icon: Trophy, title: 'Budaya disiplin positif', desc: 'Badge, sertifikat, dan apresiasi untuk kehadiran terbaik.' },
