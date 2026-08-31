@@ -16,6 +16,16 @@ const approvalFieldSchemas = {
 
 const commonApprovalFieldLabels = { name: "Nama", status: "Status", email: "Email", phone: "No. HP / WhatsApp", address: "Alamat", gender: "Jenis Kelamin", description: "Deskripsi", note: "Catatan" };
 
+const approvalEntityEndpoints = {
+  class: API_CONFIG.GET_CLASSES,
+  kelas: API_CONFIG.GET_CLASSES,
+  student: API_CONFIG.GET_STUDENTS,
+  siswa: API_CONFIG.GET_STUDENTS,
+  teacher: API_CONFIG.GET_TEACHER_STAFF,
+  staff: API_CONFIG.GET_TEACHER_STAFF,
+  guru: API_CONFIG.GET_TEACHER_STAFF,
+};
+
 export default function ApprovalManagement() {
   const currentUser = getUserData() || {};
   const currentUserName = currentUser.user_name || currentUser.name || currentUser.full_name || null;
@@ -83,7 +93,7 @@ export default function ApprovalManagement() {
       const payload = response.data || {};
       const instance = payload.instance || {};
       const requestedAt = formatDateTime(instance.requested_date);
-      setDetail({
+      const nextDetail = {
         ...row,
         uuid: instance.uuid || row.uuid,
         id: instance.ticket_number || row.id,
@@ -101,8 +111,37 @@ export default function ApprovalManagement() {
         entityUuid: instance.entity_uuid,
         stage: `Tahap ${instance.current_step ?? 0} dari ${instance.total_step ?? 0}`,
         requestData: instance.request_data && typeof instance.request_data === "object" ? instance.request_data : {},
+        activeData: null,
+        activeDataError: "",
         progress: Array.isArray(payload.progress) ? payload.progress : [],
-      });
+      };
+      setDetail(nextDetail);
+
+      if (String(nextDetail.action).toUpperCase() === "UPDATE" && nextDetail.entityUuid) {
+        const endpoint = getApprovalEntityEndpoint(nextDetail.entityType, nextDetail.module, nextDetail.requestData);
+        if (!endpoint) {
+          setDetail(current => current ? { ...current, activeDataError: "Endpoint data aktif untuk modul ini belum dikonfigurasi." } : current);
+          return;
+        }
+        try {
+          const activeResponse = await authenticatedRequest(endpoint, {
+            method: "POST",
+            signal: controller.signal,
+            body: {
+              search: null,
+              filter: { uuid: nextDetail.entityUuid },
+              page: 1,
+              row_per_page: 1,
+            },
+          });
+          const activeData = extractActiveEntity(activeResponse.data, nextDetail.entityUuid);
+          setDetail(current => current ? { ...current, activeData, activeDataError: activeData ? "" : "Data aktif tidak ditemukan." } : current);
+        } catch (activeRequestError) {
+          if (activeRequestError.name !== "AbortError") {
+            setDetail(current => current ? { ...current, activeDataError: activeRequestError.message || "Gagal memuat data aktif." } : current);
+          }
+        }
+      }
     } catch (requestError) {
       if (requestError.name !== "AbortError") setDetailError(requestError.message);
     } finally {
@@ -320,6 +359,52 @@ function formatDateTime(value) {
   };
 }
 
+function getApprovalEntityEndpoint(entityType, moduleName, requestData) {
+  const descriptors = [entityType, moduleName].map(value => String(value || "").toLowerCase());
+  const directMatch = Object.entries(approvalEntityEndpoints).find(([key]) => descriptors.some(value => value.includes(key)));
+  if (directMatch) return directMatch[1];
+  const schema = getApprovalFieldSchema(entityType, requestData);
+  if (schema === approvalFieldSchemas.class) return API_CONFIG.GET_CLASSES;
+  if (schema === approvalFieldSchemas.student) return API_CONFIG.GET_STUDENTS;
+  if (schema === approvalFieldSchemas.teacher) return API_CONFIG.GET_TEACHER_STAFF;
+  return null;
+}
+
+function extractActiveEntity(payload, entityUuid) {
+  if (!payload || typeof payload !== "object") return null;
+  const candidates = [payload.instance, payload.result, payload.data, payload];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      const match = candidate.find(item => String(item?.uuid || item?.UUID || "") === String(entityUuid));
+      if (match) return match;
+      if (candidate.length === 1 && candidate[0] && typeof candidate[0] === "object") return candidate[0];
+    } else if (candidate && typeof candidate === "object") {
+      const nested = candidate.instance || candidate.result;
+      if (nested && nested !== candidate) {
+        const extracted = extractActiveEntity(nested, entityUuid);
+        if (extracted) return extracted;
+      }
+      if (candidate.uuid || candidate.UUID || candidate.name || candidate.Name) return candidate;
+    }
+  }
+  return null;
+}
+
+function getComparableFieldValue(data, key) {
+  const normalizedKey = normalizeApprovalFieldKey(key);
+  const entry = Object.entries(data || {}).find(([candidateKey]) => normalizeApprovalFieldKey(candidateKey) === normalizedKey);
+  return entry?.[1];
+}
+
+function areApprovalValuesEqual(currentValue, requestedValue) {
+  const normalize = value => {
+    if (value === null || value === undefined || value === "") return "";
+    if (typeof value === "object") return JSON.stringify(sanitizeRequestValue(value));
+    return String(value).trim();
+  };
+  return normalize(currentValue) === normalize(requestedValue);
+}
+
 function formatFieldLabel(key) {
   if (commonApprovalFieldLabels[key]) return commonApprovalFieldLabels[key];
   return String(key)
@@ -348,6 +433,7 @@ function sanitizeRequestValue(value) {
 
 function ApprovalDetailDrawer({ approval, currentUser, loading, error, actionError, actionProgress, executing, note, setNote, canApprove, canReject, onClose, onDecide, onCancel, onRetry }) {
   const isActive = String(approval.status || "").toLowerCase() === "active";
+  const isUpdate = String(approval.action || "").toUpperCase() === "UPDATE";
   const requestEntries = getApprovalRequestEntries(approval.requestData || {}, approval.entityType);
   const timeline = approval.progress || [];
   const cancelIndex = timeline.findIndex(step => String(step.action_code || "").toUpperCase() === "CANCEL");
@@ -379,11 +465,15 @@ function ApprovalDetailDrawer({ approval, currentUser, loading, error, actionErr
         {!loading && error && <div className="grid min-h-52 place-items-center text-center text-rose-600"><div><p className="font-semibold">Gagal memuat detail pengajuan</p><p className="mt-1 text-xs">{error}</p><button onClick={onRetry} className="mt-4 rounded-lg border border-rose-200 px-4 py-2 text-xs font-semibold hover:bg-rose-50">Coba lagi</button></div></div>}
         {!loading && !error && <>
           <div className="flex items-center justify-between gap-3"><Status value={approval.status} /><span className="rounded bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-600">{approval.action}</span></div>
-          <section className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 p-4 text-xs">
-            <div><p className="text-slate-500">Pemohon</p><p className="mt-2 font-bold">{approval.applicant}</p><p className="mt-1 text-slate-500">{approval.role}</p></div>
-            <div className="border-l pl-3"><p className="text-slate-500">Diajukan</p><p className="mt-2 font-bold">{approval.date}</p><p className="mt-1 text-slate-500">{approval.time}</p><p className="mt-2 text-slate-500">{approval.stage}</p></div>
+          <section className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs dark:border-slate-700 dark:bg-transparent">
+            <div><p className="text-slate-500 dark:text-white">Pemohon</p><p className="mt-2 font-bold dark:text-white">{approval.applicant}</p><p className="mt-1 text-slate-500 dark:text-white">{approval.role}</p></div>
+            <div className="border-l pl-3"><p className="text-slate-500 dark:text-white">Diajukan</p><p className="mt-2 font-bold dark:text-white">{approval.date}</p><p className="mt-1 text-slate-500 dark:text-white">{approval.time}</p><p className="mt-2 text-slate-500 dark:text-white">{approval.stage}</p></div>
           </section>
-          <section><h3 className="mb-3 text-sm font-bold">Rincian Pengajuan</h3><dl className="divide-y divide-slate-100 rounded-xl border border-slate-200 px-4">{requestEntries.length ? requestEntries.map(([key, value, label]) => <div key={key} className="grid grid-cols-[140px_minmax(0,1fr)] gap-3 py-3 text-sm"><dt className="text-slate-500">{label}</dt><dd className="whitespace-pre-wrap break-words font-medium">{formatFieldValue(sanitizeRequestValue(value))}</dd></div>) : <div className="py-4 text-sm text-slate-500">Tidak ada data permintaan.</div>}</dl></section>
+          <section><h3 className="mb-3 text-sm font-bold dark:text-white">Rincian Pengajuan</h3>{isUpdate && approval.activeDataError && <div role="status" className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"><span>Data diajukan tetap ditampilkan, tetapi pembanding data aktif gagal dimuat: {approval.activeDataError}</span><button type="button" onClick={onRetry} className="shrink-0 rounded-md border border-amber-300 px-2.5 py-1.5 font-semibold hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-900/40">Coba lagi</button></div>}<dl className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white px-4 dark:divide-slate-800 dark:border-slate-700 dark:bg-transparent">{isUpdate && approval.activeData && requestEntries.length > 0 && <div className="grid grid-cols-[120px_minmax(0,1fr)_minmax(0,1fr)] gap-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-white"><span>Kolom</span><span>Saat Ini</span><span>Diajukan</span></div>}{requestEntries.length ? requestEntries.map(([key, value, label]) => {
+            const currentValue = getComparableFieldValue(approval.activeData, key);
+            const changed = isUpdate && approval.activeData && !areApprovalValuesEqual(currentValue, value);
+            return isUpdate && approval.activeData ? <div key={key} className={`grid grid-cols-[120px_minmax(0,1fr)_minmax(0,1fr)] gap-3 py-3 text-sm ${changed ? "-mx-4 bg-blue-50/70 px-4 dark:bg-blue-950/30" : ""}`}><dt className="text-slate-500 dark:text-white"><span className="block">{label}</span>{changed && <span className="mt-1.5 block w-fit rounded border border-sky-300 bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-700 dark:border-sky-400/60 dark:bg-sky-400/10 dark:text-sky-200">Berubah</span>}</dt><dd className="whitespace-pre-wrap break-words font-medium text-slate-600 dark:text-white">{formatFieldValue(sanitizeRequestValue(currentValue))}</dd><dd className={`whitespace-pre-wrap break-words font-semibold dark:text-white ${changed ? "text-blue-700" : "text-slate-600"}`}>{formatFieldValue(sanitizeRequestValue(value))}</dd></div> : <div key={key} className="grid grid-cols-[140px_minmax(0,1fr)] gap-3 py-3 text-sm"><dt className="text-slate-500 dark:text-white">{label}</dt><dd className="whitespace-pre-wrap break-words font-medium dark:text-white">{formatFieldValue(sanitizeRequestValue(value))}</dd></div>;
+          }) : <div className="py-4 text-sm text-slate-500">Tidak ada data permintaan.</div>}</dl></section>
           <article><h3 className="mb-3 text-sm font-bold">Progres Persetujuan</h3><div className="space-y-0">{timeline.length ? timeline.map((step, index) => <ProgressStep key={`${step.action_code || step.role_name}-${index}`} step={step} index={index} isLast={index === timeline.length - 1} cancelIndex={cancelIndex} approvalStatus={approval.status} />) : <p className="text-sm text-slate-500">Belum ada progres persetujuan.</p>}</div></article>
           {actionError && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">{actionError}</div>}
           {executing && <div role="status" className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-3 text-sm text-blue-700"><RefreshCw className="h-4 w-4 animate-spin" />{actionProgress}</div>}
