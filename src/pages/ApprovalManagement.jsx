@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Clock3, RefreshCw, Search, X } from "lucide-react";
+import { Ban, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleHelp, Clock3, RefreshCw, Search, X, XCircle } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { hasPermission } from "../utils/permissions";
 import Select from "../components/Select";
@@ -281,7 +281,7 @@ export default function ApprovalManagement() {
       {successMessage && <div role="status" className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700"><Check className="h-5 w-5" />{successMessage}</div>}
       <section className="approval-table data-table-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
         <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200 px-3 pt-2 sm:px-4">
-          {[["mine", "Pengajuan Saya"], ["waiting", "Menunggu Saya"], ["processed", "Sudah Diproses"], ["all", "Semua"]].map(([value, label]) => <button key={value} onClick={() => { setActiveTab(value); setPage(1); }} className={`relative shrink-0 px-3 py-3 text-xs font-semibold transition sm:px-4 ${activeTab === value ? "text-blue-600 dark:text-blue-300" : "text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white"}`}>{label}{activeTab === value && <span className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-blue-600 dark:bg-blue-300" />}</button>)}
+          {[["mine", "Pengajuan Saya"], ["waiting", "Perlu Tindakan"], ["processed", "Riwayat Keputusan"], ["all", "Semua Pengajuan"]].map(([value, label]) => <button key={value} onClick={() => { setActiveTab(value); setPage(1); }} className={`relative shrink-0 px-3 py-3 text-xs font-semibold transition sm:px-4 ${activeTab === value ? "text-blue-600 dark:text-blue-300" : "text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white"}`}>{label}{activeTab === value && <span className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-blue-600 dark:bg-blue-300" />}</button>)}
         </div>
         <div className="flex min-w-0 flex-col gap-2 border-b border-slate-200 p-3 md:flex-row md:flex-wrap md:items-center lg:gap-3 lg:p-4 xl:flex-nowrap">
           <button title="Muat ulang" disabled={loading} onClick={() => setRefreshKey(value => value + 1)} className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /></button>
@@ -303,11 +303,12 @@ export default function ApprovalManagement() {
 
 function Status({ value }) {
   const normalized = String(value || "").toLowerCase();
-  if (normalized === "approved") return <span className="inline-flex rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700">Disetujui</span>;
-  if (normalized === "rejected") return <span className="inline-flex rounded-lg bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700">Ditolak</span>;
-  if (["cancel", "cancelled", "canceled"].includes(normalized)) return <span className="inline-flex rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 dark:border-rose-400/40 dark:bg-rose-400/15 dark:text-rose-200">Dibatalkan</span>;
-  if (normalized === "active") return <span className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold text-amber-700"><Clock3 className="h-3.5 w-3.5" />Menunggu</span>;
-  return <span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-semibold text-slate-600">{value || "-"}</span>;
+  const badgeClass = "inline-flex w-24 items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold";
+  if (normalized === "approved") return <span className={`${badgeClass} gap-1 border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-400/15 dark:text-emerald-200`}><CheckCircle2 className="h-3.5 w-3.5 shrink-0" />Disetujui</span>;
+  if (normalized === "rejected") return <span className={`${badgeClass} gap-1 border-rose-300 bg-rose-100 text-rose-800 dark:border-rose-400/50 dark:bg-rose-500/25 dark:text-rose-100`}><XCircle className="h-3.5 w-3.5 shrink-0" />Ditolak</span>;
+  if (["cancel", "cancelled", "canceled"].includes(normalized)) return <span className={`${badgeClass} gap-1 border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-400/50 dark:bg-violet-400/15 dark:text-violet-200`}><Ban className="h-3.5 w-3.5 shrink-0" />Dibatalkan</span>;
+  if (normalized === "active") return <span className={`${badgeClass} gap-1 border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/40 dark:bg-amber-400/15 dark:text-amber-200`}><Clock3 className="h-3.5 w-3.5" />Menunggu</span>;
+  return <span className={`${badgeClass} gap-1 border-slate-200 bg-slate-100 text-slate-600`}><CircleHelp className="h-3.5 w-3.5 shrink-0" />{value || "-"}</span>;
 }
 
 function formatDateTime(value) {
