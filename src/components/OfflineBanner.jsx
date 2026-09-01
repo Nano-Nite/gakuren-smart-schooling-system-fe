@@ -81,7 +81,7 @@ export default function OfflineBanner() {
   return (
     <div role="status" className={`offline-banner fixed inset-x-0 top-0 z-[200] flex min-h-8 w-screen shrink-0 flex-wrap items-center justify-center gap-x-2 px-4 py-1 text-center text-xs font-semibold text-white shadow-md transition-[transform,opacity,background-color] duration-[1000ms] ease-in-out ${animation === 'visible' ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'} ${status === 'offline' ? 'bg-red-600' : 'bg-emerald-600'}`}>
       {status === 'offline' ? <WifiOff size={14} /> : <Wifi size={14} />}
-      {status === 'offline' ? 'Anda sedang offline — periksa koneksi internet Anda.' : 'Koneksi internet kembali tersedia.'}
+      {status === 'offline' ? 'Anda sedang luring — periksa koneksi internet Anda.' : 'Koneksi internet kembali tersedia.'}
       {status === 'offline' && <><span className="text-red-100">{retry.checking ? 'Memeriksa server…' : `Coba lagi dalam ${formatRetryTime(retry.seconds)}`}</span><button type="button" disabled={retry.checking} onClick={() => window.dispatchEvent(new Event('gakuren:network-retry-now'))} className="rounded-md border border-white/60 bg-white/10 px-2 py-0.5 text-[11px] font-bold text-white hover:bg-white/20 disabled:cursor-wait disabled:opacity-60">Coba sekarang</button></>}
     </div>
   )

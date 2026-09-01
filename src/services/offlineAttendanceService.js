@@ -5,15 +5,15 @@ export const OFFLINE_ERROR_MESSAGES = {
   INVALID_QR: "Sistem tidak mengenali QR ini.",
   INVALID_SIGNATURE: "QR tidak memiliki tanda tangan Gakuren yang valid.",
   WRONG_SCHOOL: "QR berasal dari sekolah yang berbeda.",
-  ALREADY_ATTENDED: "Kehadiran user sudah tercatat.",
-  CREDENTIAL_NOT_CACHED: "Credential tidak dapat diverifikasi secara offline.",
+  ALREADY_ATTENDED: "Kehadiran pengguna sudah tercatat.",
+  CREDENTIAL_NOT_CACHED: "Kredensial tidak dapat diverifikasi secara luring.",
   DEVICE_NOT_TRUSTED: "Perangkat ini belum terdaftar sebagai perangkat absensi. Hubungkan ke internet untuk melakukan aktivasi.",
-  OFFLINE_CONFIG_MISSING: "Konfigurasi offline belum tersedia.",
-  ATTENDANCE_RULE_MISSING: "Aturan absensi offline tidak tersedia untuk user ini.",
+  OFFLINE_CONFIG_MISSING: "Konfigurasi luring belum tersedia.",
+  ATTENDANCE_RULE_MISSING: "Aturan absensi luring tidak tersedia untuk pengguna ini.",
   LOCAL_SESSION_INVALID: "Sesi atau jadwal absensi lokal sedang tidak berlaku.",
 };
 
-export const offlineError = (code, detail) => Object.assign(new Error(detail || OFFLINE_ERROR_MESSAGES[code] || "Absensi offline gagal diproses."), { code, detail });
+export const offlineError = (code, detail) => Object.assign(new Error(detail || OFFLINE_ERROR_MESSAGES[code] || "Absensi luring gagal diproses."), { code, detail });
 
 const timeToMinutes = value => {
   if (!value || !/^\d{1,2}:\d{2}/.test(value)) return null;
@@ -84,8 +84,8 @@ export async function createOfflineAttendance(identity, credentialToken, config,
     user_uuid: identity.user_uuid,
     credential_id: identity.credential_id,
     credential_token: credentialToken,
-    display_name: identity.display_name || identity.name || "User Gakuren",
-    person_type: identity.person_type || identity.user_type || identity.role || "User",
+    display_name: identity.display_name || identity.name || "Pengguna Gakuren",
+    person_type: identity.person_type || identity.user_type || identity.role || "Pengguna",
     class_name: identity.class_name || identity.class || "",
     attendance_type: attendanceType,
     attendance_status: provisionalStatus,
