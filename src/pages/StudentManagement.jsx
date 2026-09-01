@@ -355,7 +355,7 @@ export default function StudentManagement() {
     setDeleteSubmitting(true);
     setDeleteError("");
     try {
-      const response = await authenticatedRequest(API_CONFIG.DELETE_STUDENT, { method: "POST", body: { uuid: deleting.id } });
+      const response = await authenticatedRequest(API_CONFIG.DELETE_STUDENT, { method: "DELETE", body: { uuid: deleting.id } });
       const responseData = response.data || {};
       const responseStatus = String(responseData.status ?? responseData.Status ?? "").toLowerCase();
       const pendingApproval = responseStatus === "pending" || Boolean(responseData.approval_uuid ?? responseData.approvalUUID ?? responseData.is_pending);
