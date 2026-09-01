@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, ChevronLeft, ChevronRight, Download, Pencil, Plus, RefreshCw, Search, Trash2, Upload, X } from "lucide-react";
+import { ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Download, Info, Pencil, Plus, RefreshCw, Search, Trash2, Upload, X } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import Select from "../components/Select";
 import FormDrawer from "../components/FormDrawer";
@@ -85,7 +85,12 @@ function ClassPicker({ value, selectedName, error, onChange, onBlur }) {
           body: { search: query.trim() || null, filter: { status: "active" }, page, row_per_page: 8, sort_by: [{ name: "asc" }] },
         });
         const payload = response.data || {};
-        setOptions((payload.result || []).map(item => ({ uuid: item.uuid ?? item.UUID, name: item.name ?? item.Name ?? "-", teacher: item.homeroom_teacher_name ?? item.HomeroomTeacherName ?? item.homeroom_teacher ?? item.HomeroomTeacher ?? "Belum ada wali kelas", status: String(item.status ?? item.Status ?? "").toLowerCase() })).filter(item => item.uuid && (!item.status || item.status === "active")));
+        const activeOptions = (payload.result || []).map(item => ({ uuid: item.uuid ?? item.UUID, name: item.name ?? item.Name ?? "-", teacher: item.homeroom_teacher_name ?? item.HomeroomTeacherName ?? item.homeroom_teacher ?? item.HomeroomTeacher ?? "Belum ada wali kelas", status: String(item.status ?? item.Status ?? "").toLowerCase() })).filter(item => item.uuid && (!item.status || item.status === "active"));
+        setOptions(activeOptions);
+        if (!value && selectedName) {
+          const matchingOption = activeOptions.find(option => String(option.name).toLowerCase() === String(selectedName).toLowerCase());
+          if (matchingOption) onChange(matchingOption.uuid, matchingOption.name);
+        }
         setMaxPage(Math.max(1, Number(payload.data_statistic?.max_page) || 1));
         setRequestError("");
       } catch (fetchError) {
@@ -110,7 +115,7 @@ function ClassPicker({ value, selectedName, error, onChange, onBlur }) {
   </div>;
 }
 
-function GenderSelect({ value, error, onChange }) {
+function GenderSelect({ value, selectedName, error, onChange }) {
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [requestError, setRequestError] = useState("");
@@ -133,7 +138,11 @@ function GenderSelect({ value, error, onChange }) {
         }).filter(item => item.value && item.label && (!item.status || item.status === "active"));
         setOptions(activeOptions);
         setRequestError("");
-        if (!value && activeOptions[0]) onChange(activeOptions[0].value, activeOptions[0].label);
+        if (!value && activeOptions[0]) {
+          const matchingOption = activeOptions.find(option => String(option.label).toLowerCase() === String(selectedName || "").toLowerCase());
+          const defaultOption = matchingOption || activeOptions[0];
+          onChange(defaultOption.value, defaultOption.label);
+        }
       } catch (fetchError) {
         if (fetchError.name !== "AbortError") { setOptions([]); setRequestError(fetchError.message); }
       } finally {
@@ -171,6 +180,14 @@ export default function StudentManagement() {
   const [addParentContact, setAddParentContact] = useState(false);
   const [sameParentAddress, setSameParentAddress] = useState(true);
   const [formErrors, setFormErrors] = useState({});
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [noticeTone, setNoticeTone] = useState("pending");
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     if (!access.canView) return undefined;
@@ -206,7 +223,7 @@ export default function StudentManagement() {
           parent_phone: student.ParentPhone ?? student.parent_phone ?? "",
           parent_address: student.ParentAddress ?? student.parent_address ?? "",
           gender_uuid: student.GenderUUID ?? student.gender_uuid ?? student.GenderUuid ?? "",
-          gender: student.Gender ?? student.gender ?? "-",
+          gender: student.gender_name ?? student.GenderName ?? student.Gender ?? student.gender ?? "-",
           status: statusLabels[String(student.Status ?? student.status).toLowerCase()] || student.Status || student.status || "-",
         })));
         setStatistics(payload.data_statistic || { start_row: 0, end_row: 0, total_row: 0, max_page: 1 });
@@ -231,17 +248,51 @@ export default function StudentManagement() {
     setAddParentContact(false);
     setSameParentAddress(true);
     setFormErrors({});
+    setCreateError("");
     setCreating(true);
   };
-  const saveStudent = event => {
+  const saveStudent = async event => {
     event.preventDefault();
+    if (createSubmitting) return;
     const requiredFields = ["name", "nis", "nisn", "class_uuid", "email", "phone", "address", "gender_uuid", ...(addParentContact ? ["parent_name", "parent_email", "parent_phone", "parent_address"] : [])];
     const errors = Object.fromEntries(requiredFields.map(key => [key, validateStudentField(key, form[key])]).filter(([, message]) => message));
     setFormErrors(errors);
     if (Object.keys(errors).length) return;
-    setRows(current => [{ ...form, id: `local-${Date.now()}` }, ...current]);
-    setStatistics(current => ({ ...current, total_row: current.total_row + 1, end_row: current.end_row + 1 }));
-    setCreating(false);
+    setCreateSubmitting(true);
+    setCreateError("");
+    try {
+      const parentPayload = addParentContact ? {
+        parent_name: form.parent_name.trim(),
+        parent_email: form.parent_email.trim(),
+        parent_phone: form.parent_phone.trim(),
+        parent_address: form.parent_address.trim(),
+      } : { parent_name: null, parent_email: null, parent_phone: null, parent_address: null };
+      await authenticatedRequest(API_CONFIG.CREATE_STUDENT, {
+        method: "POST",
+        body: {
+          name: form.name.trim(),
+          nis: form.nis.trim(),
+          nisn: form.nisn.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim(),
+          class_uuid: form.class_uuid,
+          address: form.address.trim(),
+          gender_uuid: form.gender_uuid,
+          ...parentPayload,
+        },
+      });
+      setCreating(false);
+      setPage(1);
+      setStatus("Menunggu");
+      setNoticeTone("pending");
+      setSuccessMessage(`Pengajuan siswa ${form.name.trim()} berhasil dikirim dan sedang menunggu persetujuan.`);
+      setRefreshKey(value => value + 1);
+      window.setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (requestError) {
+      setCreateError(requestError.message);
+    } finally {
+      setCreateSubmitting(false);
+    }
   };
   const updateCreateField = (key, value) => {
     setForm(current => ({ ...current, [key]: value, ...(key === "address" && sameParentAddress ? { parent_address: value } : {}) }));
@@ -252,30 +303,76 @@ export default function StudentManagement() {
   const openDetail = student => {
     setFormErrors({});
     setForm({ ...student });
+    setAddParentContact(Boolean(student.parent_name || student.parent_email || student.parent_phone || student.parent_address));
+    setSameParentAddress(Boolean(student.address && student.parent_address && student.address === student.parent_address));
     setSelected(student);
     setEditing(false);
   };
   const openEdit = student => {
     setFormErrors({});
+    setEditError("");
     setForm({ ...student });
+    setAddParentContact(Boolean(student.parent_name || student.parent_email || student.parent_phone || student.parent_address));
+    setSameParentAddress(Boolean(student.address && student.parent_address && student.address === student.parent_address));
     setSelected(student);
     setEditing(true);
   };
-  const saveEdit = event => {
+  const saveEdit = async event => {
     event.preventDefault();
-    if (!editing) return;
-    const errors = Object.fromEntries(["name", "nis", "nisn", "class_uuid", "email", "phone", "address", "gender_uuid"].map(key => [key, validateStudentField(key, form[key])]).filter(([, message]) => message));
+    if (!editing || editSubmitting) return;
+    const editFields = ["name", "nis", "nisn", "class_uuid", "email", "phone", "address", "gender_uuid", ...(addParentContact ? ["parent_name", "parent_email", "parent_phone", "parent_address"] : [])];
+    const errors = Object.fromEntries(editFields.map(key => [key, validateStudentField(key, form[key])]).filter(([, message]) => message));
     setFormErrors(errors);
     if (Object.keys(errors).length) return;
-    setRows(current => current.map(student => student.id === selected.id ? { ...student, ...form } : student));
-    setSelected(current => ({ ...current, ...form }));
-    setEditing(false);
+    setEditSubmitting(true);
+    setEditError("");
+    try {
+      const parentPayload = addParentContact ? { parent_name: form.parent_name.trim(), parent_email: form.parent_email.trim(), parent_phone: form.parent_phone.trim(), parent_address: form.parent_address.trim() } : { parent_name: null, parent_email: null, parent_phone: null, parent_address: null };
+      const response = await authenticatedRequest(API_CONFIG.UPDATE_STUDENT, {
+        method: "POST",
+        body: { uuid: selected.id, name: form.name.trim(), nis: form.nis.trim(), nisn: form.nisn.trim(), phone: form.phone.trim(), email: form.email.trim(), class_uuid: form.class_uuid, address: form.address.trim(), gender_uuid: form.gender_uuid, ...parentPayload },
+      });
+      const responseData = response.data || {};
+      const responseStatus = String(responseData.status ?? responseData.Status ?? "").toLowerCase();
+      const pendingApproval = responseStatus === "pending" || Boolean(responseData.approval_uuid ?? responseData.approvalUUID ?? responseData.is_pending);
+      setSelected(null);
+      setEditing(false);
+      setPage(1);
+      setStatus(pendingApproval ? "Menunggu" : "Semua");
+      setNoticeTone(pendingApproval ? "pending" : responseStatus === "active" ? "success" : "info");
+      setSuccessMessage(pendingApproval ? `Perubahan siswa ${form.name.trim()} berhasil diajukan dan sedang menunggu persetujuan.` : responseStatus ? `Data siswa ${form.name.trim()} berhasil diperbarui.` : `Perubahan siswa ${form.name.trim()} berhasil dikirim. Status terbaru dimuat dari server.`);
+      setRefreshKey(value => value + 1);
+      window.setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (requestError) {
+      setEditError(requestError.message);
+    } finally {
+      setEditSubmitting(false);
+    }
   };
-  const confirmDelete = () => {
-    setRows(current => current.filter(student => student.id !== deleting.id));
-    setStatistics(current => ({ ...current, total_row: Math.max(0, current.total_row - 1), end_row: Math.max(0, current.end_row - 1) }));
-    setDeleting(null);
-    setSelected(null);
+  const openDelete = student => { setDeleteError(""); setDeleting(student); };
+  const confirmDelete = async () => {
+    if (!deleting || deleteSubmitting) return;
+    setDeleteSubmitting(true);
+    setDeleteError("");
+    try {
+      const response = await authenticatedRequest(API_CONFIG.DELETE_STUDENT, { method: "POST", body: { uuid: deleting.id } });
+      const responseData = response.data || {};
+      const responseStatus = String(responseData.status ?? responseData.Status ?? "").toLowerCase();
+      const pendingApproval = responseStatus === "pending" || Boolean(responseData.approval_uuid ?? responseData.approvalUUID ?? responseData.is_pending);
+      const deletedName = deleting.name;
+      setDeleting(null);
+      setSelected(null);
+      setPage(1);
+      setStatus(pendingApproval ? "Menunggu" : "Semua");
+      setNoticeTone(pendingApproval ? "pending" : responseStatus && responseStatus !== "active" ? "success" : "info");
+      setSuccessMessage(pendingApproval ? `Penghapusan siswa ${deletedName} berhasil diajukan dan sedang menunggu persetujuan.` : responseStatus ? `Siswa ${deletedName} berhasil dihapus.` : `Permintaan penghapusan siswa ${deletedName} berhasil dikirim. Status terbaru dimuat dari server.`);
+      setRefreshKey(value => value + 1);
+      window.setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (requestError) {
+      setDeleteError(requestError.message);
+    } finally {
+      setDeleteSubmitting(false);
+    }
   };
   const confirmActivate = () => {
     setActivating(null);
@@ -285,6 +382,7 @@ export default function StudentManagement() {
   return <>
     <Helmet><title>Siswa — Gakuren</title></Helmet>
     <div className="p-4 sm:p-6">
+      {successMessage && <div role="status" className={`mb-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold ${noticeTone === "pending" ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300" : noticeTone === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300" : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"}`}>{noticeTone === "pending" ? <Clock3 className="h-5 w-5 shrink-0" /> : noticeTone === "success" ? <CheckCircle2 className="h-5 w-5 shrink-0" /> : <Info className="h-5 w-5 shrink-0" />}{successMessage}</div>}
       <section className="data-table-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
         <div className="flex min-w-0 flex-col gap-3 border-b border-slate-200 p-3 md:flex-row md:items-center md:justify-between lg:p-4">
           <div className="flex min-w-0 flex-1 items-center gap-2 lg:gap-3">
@@ -304,12 +402,12 @@ export default function StudentManagement() {
             <thead className="bg-slate-100/80"><tr>{columns.map(([label, key]) => <th key={key} className="px-3 py-3 font-medium"><button onClick={() => changeSort(key)} className={`group flex items-center gap-1 hover:text-blue-600 ${sort.key === key ? "font-semibold text-blue-600" : ""}`}><span>{label}</span>{sort.key === key ? sort.direction === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" /> : <ArrowDownUp className="h-3 w-3 opacity-0 group-hover:opacity-60" />}</button></th>)}<th className="w-28 px-3 py-3 font-medium">Aksi</th></tr></thead>
             <tbody>{rows.map(row => <tr key={row.id} tabIndex={0} onClick={() => openDetail(row)} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) openDetail(row); }} className="cursor-pointer border-t border-slate-100 transition hover:bg-blue-50/50 focus:bg-blue-50 focus:outline-none">
               <td className="px-3 py-3 font-semibold">{row.name}</td><td className="truncate px-3 py-3" title={row.nis}>{row.nis}</td><td className="truncate px-3 py-3" title={row.nisn}>{row.nisn}</td><td className="px-3 py-3">{row.class_name}</td><td className="px-3 py-3">{row.phone}</td><td className="px-3 py-3">{row.gender}</td><td className="px-3 py-3"><StatusBadge status={row.status} /></td>
-              <td className="px-3 py-3"><div className="flex gap-2"><StatusRowActions item={row} label="siswa" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={setDeleting} onActivate={setActivating} /></div></td>
+              <td className="px-3 py-3"><div className="flex gap-2"><StatusRowActions item={row} label="siswa" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={openDelete} onActivate={setActivating} /></div></td>
             </tr>)}</tbody>
           </table>
         </div>
 
-        <div className="divide-y divide-slate-100 md:hidden">{rows.map(row => <article key={row.id} onClick={() => openDetail(row)} className="cursor-pointer p-4 text-left transition hover:bg-blue-50/50"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{row.name}</p><p className="mt-1 text-xs text-slate-500">NIS {row.nis} • NISN {row.nisn}</p><p className="mt-1 text-xs text-slate-500">{row.class_name} • {row.phone} • {row.gender}</p></div><div className="flex w-24 shrink-0 flex-col items-stretch gap-3"><StatusBadge status={row.status} className="w-full" /><div className="grid grid-cols-2 justify-items-center gap-2 [&>button:only-child]:col-span-2"><StatusRowActions item={row} label="siswa" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={setDeleting} onActivate={setActivating} /></div></div></div></article>)}</div>
+        <div className="divide-y divide-slate-100 md:hidden">{rows.map(row => <article key={row.id} onClick={() => openDetail(row)} className="cursor-pointer p-4 text-left transition hover:bg-blue-50/50"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{row.name}</p><p className="mt-1 text-xs text-slate-500">NIS {row.nis} • NISN {row.nisn}</p><p className="mt-1 text-xs text-slate-500">{row.class_name} • {row.phone} • {row.gender}</p></div><div className="flex w-24 shrink-0 flex-col items-stretch gap-3"><StatusBadge status={row.status} className="w-full" /><div className="grid grid-cols-2 justify-items-center gap-2 [&>button:only-child]:col-span-2"><StatusRowActions item={row} label="siswa" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={openDelete} onActivate={setActivating} /></div></div></div></article>)}</div>
 
         {error && <div className="grid place-items-center px-4 py-16 text-center text-rose-600"><p className="font-semibold">Gagal memuat data siswa</p><p className="mt-1 text-xs">{error}</p><button disabled={loading} onClick={() => { setLoading(true); setRefreshKey(value => value + 1); }} className="mt-4 inline-flex min-w-24 items-center justify-center gap-2 rounded-lg border border-rose-200 px-4 py-2 text-xs font-semibold disabled:cursor-wait disabled:opacity-70">{loading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}{loading ? "Memuat..." : "Coba lagi"}</button></div>}
         {loading && !rows.length && !error && <div className="grid place-items-center px-4 py-16 text-center"><RefreshCw className="h-8 w-8 animate-spin text-blue-500" /><p className="mt-3 text-sm text-slate-500">Memuat data siswa...</p></div>}
@@ -318,12 +416,13 @@ export default function StudentManagement() {
         <footer className="grid min-h-[76px] gap-4 border-t border-slate-200 bg-slate-50/50 px-5 py-4 text-xs text-slate-500 sm:grid-cols-3 sm:items-center"><span>Menampilkan <b className="text-slate-700">{statistics.total_row ? `${statistics.start_row}-${statistics.end_row}` : "0"}</b> dari {statistics.total_row} data</span><div className="flex items-center justify-center gap-1.5"><button disabled={page <= 1 || loading} onClick={() => setPage(value => value - 1)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>{Array.from({ length: Math.min(statistics.max_page || 1, 5) }, (_, index) => index + 1).map(number => <button key={number} disabled={loading} onClick={() => setPage(number)} className={`h-9 w-9 rounded-lg font-semibold ${page === number ? "bg-blue-600 text-white" : "border border-slate-200 bg-white"}`}>{number}</button>)}<button disabled={page >= (statistics.max_page || 1) || loading} onClick={() => setPage(value => value + 1)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button></div><div className="flex justify-end"><Select value={pageSize} onChange={value => { setPageSize(Number(value)); setPage(1); }} ariaLabel="Jumlah data per halaman" placement="top" className="w-36 sm:w-40" options={[{ value: 5, label: "5 / Halaman" }, { value: 10, label: "10 / Halaman" }, { value: 25, label: "25 / Halaman" }, { value: 50, label: "50 / Halaman" }]} /></div></footer>
       </section>
     </div>
-    <FormDrawer open={creating} title="Tambah Siswa" submitLabel="Simpan Siswa" noValidate onClose={() => setCreating(false)} onSubmit={saveStudent}>
+    <FormDrawer open={creating} title="Tambah Siswa" submitLabel={createSubmitting ? "Menyimpan..." : "Simpan Siswa"} submitting={createSubmitting} noValidate onClose={() => { if (!createSubmitting) setCreating(false); }} onSubmit={saveStudent}>
       <div className="space-y-5">
+        {createError && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">{createError}</div>}
         {[["Nama Siswa", "name", "text", "Contoh: Ahmad Fauzi"], ["NIS", "nis", "text", "Masukkan nomor induk siswa"], ["NISN", "nisn", "text", "Masukkan 10 digit NISN"]].map(([label, key, type, placeholder]) => <ValidatedInput key={key} label={label} name={key} type={type} value={form[key]} placeholder={placeholder} error={formErrors[key]} onChange={event => updateCreateField(key, event.target.value)} onBlur={() => validateCreateField(key)} />)}
         <ClassPicker value={form.class_uuid} selectedName={form.class_name} error={formErrors.class_uuid} onChange={(uuid, name) => { setForm(current => ({ ...current, class_uuid: uuid, class_name: name })); if (formErrors.class_uuid) setFormErrors(current => ({ ...current, class_uuid: validateStudentField("class_uuid", uuid) })); }} onBlur={() => validateCreateField("class_uuid")} />
         {[["Email Siswa", "email", "email", "Contoh: siswa@sekolah.sch.id"], ["No. HP / WhatsApp", "phone", "tel", "Contoh: 081234567890"], ["Alamat Siswa", "address", "text", "Contoh: Jl. Merdeka No. 10, Jakarta"]].map(([label, key, type, placeholder]) => <ValidatedInput key={key} label={label} name={key} type={type} value={form[key]} placeholder={placeholder} error={formErrors[key]} onChange={event => updateCreateField(key, event.target.value)} onBlur={() => validateCreateField(key)} />)}
-        <GenderSelect value={form.gender_uuid} error={formErrors.gender_uuid} onChange={(uuid, label) => { setForm(current => ({ ...current, gender_uuid: uuid, gender: label })); if (formErrors.gender_uuid) setFormErrors(current => ({ ...current, gender_uuid: validateStudentField("gender_uuid", uuid) })); }} />
+        <GenderSelect value={form.gender_uuid} selectedName={form.gender} error={formErrors.gender_uuid} onChange={(uuid, label) => { setForm(current => ({ ...current, gender_uuid: uuid, gender: label })); if (formErrors.gender_uuid) setFormErrors(current => ({ ...current, gender_uuid: validateStudentField("gender_uuid", uuid) })); }} />
         <div className="border-t border-slate-200 pt-5">
           <label className="checkbox-label group flex cursor-pointer select-none items-center gap-2.5 text-sm font-semibold transition">
             <input
@@ -378,19 +477,59 @@ export default function StudentManagement() {
     <FormDrawer
       open={selected !== null}
       title={editing ? "Edit Siswa" : "Detail Siswa"}
-      onClose={() => { setSelected(null); setEditing(false); }}
+      noValidate={editing}
+      submitting={editSubmitting}
+      onClose={() => { if (!editSubmitting) { setSelected(null); setEditing(false); } }}
       onSubmit={saveEdit}
-      footerActions={editing ? <><button type="button" onClick={() => { setForm({ ...selected }); setEditing(false); }} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Batal</button><button type="submit" className="action-lift rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Simpan Perubahan</button></> : <><button type="button" onClick={() => setSelected(null)} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Tutup</button>{access.canDelete && <button type="button" onClick={() => setDeleting(selected)} className="action-lift inline-flex items-center gap-2 rounded-lg border border-rose-200 px-5 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50"><Trash2 className="h-4 w-4" />Hapus</button>}{access.canUpdate && <button type="button" onClick={() => setEditing(true)} className="action-lift inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"><Pencil className="h-4 w-4" />Edit</button>}</>}
+      footerActions={editing ? <><button type="button" disabled={editSubmitting} onClick={() => { setForm({ ...selected }); setEditError(""); setEditing(false); }} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">Batal</button><button type="submit" disabled={editSubmitting} className="action-lift rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70">{editSubmitting ? "Menyimpan..." : "Simpan Perubahan"}</button></> : <><button type="button" onClick={() => setSelected(null)} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Tutup</button>{selected?.status === "Nonaktif" ? access.canUpdate && <button type="button" onClick={() => { setActivating(selected); setSelected(null); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"><CheckCircle2 className="h-4 w-4" />Aktifkan</button> : <>{access.canDelete && <button type="button" disabled={selected?.status !== "Aktif"} title={selected?.status !== "Aktif" ? "Aksi hanya tersedia untuk siswa aktif" : "Hapus siswa"} onClick={() => setDeleting(selected)} className="action-lift inline-flex items-center gap-2 rounded-lg border border-rose-200 px-5 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"><Trash2 className="h-4 w-4" />Hapus</button>}{access.canUpdate && <button type="button" disabled={selected?.status !== "Aktif"} title={selected?.status !== "Aktif" ? "Aksi hanya tersedia untuk siswa aktif" : "Edit siswa"} onClick={() => { setEditError(""); setEditing(true); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"><Pencil className="h-4 w-4" />Edit</button>}</>}</>}
     >
       <div className="space-y-5">
+        {editing && editError && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">{editError}</div>}
         {[["Nama Siswa", "name", "text"], ["NIS", "nis", "text"], ["NISN", "nisn", "text"]].map(([label, key, type]) => editing ? <ValidatedInput key={key} label={label} name={key} type={type} value={form[key]} error={formErrors[key]} onChange={event => updateCreateField(key, event.target.value)} onBlur={() => validateCreateField(key)} /> : <label key={key} className="block text-sm"><span className="mb-2 block font-semibold">{label}</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{form[key] || "-"}</div></label>)}
         {editing ? <ClassPicker value={form.class_uuid} selectedName={form.class_name} error={formErrors.class_uuid} onChange={(uuid, name) => { setForm(current => ({ ...current, class_uuid: uuid, class_name: name })); if (formErrors.class_uuid) setFormErrors(current => ({ ...current, class_uuid: validateStudentField("class_uuid", uuid) })); }} onBlur={() => validateCreateField("class_uuid")} /> : <label className="block text-sm"><span className="mb-2 block font-semibold">Kelas</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{form.class_name || "-"}</div></label>}
         {[["Email Siswa", "email", "email"], ["No. HP / WhatsApp", "phone", "tel"], ["Alamat Siswa", "address", "text"]].map(([label, key, type]) => editing ? <ValidatedInput key={key} label={label} name={key} type={type} value={form[key]} error={formErrors[key]} onChange={event => updateCreateField(key, event.target.value)} onBlur={() => validateCreateField(key)} /> : <label key={key} className="block text-sm"><span className="mb-2 block font-semibold">{label}</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{form[key] || "-"}</div></label>)}
-        {editing ? <GenderSelect value={form.gender_uuid} error={formErrors.gender_uuid} onChange={(uuid, label) => { setForm(current => ({ ...current, gender_uuid: uuid, gender: label })); if (formErrors.gender_uuid) setFormErrors(current => ({ ...current, gender_uuid: validateStudentField("gender_uuid", uuid) })); }} /> : <label className="block text-sm"><span className="mb-2 block font-semibold">Jenis Kelamin</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{form.gender || "-"}</div></label>}
+        {editing ? <GenderSelect value={form.gender_uuid} selectedName={form.gender} error={formErrors.gender_uuid} onChange={(uuid, label) => { setForm(current => ({ ...current, gender_uuid: uuid, gender: label })); if (formErrors.gender_uuid) setFormErrors(current => ({ ...current, gender_uuid: validateStudentField("gender_uuid", uuid) })); }} /> : <label className="block text-sm"><span className="mb-2 block font-semibold">Jenis Kelamin</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{form.gender || "-"}</div></label>}
+        {editing && <section className="border-t border-slate-200 pt-5">
+          <label className="checkbox-label group flex cursor-pointer select-none items-center gap-2.5 text-sm font-semibold transition">
+            <input type="checkbox" checked={addParentContact} onChange={event => {
+              const checked = event.target.checked;
+              setAddParentContact(checked);
+              setSameParentAddress(true);
+              if (checked) setForm(current => ({ ...current, parent_address: current.address }));
+              else {
+                setForm(current => ({ ...current, parent_name: "", parent_email: "", parent_phone: "", parent_address: "" }));
+                setFormErrors(current => ({ ...current, parent_name: "", parent_email: "", parent_phone: "", parent_address: "" }));
+              }
+            }} className="peer sr-only" />
+            <span className="remember-box" aria-hidden="true" />
+            <span className="transition-transform duration-200 group-active:translate-x-0.5">Tambahkan kontak orang tua/wali</span>
+          </label>
+          <div aria-hidden={!addParentContact} className={`overflow-hidden transition-[max-height,margin,opacity,transform] duration-300 ease-out ${addParentContact ? "mt-5 max-h-[44rem] translate-y-0 opacity-100" : "pointer-events-none mt-0 max-h-0 -translate-y-6 opacity-0"}`}>
+            <div className="space-y-5 rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-100">
+              <ValidatedInput label="Nama Orang Tua/Wali" name="parent_name" value={form.parent_name} placeholder="Contoh: Budi Santoso" error={formErrors.parent_name} onChange={event => updateCreateField("parent_name", event.target.value)} onBlur={() => validateCreateField("parent_name")} />
+              <ValidatedInput label="Email Orang Tua/Wali" name="parent_email" type="email" value={form.parent_email} placeholder="Contoh: orangtua@email.com" error={formErrors.parent_email} onChange={event => updateCreateField("parent_email", event.target.value)} onBlur={() => validateCreateField("parent_email")} />
+              <ValidatedInput label="No. WhatsApp Orang Tua/Wali" name="parent_phone" type="tel" value={form.parent_phone} placeholder="Contoh: 081234567890" error={formErrors.parent_phone} onChange={event => updateCreateField("parent_phone", event.target.value)} onBlur={() => validateCreateField("parent_phone")} />
+              <div className="space-y-3">
+                <label className="checkbox-label group flex cursor-pointer select-none items-center gap-2.5 text-sm font-semibold transition">
+                  <input type="checkbox" checked={sameParentAddress} onChange={event => { const checked = event.target.checked; setSameParentAddress(checked); setForm(current => ({ ...current, parent_address: checked ? current.address : "" })); setFormErrors(current => ({ ...current, parent_address: checked ? validateStudentField("parent_address", form.address) : "" })); }} className="peer sr-only" />
+                  <span className="remember-box" aria-hidden="true" />
+                  <span className="transition-transform duration-200 group-active:translate-x-0.5">Alamat sama dengan siswa</span>
+                </label>
+                <ValidatedInput label="Alamat Orang Tua/Wali" name="parent_address" value={form.parent_address} placeholder="Contoh: Jl. Merdeka No. 10, Jakarta" error={formErrors.parent_address} disabled={sameParentAddress} onChange={event => updateCreateField("parent_address", event.target.value)} onBlur={() => validateCreateField("parent_address")} />
+              </div>
+            </div>
+          </div>
+        </section>}
+        {!editing && <section className="border-t border-slate-200 pt-5">
+          <h3 className="mb-5 font-bold text-slate-800 dark:text-slate-100">Data Orang Tua/Wali</h3>
+          <div className="space-y-5">
+            {[["Nama Orang Tua/Wali", "parent_name"], ["Email Orang Tua/Wali", "parent_email"], ["No. WhatsApp Orang Tua/Wali", "parent_phone"], ["Alamat Orang Tua/Wali", "parent_address"]].map(([label, key]) => <div key={key} className="text-sm"><span className="mb-2 block font-semibold">{label}</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{form[key] || "-"}</div></div>)}
+          </div>
+        </section>}
         {!editing && <div className="text-sm"><span className="mb-2 block font-semibold">Status</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3"><StatusBadge status={form.status} /></div></div>}
       </div>
     </FormDrawer>
     <ConfirmDialog open={activating !== null} title="Aktifkan siswa?" description={activating ? `Siswa ${activating.name} akan diaktifkan.` : ""} confirmLabel="Aktifkan Siswa" tone="success" onConfirm={confirmActivate} onCancel={() => setActivating(null)} />
-    <ConfirmDialog open={deleting !== null} title="Hapus siswa?" description={deleting ? `Siswa ${deleting.name} akan dihapus. Tindakan ini tidak dapat dibatalkan.` : ""} confirmLabel="Hapus Siswa" onConfirm={confirmDelete} onCancel={() => setDeleting(null)} />
+    <ConfirmDialog open={deleting !== null} title="Hapus siswa?" description={deleteError || (deleting ? `Siswa ${deleting.name} akan dihapus. Tindakan ini tidak dapat dibatalkan.` : "")} confirmLabel={deleteSubmitting ? "Menghapus..." : "Hapus Siswa"} onConfirm={confirmDelete} onCancel={() => { if (!deleteSubmitting) { setDeleting(null); setDeleteError(""); } }} />
   </>;
 }

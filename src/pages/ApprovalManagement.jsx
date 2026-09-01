@@ -10,7 +10,7 @@ const moduleColors = { Kelas: "bg-blue-50 text-blue-600", Siswa: "bg-emerald-50 
 
 const approvalFieldSchemas = {
   class: [["name", "Nama Kelas"], ["abbr_name", "Singkatan Kelas"], ["level", "Tingkat"], ["homeroom_teacher", "Wali Kelas"]],
-  student: [["name", "Nama Siswa"], ["nis", "NIS"], ["class_name", "Kelas"], ["phone", "No. HP / WhatsApp"], ["gender", "Jenis Kelamin"]],
+  student: [["name", "Nama Siswa"], ["nis", "NIS"], ["class_name", "Kelas"], ["phone", "No. HP / WhatsApp"], ["gender", "Jenis Kelamin"], ["parent_name", "Nama Orang Tua/Wali"], ["parent_email", "Email Orang Tua/Wali"], ["parent_phone", "No. WhatsApp Orang Tua/Wali"], ["parent_address", "Alamat Orang Tua/Wali"]],
   teacher: [["name", "Nama"], ["nip", "NIP"], ["email", "Email"], ["phone", "No. HP / WhatsApp"], ["position", "Jabatan"]],
 };
 
@@ -528,11 +528,16 @@ function getApprovalFieldSchema(entityType, requestData) {
 function getApprovalRequestEntries(requestData, entityType) {
   const visibleEntries = Object.entries(requestData || {}).filter(([key]) => !isSensitiveRequestField(key));
   const entriesByKey = new Map(visibleEntries.map(([key, value]) => [normalizeApprovalFieldKey(key), { key, value }]));
-  const configuredEntries = getApprovalFieldSchema(entityType, requestData || {}).filter(([key]) => entriesByKey.has(normalizeApprovalFieldKey(key))).map(([key, label]) => {
+  const schema = getApprovalFieldSchema(entityType, requestData || {});
+  const alwaysVisibleStudentFields = new Set(["parentname", "parentemail", "parentphone", "parentaddress"]);
+  const configuredEntries = schema.filter(([key]) => entriesByKey.has(normalizeApprovalFieldKey(key)) || (schema === approvalFieldSchemas.student && alwaysVisibleStudentFields.has(normalizeApprovalFieldKey(key)))).map(([key, label]) => {
     const normalizedKey = normalizeApprovalFieldKey(key);
     const entry = entriesByKey.get(normalizedKey);
     entriesByKey.delete(normalizedKey);
-    return [entry.key, entry.value, label];
+    return [entry?.key || key, entry?.value ?? null, label];
   });
-  return [...configuredEntries, ...Array.from(entriesByKey.values(), ({ key, value }) => [key, value, formatFieldLabel(key)])];
+  const allEntries = [...configuredEntries, ...Array.from(entriesByKey.values(), ({ key, value }) => [key, value, formatFieldLabel(key)])];
+  if (schema !== approvalFieldSchemas.student) return allEntries;
+  const isParentField = ([key]) => alwaysVisibleStudentFields.has(normalizeApprovalFieldKey(key));
+  return [...allEntries.filter(entry => !isParentField(entry)), ...allEntries.filter(isParentField)];
 }

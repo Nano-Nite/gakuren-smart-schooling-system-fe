@@ -6,7 +6,11 @@ export const attendanceService = {
   async getLocations(signal) {
     const response = await authenticatedRequest("/v1/attendance/locations", { signal });
     const data = unwrap(response);
-    return Array.isArray(data) ? data : data?.items ?? data?.locations ?? [];
+    const locations = Array.isArray(data) ? data : data?.items ?? data?.locations ?? [];
+    return locations.filter(item => {
+      const status = String(item?.status ?? item?.Status ?? "").toLowerCase();
+      return !status || status === "active";
+    });
   },
 
   async getActiveSession(signal) {
