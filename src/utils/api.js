@@ -16,6 +16,12 @@ export const setNetworkAvailable = available => {
   window.dispatchEvent(new CustomEvent("gakuren:network", { detail: { online: nextStatus } }));
 };
 
+export const clearNetworkOfflineFlag = () => {
+  networkAvailable = true;
+  localStorage.removeItem(NETWORK_STATUS_KEY);
+  window.dispatchEvent(new CustomEvent("gakuren:network", { detail: { online: true } }));
+};
+
 export const loginRequest = async (endpoint, options = {}) => {
   const url = getApiUrl(endpoint);
   const accessToken = sessionStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN);
@@ -317,7 +323,10 @@ export const authenticatedRequest = async (endpoint, options = {}) => {
   } catch (error) {
     if (error.name === "AbortError") throw error;
     if (error.message === "Failed to fetch") {
-      setNetworkAvailable(false);
+      // A feature endpoint can fail because it is missing or blocked by CORS
+      // while the backend itself is healthy. Let the dedicated health check
+      // decide whether the whole application is actually offline.
+      window.dispatchEvent(new Event("gakuren:network-verify"));
       throw new Error(ERROR_MESSAGES.NETWORK_ERROR);
     }
     throw error;

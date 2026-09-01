@@ -8,6 +8,8 @@ import { PageLoadingProvider } from './context/PageLoadingContext.jsx'
 import { LocaleProvider } from './context/LocaleContext.jsx'
 import OfflineBanner from './components/OfflineBanner.jsx'
 import PwaInstallBanner from './components/PwaInstallBanner.jsx'
+import NetworkStatusMonitor from './components/NetworkStatusMonitor.jsx'
+import OfflineAttendanceSync from './components/OfflineAttendanceSync.jsx'
 
 if (import.meta.env.PROD) {
   registerSW({
@@ -26,6 +28,6 @@ if (import.meta.env.PROD) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <LocaleProvider><ThemeProvider><PageLoadingProvider><OfflineBanner /><PwaInstallBanner /><App /></PageLoadingProvider></ThemeProvider></LocaleProvider>
+    <LocaleProvider><ThemeProvider><PageLoadingProvider><NetworkStatusMonitor /><OfflineAttendanceSync /><OfflineBanner /><PwaInstallBanner /><App /></PageLoadingProvider></ThemeProvider></LocaleProvider>
   </React.StrictMode>
 )

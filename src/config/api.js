@@ -6,6 +6,7 @@ const API_CONFIG = {
   REFRESH_TOKEN: '/v1/auth/refresh',
   GET_CLASSES: '/v1/school/class/get',
   CREATE_CLASS: '/v1/school/class/create',
+  UPDATE_CLASS: '/v1/school/class/update',
   GET_STUDENTS: '/v1/school/student/get',
   GET_TEACHER_STAFF: '/v1/school/teacher-staff/get',
   GET_MY_APPROVALS: '/v1/school/approval/my-approval',

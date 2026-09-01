@@ -61,8 +61,10 @@ export default function ClassManagement() {
           return {
             id: item.uuid ?? item.UUID,
             name: item.name ?? item.Name,
+            abbr_name: item.abbr_name ?? item.AbbrName ?? item.name ?? item.Name,
             level: item.level ?? item.Level,
             teacher: item.homeroom_teacher ?? item.HomeroomTeacher ?? "-",
+            homeroom_teacher: item.homeroom_teacher ?? item.HomeroomTeacher ?? null,
             students: item.total_student ?? item.TotalStudent ?? 0,
             status: statusLabels[String(itemStatus).toLowerCase()] || itemStatus || "-",
           };
@@ -91,9 +93,30 @@ export default function ClassManagement() {
   };
   const openEdit = row => { setForm(row); setFormError(""); setEditing(row.id); };
   const openDetail = row => { setForm(row); setSelected(row); };
-  const confirmActivate = () => {
-    setActivating(null);
-    setRefreshKey(value => value + 1);
+  const confirmActivate = async () => {
+    if (!activating || saving) return;
+    setSaving(true);
+    try {
+      await authenticatedRequest(API_CONFIG.UPDATE_CLASS, {
+        method: "POST",
+        body: {
+          uuid: activating.id,
+          name: activating.name,
+          abbr_name: activating.abbr_name,
+          level: Number(activating.level),
+          homeroom_teacher: activating.homeroom_teacher,
+          status: "active",
+        },
+      });
+      setActivating(null);
+      setSuccessMessage(`Kelas ${activating.name} berhasil diaktifkan.`);
+      setRefreshKey(value => value + 1);
+      window.setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (requestError) {
+      setFormError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
   };
   const save = async event => {
     event.preventDefault();
@@ -197,7 +220,7 @@ export default function ClassManagement() {
         {[["Nama Kelas", "name"], ["Tingkat", "level"], ["Wali Kelas", "teacher"], ["Jumlah Siswa", "students"], ["Status", "status"]].map(([label, key]) => <div key={key} className="text-sm"><span className="mb-2 block font-semibold">{label}</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{key === "status" ? <StatusBadge status={form.status} /> : form[key] ?? "-"}</div></div>)}
       </div>
     </FormDrawer>
-    <ConfirmDialog open={activating !== null} title="Aktifkan kelas?" description={activating ? `Kelas ${activating.name} akan diaktifkan.` : ""} confirmLabel="Aktifkan Kelas" tone="success" onConfirm={confirmActivate} onCancel={() => setActivating(null)} />
+    <ConfirmDialog open={activating !== null} title="Aktifkan kelas?" description={formError || (activating ? `Kelas ${activating.name} akan diaktifkan.` : "")} confirmLabel={saving ? "Mengaktifkan..." : "Aktifkan Kelas"} tone="success" onConfirm={confirmActivate} onCancel={() => { if (!saving) { setActivating(null); setFormError(""); } }} />
     <ConfirmDialog open={deleting !== null} title="Hapus kelas?" description={deleting ? `Kelas ${deleting.name} akan dihapus. Tindakan ini tidak dapat dibatalkan.` : ""} confirmLabel="Hapus Kelas" onConfirm={confirmDelete} onCancel={() => setDeleting(null)} />
   </>;
 }

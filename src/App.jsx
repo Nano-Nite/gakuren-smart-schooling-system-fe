@@ -25,7 +25,7 @@ function ProtectedRoute({ children, permissions, menu }) {
   const [online, setOnline] = useState(isNetworkAvailable())
 
   useEffect(() => {
-    const updateConnection = () => { setNetworkAvailable(navigator.onLine); setOnline(navigator.onLine) }
+    const updateConnection = () => { if (!navigator.onLine) { setNetworkAvailable(false); setOnline(false) } }
     const updateApplicationNetwork = event => setOnline(event.detail.online)
     window.addEventListener('online', updateConnection)
     window.addEventListener('offline', updateConnection)
