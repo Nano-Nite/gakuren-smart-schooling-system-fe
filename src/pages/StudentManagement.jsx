@@ -165,7 +165,7 @@ export default function StudentManagement() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("Semua");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(25);
   const [sort, setSort] = useState({ key: "name", direction: "asc" });
   const [statistics, setStatistics] = useState({ start_row: 0, end_row: 0, total_row: 0, max_page: 1 });
   const [loading, setLoading] = useState(false);

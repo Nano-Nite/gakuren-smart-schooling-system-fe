@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowDownUp, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
 import Select from "./Select";
 
-export default function DataTable({ data, columns, getRowId = row => row.id, title, description, headerAction, renderMobileRow, emptyTitle = "Tidak ada data", emptyDescription = "Data yang Anda cari belum tersedia.", initialPageSize = 10 }) {
+export default function DataTable({ data, columns, getRowId = row => row.id, title, description, headerAction, renderMobileRow, emptyTitle = "Tidak ada data", emptyDescription = "Data yang Anda cari belum tersedia.", initialPageSize = 25 }) {
   const [sort, setSort] = useState(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);

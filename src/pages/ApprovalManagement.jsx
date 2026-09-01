@@ -33,7 +33,7 @@ export default function ApprovalManagement() {
   const canReject = hasPermission("appr.reject");
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("mine");
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState([]);
   const [statistics, setStatistics] = useState({ start_row: 0, end_row: 0, total_row: 0, max_page: 1 });
