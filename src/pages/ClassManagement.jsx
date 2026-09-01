@@ -16,6 +16,18 @@ const sortApiKeys = { teacher: "homeroom_teacher", students: "total_student" };
 const statusApiValues = { Aktif: "active", Nonaktif: "inactive", Menunggu: "pending" };
 const statusLabels = { active: "Aktif", inactive: "Nonaktif", pending: "Pending" };
 
+const validateClassField = (key, value) => {
+  const input = String(value ?? "").trim();
+  if ((key === "name" || key === "level") && !input) return "Field ini wajib diisi.";
+  if ((key === "name" || key === "abbr_name") && input && !/^[\p{L}\d\s./-]+$/u.test(input)) return "Hanya huruf, angka, spasi, titik, garis miring, dan tanda hubung yang diperbolehkan.";
+  if (key === "name" && (input.length < 2 || input.length > 100)) return "Nama kelas harus terdiri dari 2–100 karakter.";
+  if (key === "abbr_name" && input.length > 30) return "Singkatan kelas maksimal 30 karakter.";
+  if (key === "level" && (!/^\d+$/.test(input) || Number(input) < 1 || Number(input) > 12)) return "Tingkat harus berupa bilangan bulat antara 1 dan 12.";
+  if (key === "teacher" && input && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input)) return "Masukkan UUID guru yang valid atau kosongkan field ini.";
+  if (key === "students" && (!/^\d+$/.test(input) || Number(input) < 0)) return "Jumlah siswa harus berupa bilangan bulat nol atau lebih.";
+  return "";
+};
+
 export default function ClassManagement() {
   const access = getCrudPermissions("class");
   const [rows, setRows] = useState([]);
@@ -35,6 +47,7 @@ export default function ClassManagement() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
@@ -89,9 +102,10 @@ export default function ClassManagement() {
     if (!access.canCreate) return;
     setForm(emptyForm);
     setFormError("");
+    setFieldErrors({});
     setEditing("new");
   };
-  const openEdit = row => { setForm(row); setFormError(""); setEditing(row.id); };
+  const openEdit = row => { setForm(row); setFormError(""); setFieldErrors({}); setEditing(row.id); };
   const openDetail = row => { setForm(row); setSelected(row); };
   const confirmActivate = async () => {
     if (!activating || saving) return;
@@ -122,6 +136,11 @@ export default function ClassManagement() {
     event.preventDefault();
     if (saving) return;
     setFormError("");
+
+    const fieldsToValidate = editing === "new" ? ["name", "abbr_name", "level", "teacher"] : ["name", "level", "teacher", "students"];
+    const validationErrors = Object.fromEntries(fieldsToValidate.map(key => [key, validateClassField(key, form[key])]).filter(([, message]) => message));
+    setFieldErrors(validationErrors);
+    if (Object.keys(validationErrors).length) return;
 
     if (editing === "new") {
       if (!access.canCreate) {
@@ -157,6 +176,13 @@ export default function ClassManagement() {
     setEditing(null);
   };
   const confirmDelete = () => { setRows(current => current.filter(item => item.id !== deleting.id)); setDeleting(null); };
+  const updateCreateField = (key, value) => {
+    setForm(current => ({ ...current, [key]: value }));
+    if (fieldErrors[key]) setFieldErrors(current => ({ ...current, [key]: validateClassField(key, value) }));
+  };
+  const validateCreateField = key => {
+    setFieldErrors(current => ({ ...current, [key]: validateClassField(key, form[key]) }));
+  };
 
   return <>
     <Helmet><title>Kelas — Gakuren</title></Helmet>
@@ -199,14 +225,14 @@ export default function ClassManagement() {
       </section>
     </div>
 
-    <FormDrawer open={editing !== null} title={editing === "new" ? "Tambah Kelas" : "Edit Kelas"} onClose={() => { if (!saving) setEditing(null); }} onSubmit={save} submitLabel={saving ? "Menyimpan..." : "Simpan"} submitting={saving}>
+    <FormDrawer open={editing !== null} title={editing === "new" ? "Tambah Kelas" : "Edit Kelas"} noValidate onClose={() => { if (!saving) setEditing(null); }} onSubmit={save} submitLabel={saving ? "Menyimpan..." : "Simpan"} submitting={saving}>
       <div className="space-y-5">
         {formError && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">{formError}</div>}
-        <label className="block text-sm"><span className="mb-2 block font-semibold">Nama Kelas <b className="text-rose-500">*</b></span><input required maxLength={100} value={form.name} placeholder="Contoh: X-IPS-1" onChange={event => setForm(value => ({ ...value, name: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3.5 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>
-        {editing === "new" && <label className="block text-sm"><span className="mb-2 block font-semibold">Singkatan Kelas <span className="font-normal text-slate-400">(opsional)</span></span><input maxLength={30} value={form.abbr_name} placeholder="Contoh: X IPS 1" onChange={event => setForm(value => ({ ...value, abbr_name: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3.5 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>}
-        <label className="block text-sm"><span className="mb-2 block font-semibold">Tingkat <b className="text-rose-500">*</b></span><input required min="1" max="12" step="1" type="number" value={form.level} placeholder="Contoh: 10" onChange={event => setForm(value => ({ ...value, level: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3.5 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>
-        <label className="block text-sm"><span className="mb-2 block font-semibold">Wali Kelas <span className="font-normal text-slate-400">(opsional)</span></span><input value={form.teacher} placeholder="UUID guru, atau kosongkan" onChange={event => setForm(value => ({ ...value, teacher: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3.5 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /><span className="mt-1.5 block text-xs text-slate-500">Wali kelas dapat ditentukan nanti jika belum tersedia.</span></label>
-        {editing !== "new" && <label className="block text-sm"><span className="mb-2 block font-semibold">Jumlah Siswa <b className="text-rose-500">*</b></span><input required min="0" type="number" value={form.students} onChange={event => setForm(value => ({ ...value, students: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3.5 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></label>}
+        <label className="block text-sm"><span className="mb-2 block font-semibold">Nama Kelas <b className="text-rose-500">*</b></span><input required maxLength={100} value={form.name} placeholder="Contoh: X-IPS-1" aria-invalid={Boolean(fieldErrors.name)} onChange={event => updateCreateField("name", event.target.value)} onBlur={() => validateCreateField("name")} className={`w-full rounded-lg border px-3.5 py-3 outline-none focus:ring-2 ${fieldErrors.name ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"}`} />{fieldErrors.name && <span role="alert" className="mt-1.5 block text-xs font-medium text-rose-600">{fieldErrors.name}</span>}</label>
+        {editing === "new" && <label className="block text-sm"><span className="mb-2 block font-semibold">Singkatan Kelas <span className="font-normal text-slate-400">(opsional)</span></span><input maxLength={30} value={form.abbr_name} placeholder="Contoh: X IPS 1" aria-invalid={Boolean(fieldErrors.abbr_name)} onChange={event => updateCreateField("abbr_name", event.target.value)} onBlur={() => validateCreateField("abbr_name")} className={`w-full rounded-lg border px-3.5 py-3 outline-none focus:ring-2 ${fieldErrors.abbr_name ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"}`} />{fieldErrors.abbr_name && <span role="alert" className="mt-1.5 block text-xs font-medium text-rose-600">{fieldErrors.abbr_name}</span>}</label>}
+        <label className="block text-sm"><span className="mb-2 block font-semibold">Tingkat <b className="text-rose-500">*</b></span><input required min="1" max="12" step="1" type="number" value={form.level} placeholder="Contoh: 10" aria-invalid={Boolean(fieldErrors.level)} onChange={event => updateCreateField("level", event.target.value)} onBlur={() => validateCreateField("level")} className={`w-full rounded-lg border px-3.5 py-3 outline-none focus:ring-2 ${fieldErrors.level ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"}`} />{fieldErrors.level && <span role="alert" className="mt-1.5 block text-xs font-medium text-rose-600">{fieldErrors.level}</span>}</label>
+        <label className="block text-sm"><span className="mb-2 block font-semibold">Wali Kelas <span className="font-normal text-slate-400">(opsional)</span></span><input value={form.teacher} placeholder="UUID guru, atau kosongkan" aria-invalid={Boolean(fieldErrors.teacher)} onChange={event => updateCreateField("teacher", event.target.value)} onBlur={() => validateCreateField("teacher")} className={`w-full rounded-lg border px-3.5 py-3 outline-none focus:ring-2 ${fieldErrors.teacher ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"}`} />{fieldErrors.teacher ? <span role="alert" className="mt-1.5 block text-xs font-medium text-rose-600">{fieldErrors.teacher}</span> : <span className="mt-1.5 block text-xs text-slate-500">Wali kelas dapat ditentukan nanti jika belum tersedia.</span>}</label>
+        {editing !== "new" && <label className="block text-sm"><span className="mb-2 block font-semibold">Jumlah Siswa <b className="text-rose-500">*</b></span><input required min="0" step="1" type="number" value={form.students} aria-invalid={Boolean(fieldErrors.students)} onChange={event => updateCreateField("students", event.target.value)} onBlur={() => validateCreateField("students")} className={`w-full rounded-lg border px-3.5 py-3 outline-none focus:ring-2 ${fieldErrors.students ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"}`} />{fieldErrors.students && <span role="alert" className="mt-1.5 block text-xs font-medium text-rose-600">{fieldErrors.students}</span>}</label>}
       </div>
     </FormDrawer>
     <FormDrawer

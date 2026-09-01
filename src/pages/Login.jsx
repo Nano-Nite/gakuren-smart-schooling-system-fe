@@ -23,7 +23,7 @@ export default function Login() {
       return
     }
 
-    if (!email.includes('@')) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
       setError('Format email tidak valid')
       return
     }
@@ -80,6 +80,7 @@ export default function Login() {
                   <input
                     id="email"
                     type="email"
+                    maxLength={254}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="nama@sekolah.id"
@@ -98,6 +99,8 @@ export default function Login() {
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
+                    minLength={8}
+                    maxLength={128}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"

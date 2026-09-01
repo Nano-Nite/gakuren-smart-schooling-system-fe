@@ -12,15 +12,25 @@ export default function Select({ value, options, onChange, ariaLabel, placement 
   const selected = normalized.find(option => String(option.value) === String(value)) || normalized[0];
 
   useEffect(() => {
-    const close = event => {
-      if (event.type === "keydown" && event.key !== "Escape") return;
-      if (event.type === "mousedown" && (rootRef.current?.contains(event.target) || menuRef.current?.contains(event.target))) return;
+    const closeOnOutsidePress = event => {
+      if (rootRef.current?.contains(event.target) || menuRef.current?.contains(event.target)) return;
       setOpen(false);
     };
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", close);
-    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", close); };
-  }, []);
+    const closeOnEscape = event => {
+      if (event.key !== "Escape" || !open) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      setOpen(false);
+      buttonRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePress, true);
+    document.addEventListener("keydown", closeOnEscape, true);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePress, true);
+      document.removeEventListener("keydown", closeOnEscape, true);
+    };
+  }, [open]);
 
   const updatePosition = useCallback(() => {
     const rect = buttonRef.current?.getBoundingClientRect();
