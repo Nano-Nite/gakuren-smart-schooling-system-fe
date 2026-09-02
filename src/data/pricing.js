@@ -31,7 +31,7 @@ export const pricingPlans = [
     code: 'ENTERPRISE', name: 'Enterprise', price: 1000000, priceLabel: 'Mulai Rp1.000.000', billingPeriod: 'per bulan',
     capacity: 'Multi-sekolah', setupFee: 'Sesuai kebutuhan', recommended: false,
     description: 'Untuk yayasan atau organisasi yang mengelola beberapa sekolah dan membutuhkan konfigurasi khusus.', cta: 'Hubungi Kami',
-    features: [development('Semua fitur Pro'), development('Pengelolaan multi-sekolah'), development('Dasbor yayasan'), contact('Konfigurasi alur kerja khusus'), contact('Domain khusus'), contact('API dan integrasi', 'Antarmuka untuk menghubungkan Gakuren dengan sistem lain.'), contact('Kesepakatan tingkat layanan', 'Kesepakatan tingkat layanan dan dukungan.'), contact('Dukungan implementasi'), contact('Penyesuaian kebutuhan organisasi')],
+    features: [development('Semua fitur Pro'), development('Pengelolaan multi-sekolah'), development('Beranda yayasan'), contact('Konfigurasi alur kerja khusus'), contact('Domain khusus'), contact('API dan integrasi', 'Antarmuka untuk menghubungkan Gakuren dengan sistem lain.'), contact('Kesepakatan tingkat layanan', 'Kesepakatan tingkat layanan dan dukungan.'), contact('Dukungan implementasi'), contact('Penyesuaian kebutuhan organisasi')],
   },
 ]
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Box, Calendar, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, CircleUser, FileText, LayoutDashboard, LockKeyhole, LogOut, Menu, QrCode, Settings, Shield, Signal, User, Users, X } from "lucide-react";
+import { BarChart3 as ChartNoAxesColumnIncreasing, CalendarCheck2, CalendarX2, ChevronDown, ChevronLeft, ChevronRight, CircleUser, ClipboardCheck, FileText, GraduationCap, LayoutDashboard, LockKeyhole, LogOut, Menu, QrCode, School, Settings, UsersRound, X } from "lucide-react";
 import { logoutUser } from "../utils/api";
 import { getAssignedMenuItems, getPermissions, hasMenuAccess, MENU_ROUTES } from "../utils/permissions";
 import ThemeToggle from "./ThemeToggle";
@@ -8,7 +8,9 @@ import PageSkeleton from "./PageSkeleton";
 import { usePageLoading } from "../context/PageLoadingContext";
 import { useLocale } from "../context/LocaleContext";
 
-const icons = { Dashboard: LayoutDashboard, "QR Code": QrCode, "Teacher and Staff": Users, "Student Management": User, "Class Management": Box, Attendance: Calendar, Absence: Shield, Approval: CheckSquare, Report: Signal, Setting: Settings };
+const icons = { Dashboard: LayoutDashboard, "QR Code": QrCode, "Teacher and Staff": UsersRound, "Student Management": GraduationCap, "Class Management": School, Attendance: CalendarCheck2, Absence: CalendarX2, Approval: ClipboardCheck, Report: ChartNoAxesColumnIncreasing, Setting: Settings };
+const sidebarMenuOrder = ["Dashboard", "QR Code", "Teacher and Staff", "Student Management", "Class Management", "Attendance", "Absence", "Approval", "Report", "Setting"];
+const sidebarMenuPosition = new Map(sidebarMenuOrder.map((label, index) => [label, index]));
 
 export default function AppLayout() {
   const navigate = useNavigate();
@@ -22,7 +24,7 @@ export default function AppLayout() {
   const { isPageLoading, startLoading, stopLoading } = usePageLoading();
   const { t } = useLocale();
   const permissions = useMemo(() => getPermissions(), []);
-  const menus = useMemo(() => getAssignedMenuItems(), []);
+  const menus = useMemo(() => getAssignedMenuItems().sort((a, b) => sidebarMenuPosition.get(a) - sidebarMenuPosition.get(b)), []);
   const user = useMemo(() => { try { return JSON.parse(sessionStorage.getItem("userData") || "{}"); } catch { return {}; } }, []);
   const activeMenu = location.pathname === "/profile" ? "Profile" : menus.find(label => MENU_ROUTES[label] === location.pathname) || menus[0];
 
@@ -73,7 +75,7 @@ export default function AppLayout() {
         <button aria-label={expanded ? "Ciutkan sidebar" : "Perluas sidebar"} onClick={() => setExpanded(value => !value)} className="sidebar-toggle absolute -right-3 top-6 z-10 hidden h-7 w-7 items-center justify-center rounded-full border shadow-sm transition-colors lg:flex">{expanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
         <button aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)} className="ml-auto rounded-lg p-2 lg:hidden"><X className="h-5 w-5" /></button>
       </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-3">{menus.map(label => { const Icon = icons[label] || FileText; const active = MENU_ROUTES[label] === location.pathname; const allowed = hasMenuAccess(label, permissions); const displayLabel = t(`menu.${label}`, label); return <button key={label} title={!expanded ? displayLabel : allowed ? undefined : `${displayLabel} — akses terbatas`} onClick={() => goTo(label)} className={`flex w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2.5 text-sm ${active ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-600 hover:bg-slate-50"}`}><Icon className={`h-[18px] w-[18px] shrink-0 transition-transform duration-500 ${expanded ? "lg:translate-x-0" : "lg:translate-x-[15px]"}`} /><span className={`min-w-0 flex-1 truncate whitespace-nowrap text-left transition-all duration-300 ${expanded ? "lg:max-w-[150px] lg:opacity-100" : "lg:max-w-0 lg:opacity-0"}`}>{displayLabel}</span>{!allowed && <LockKeyhole className={`h-3.5 w-3.5 shrink-0 text-amber-500 transition-opacity ${expanded ? "opacity-100" : "lg:opacity-0"}`} />}</button>; })}</nav>
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-3">{menus.map(label => { const Icon = icons[label] || FileText; const active = MENU_ROUTES[label] === location.pathname; const allowed = hasMenuAccess(label, permissions); const displayLabel = t(`menu.${label}`, label); return <button key={label} aria-label={displayLabel} title={!expanded ? displayLabel : allowed ? undefined : `${displayLabel} — akses terbatas`} onClick={() => goTo(label)} className={`flex w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2.5 text-sm ${active ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-600 hover:bg-slate-50"}`}><Icon aria-hidden="true" strokeWidth={1.75} className={`h-[18px] w-[18px] shrink-0 transition-transform duration-500 ${expanded ? "lg:translate-x-0" : "lg:translate-x-[15px]"}`} /><span className={`min-w-0 flex-1 truncate whitespace-nowrap text-left transition-all duration-300 ${expanded ? "lg:max-w-[180px] lg:opacity-100" : "lg:max-w-0 lg:opacity-0"}`}>{displayLabel}</span>{!allowed && <LockKeyhole aria-hidden="true" strokeWidth={1.75} className={`h-3.5 w-3.5 shrink-0 text-amber-500 transition-opacity ${expanded ? "opacity-100" : "lg:opacity-0"}`} />}</button>; })}</nav>
       <div className={`m-3 overflow-hidden rounded-xl bg-slate-50 transition-all duration-300 ${expanded ? "p-3 opacity-100" : "lg:m-0 lg:max-h-0 lg:p-0 lg:opacity-0"}`}><p className="whitespace-nowrap text-[10px] text-slate-500">Tahun Ajaran</p><p className="mt-1 whitespace-nowrap text-xs font-semibold text-blue-600">2026/2027 - Genap</p></div>
     </aside>
     <div className="flex min-w-0 flex-1 flex-col">

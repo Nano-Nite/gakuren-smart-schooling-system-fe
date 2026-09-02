@@ -1,19 +1,32 @@
 const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_URL,
 
+  // auth
   LOGIN: '/v1/auth/login',
   LOGOUT: '/v1/auth/logout',
   REFRESH_TOKEN: '/v1/auth/refresh',
+
+  // class
   GET_CLASSES: '/v1/school/class/get',
   CREATE_CLASS: '/v1/school/class/create',
   UPDATE_CLASS: '/v1/school/class/update',
   DELETE_CLASS: '/v1/school/class/delete',
+
+  // student
   GET_STUDENTS: '/v1/school/student/get',
   CREATE_STUDENT: '/v1/school/student/create',
   UPDATE_STUDENT: '/v1/school/student/update',
   DELETE_STUDENT: '/v1/school/student/delete',
+
+  // teacher
   GET_TEACHER_STAFF: '/v1/school/teacher-staff/get',
-  GET_GENDERS: '/v1/school/misc/gender',
+
+  // misc
+  GET_GENDERS: '/v1/misc/gender',
+  GET_TITLES: '/v1/misc/title',
+  GET_EDUCATION_LEVELS: '/v1/misc/education-level',
+
+  // approval
   GET_MY_APPROVALS: '/v1/school/approval/my-approval',
   EXECUTE_MY_APPROVAL: '/v1/school/approval/my-approval/execute',
 

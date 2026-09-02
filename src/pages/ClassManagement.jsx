@@ -9,6 +9,7 @@ import API_CONFIG from "../config/api";
 import { authenticatedRequest } from "../utils/api";
 import StatusBadge from "../components/StatusBadge";
 import StatusRowActions from "../components/StatusRowActions";
+import UnsavedChangesDialog from "../components/UnsavedChangesDialog";
 
 const emptyForm = { name: "", abbr_name: "", level: "10", teacher: "", students: 0, status: "Aktif" };
 const columns = [["Nama Kelas", "name"], ["Tingkat", "level"], ["Wali Kelas", "teacher"], ["Jumlah Siswa", "students"], ["Status", "status"]];
@@ -52,6 +53,17 @@ export default function ClassManagement() {
   const [noticeTone, setNoticeTone] = useState("success");
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
+  const classFormDirty = editing === "new"
+    ? JSON.stringify(form) !== JSON.stringify(emptyForm)
+    : editing !== null && JSON.stringify(form) !== JSON.stringify(selected || rows.find(row => row.id === editing) || form);
+
+  useEffect(() => {
+    if (!classFormDirty) return undefined;
+    const warn = event => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [classFormDirty]);
 
   useEffect(() => {
     if (!access.canView) return undefined;
@@ -212,6 +224,7 @@ export default function ClassManagement() {
   const validateCreateField = key => {
     setFieldErrors(current => ({ ...current, [key]: validateClassField(key, form[key]) }));
   };
+  const requestFormClose = () => { if (!saving) classFormDirty ? setShowUnsavedWarning(true) : setEditing(null); };
 
   return <>
     <Helmet><title>Kelas — Gakuren</title></Helmet>
@@ -254,7 +267,7 @@ export default function ClassManagement() {
       </section>
     </div>
 
-    <FormDrawer open={editing !== null} title={editing === "new" ? "Tambah Kelas" : "Edit Kelas"} noValidate onClose={() => { if (!saving) setEditing(null); }} onSubmit={save} submitLabel={saving ? "Menyimpan..." : "Simpan"} submitting={saving}>
+    <FormDrawer open={editing !== null} title={editing === "new" ? "Tambah Kelas" : "Edit Kelas"} noValidate onClose={requestFormClose} onSubmit={save} submitLabel={saving ? "Menyimpan..." : "Simpan"} submitting={saving}>
       <div className="space-y-5">
         {formError && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">{formError}</div>}
         <label className="block text-sm"><span className="mb-2 block font-semibold">Nama Kelas <b className="text-rose-500">*</b></span><input required maxLength={100} value={form.name} placeholder="Contoh: X-IPS-1" aria-invalid={Boolean(fieldErrors.name)} onChange={event => updateCreateField("name", event.target.value)} onBlur={() => validateCreateField("name")} className={`w-full rounded-lg border px-3.5 py-3 outline-none focus:ring-2 ${fieldErrors.name ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"}`} />{fieldErrors.name && <span role="alert" className="mt-1.5 block text-xs font-medium text-rose-600">{fieldErrors.name}</span>}</label>
@@ -277,5 +290,6 @@ export default function ClassManagement() {
     </FormDrawer>
     <ConfirmDialog open={activating !== null} title="Aktifkan kelas?" description={formError || (activating ? `Kelas ${activating.name} akan diaktifkan.` : "")} confirmLabel={saving ? "Mengaktifkan..." : "Aktifkan Kelas"} tone="success" onConfirm={confirmActivate} onCancel={() => { if (!saving) { setActivating(null); setFormError(""); } }} />
     <ConfirmDialog open={deleting !== null} title="Hapus kelas?" description={deleteError || (deleting ? `Kelas ${deleting.name} akan dihapus. Tindakan ini tidak dapat dibatalkan.` : "")} confirmLabel={deleteSubmitting ? "Menghapus..." : "Hapus Kelas"} onConfirm={confirmDelete} onCancel={() => { if (!deleteSubmitting) { setDeleting(null); setDeleteError(""); } }} />
+    <UnsavedChangesDialog open={showUnsavedWarning} onContinue={() => setShowUnsavedWarning(false)} onDiscard={() => { setShowUnsavedWarning(false); setEditing(null); }} />
   </>;
 }

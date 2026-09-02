@@ -57,7 +57,7 @@ export default function FormDrawer({ open, title, onClose, onSubmit, children, s
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <button type="button" aria-label="Tutup formulir" onClick={onClose} className={`drawer-backdrop drawer-scrim no-action-animation absolute inset-0 backdrop-blur-sm ${visible ? "is-visible" : ""}`} />
-      <form ref={panelRef} onSubmit={onSubmit} noValidate={noValidate} className={`drawer-panel relative flex h-full w-full flex-col bg-white shadow-2xl sm:w-1/3 ${visible ? "is-visible" : ""}`}>
+      <form ref={panelRef} onSubmit={onSubmit} noValidate={noValidate} className={`drawer-panel relative flex h-full w-full flex-col bg-white shadow-2xl sm:w-[72%] md:w-[62%] lg:w-[46%] xl:w-[38%] 2xl:w-1/3 ${visible ? "is-visible" : ""}`}>
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-5 sm:px-7">
           <h2 className="text-lg font-bold">{retainedTitle.current}</h2>
           <button type="button" aria-label="Tutup" onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">

@@ -29,6 +29,14 @@
   --feedback-error-text: #be123c;
 }
 
+input[name="last-education"]:checked + span > span {
+  transform: scale(1);
+}
+
+.dark .education-level-select > button {
+  background-color: rgb(255 255 255 / 0.06);
+}
+
 .dark {
   --mui-primary: #90caf9;
   --mui-primary-light: #e3f2fd;
@@ -730,6 +738,24 @@
   a.action-lift:hover {
     transform: translateY(-1px);
     box-shadow: 0 5px 14px -6px rgba(15, 23, 42, 0.35);
+  }
+}
+
+/* Keep the QR workspace stacked on tablets and small laptops. At this width the
+   application sidebar leaves too little room for three tabs beside the summary. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .qr-dashboard-shell {
+    display: block !important;
+  }
+
+  .qr-dashboard-shell > aside,
+  .qr-dashboard-shell > div > aside {
+    margin-top: 1.25rem;
+  }
+
+  .qr-dashboard-shell > .qr-workspace-surface:first-child button {
+    min-width: 0;
+    flex: 1 1 0%;
   }
 }
 
