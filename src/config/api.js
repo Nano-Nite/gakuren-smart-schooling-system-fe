@@ -7,6 +7,7 @@ const API_CONFIG = {
   GET_CLASSES: '/v1/school/class/get',
   CREATE_CLASS: '/v1/school/class/create',
   UPDATE_CLASS: '/v1/school/class/update',
+  DELETE_CLASS: '/v1/school/class/delete',
   GET_STUDENTS: '/v1/school/student/get',
   CREATE_STUDENT: '/v1/school/student/create',
   UPDATE_STUDENT: '/v1/school/student/update',

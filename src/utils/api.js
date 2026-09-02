@@ -296,6 +296,9 @@ export const authenticatedRequest = async (endpoint, options = {}) => {
 
   const config = {
     ...options,
+    method: String(endpoint).split("?")[0].split("/").some(segment => segment.toLowerCase() === "update")
+      ? "PATCH"
+      : options.method,
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,

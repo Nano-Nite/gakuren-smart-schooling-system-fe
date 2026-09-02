@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, ChevronLeft, ChevronRight, Download, Pencil, Plus, RefreshCw, Search, Trash2, Upload, X } from "lucide-react";
+import { ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Download, Info, Pencil, Plus, RefreshCw, Search, Trash2, Upload, X } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import FormDrawer from "../components/FormDrawer";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -49,6 +49,9 @@ export default function ClassManagement() {
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState("");
+  const [noticeTone, setNoticeTone] = useState("success");
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     if (!access.canView) return undefined;
@@ -112,7 +115,7 @@ export default function ClassManagement() {
     setSaving(true);
     try {
       await authenticatedRequest(API_CONFIG.UPDATE_CLASS, {
-        method: "POST",
+        method: "PATCH",
         body: {
           uuid: activating.id,
           name: activating.name,
@@ -123,6 +126,7 @@ export default function ClassManagement() {
         },
       });
       setActivating(null);
+      setNoticeTone("success");
       setSuccessMessage(`Kelas ${activating.name} berhasil diaktifkan.`);
       setRefreshKey(value => value + 1);
       window.setTimeout(() => setSuccessMessage(""), 5000);
@@ -160,6 +164,7 @@ export default function ClassManagement() {
           },
         });
         setEditing(null);
+        setNoticeTone("success");
         setSuccessMessage(`Kelas ${form.name.trim()} berhasil dibuat.`);
         setRefreshKey(value => value + 1);
         window.setTimeout(() => setSuccessMessage(""), 5000);
@@ -175,7 +180,31 @@ export default function ClassManagement() {
     setRows(current => current.map(row => row.id === editing ? { ...value, id: editing } : row));
     setEditing(null);
   };
-  const confirmDelete = () => { setRows(current => current.filter(item => item.id !== deleting.id)); setDeleting(null); };
+  const openDelete = item => { setDeleteError(""); setDeleting(item); };
+  const confirmDelete = async () => {
+    if (!deleting || deleteSubmitting) return;
+    setDeleteSubmitting(true);
+    setDeleteError("");
+    try {
+      const response = await authenticatedRequest(API_CONFIG.DELETE_CLASS, { method: "DELETE", body: { uuid: deleting.id } });
+      const responseData = response.data || {};
+      const responseStatus = String(responseData.status ?? responseData.Status ?? "").toLowerCase();
+      const pendingApproval = responseStatus === "pending" || Boolean(responseData.approval_uuid ?? responseData.approvalUUID ?? responseData.is_pending);
+      const deletedName = deleting.name;
+      setDeleting(null);
+      setSelected(null);
+      setPage(1);
+      setStatus(pendingApproval ? "Menunggu" : "Semua");
+      setNoticeTone(pendingApproval ? "pending" : responseStatus ? "success" : "info");
+      setSuccessMessage(pendingApproval ? `Penghapusan kelas ${deletedName} berhasil diajukan dan sedang menunggu persetujuan.` : responseStatus ? `Kelas ${deletedName} berhasil dihapus.` : `Permintaan penghapusan kelas ${deletedName} berhasil dikirim. Status terbaru dimuat dari server.`);
+      setRefreshKey(value => value + 1);
+      window.setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (requestError) {
+      setDeleteError(requestError.message);
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
   const updateCreateField = (key, value) => {
     setForm(current => ({ ...current, [key]: value }));
     if (fieldErrors[key]) setFieldErrors(current => ({ ...current, [key]: validateClassField(key, value) }));
@@ -187,7 +216,7 @@ export default function ClassManagement() {
   return <>
     <Helmet><title>Kelas — Gakuren</title></Helmet>
     <div className="p-4 sm:p-6">
-      {successMessage && <div role="status" className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700"><CheckCircle2 className="h-5 w-5" />{successMessage}</div>}
+      {successMessage && <div role="status" className={`mb-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold ${noticeTone === "pending" ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300" : noticeTone === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300" : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"}`}>{noticeTone === "pending" ? <Clock3 className="h-5 w-5" /> : noticeTone === "success" ? <CheckCircle2 className="h-5 w-5" /> : <Info className="h-5 w-5" />}{successMessage}</div>}
       <section className="data-table-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
         <div className="flex min-w-0 flex-col gap-2 border-b border-slate-200 p-3 md:flex-row md:items-center md:justify-between lg:gap-4 lg:p-4">
           <div className="flex min-w-0 w-full flex-1 flex-row items-center gap-2 md:w-auto lg:gap-3">
@@ -211,12 +240,12 @@ export default function ClassManagement() {
               <td className="truncate px-3 py-3 text-slate-600" title={row.teacher}>{row.teacher}</td>
               <td className="px-3 py-3">{row.students}</td>
               <td className="px-3 py-3"><StatusBadge status={row.status} /></td>
-              <td className="px-3 py-3"><div className="flex gap-2"><StatusRowActions item={row} label="kelas" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={setDeleting} onActivate={setActivating} /></div></td>
+              <td className="px-3 py-3"><div className="flex gap-2"><StatusRowActions item={row} label="kelas" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={openDelete} onActivate={setActivating} /></div></td>
             </tr>)}</tbody>
           </table>
         </div>
 
-        <div className="divide-y divide-slate-100 md:hidden">{displayedRows.map(row => <article key={row.id} onClick={() => openDetail(row)} className="cursor-pointer p-4 transition hover:bg-blue-50/50"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{row.name}</p><p className="mt-1 text-xs text-slate-500">Tingkat {row.level} • {row.students} siswa</p><p className="mt-1 truncate text-xs text-slate-500">{row.teacher}</p></div><div className="flex w-24 shrink-0 flex-col items-stretch gap-3"><StatusBadge status={row.status} className="w-full" /><div className="grid grid-cols-2 justify-items-center gap-2 [&>button:only-child]:col-span-2"><StatusRowActions item={row} label="kelas" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={setDeleting} onActivate={setActivating} /></div></div></div></article>)}</div>
+        <div className="divide-y divide-slate-100 md:hidden">{displayedRows.map(row => <article key={row.id} onClick={() => openDetail(row)} className="cursor-pointer p-4 transition hover:bg-blue-50/50"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{row.name}</p><p className="mt-1 text-xs text-slate-500">Tingkat {row.level} • {row.students} siswa</p><p className="mt-1 truncate text-xs text-slate-500">{row.teacher}</p></div><div className="flex w-24 shrink-0 flex-col items-stretch gap-3"><StatusBadge status={row.status} className="w-full" /><div className="grid grid-cols-2 justify-items-center gap-2 [&>button:only-child]:col-span-2"><StatusRowActions item={row} label="kelas" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={openDelete} onActivate={setActivating} /></div></div></div></article>)}</div>
 
         {error && <div className="grid place-items-center px-4 py-16 text-center text-rose-600"><p className="font-semibold">Gagal memuat data kelas</p><p className="mt-1 text-xs">{error}</p><button disabled={loading} onClick={() => { setLoading(true); setRefreshKey(value => value + 1); }} className="mt-4 inline-flex min-w-24 items-center justify-center gap-2 rounded-lg border border-rose-200 px-4 py-2 text-xs font-semibold hover:bg-rose-50 disabled:cursor-wait disabled:opacity-70">{loading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}{loading ? "Memuat..." : "Coba lagi"}</button></div>}
         {loading && !rows.length && <div className="grid place-items-center px-4 py-16 text-center"><RefreshCw className="h-8 w-8 animate-spin text-blue-500" /><p className="mt-3 text-sm text-slate-500">Memuat data kelas...</p></div>}
@@ -247,6 +276,6 @@ export default function ClassManagement() {
       </div>
     </FormDrawer>
     <ConfirmDialog open={activating !== null} title="Aktifkan kelas?" description={formError || (activating ? `Kelas ${activating.name} akan diaktifkan.` : "")} confirmLabel={saving ? "Mengaktifkan..." : "Aktifkan Kelas"} tone="success" onConfirm={confirmActivate} onCancel={() => { if (!saving) { setActivating(null); setFormError(""); } }} />
-    <ConfirmDialog open={deleting !== null} title="Hapus kelas?" description={deleting ? `Kelas ${deleting.name} akan dihapus. Tindakan ini tidak dapat dibatalkan.` : ""} confirmLabel="Hapus Kelas" onConfirm={confirmDelete} onCancel={() => setDeleting(null)} />
+    <ConfirmDialog open={deleting !== null} title="Hapus kelas?" description={deleteError || (deleting ? `Kelas ${deleting.name} akan dihapus. Tindakan ini tidak dapat dibatalkan.` : "")} confirmLabel={deleteSubmitting ? "Menghapus..." : "Hapus Kelas"} onConfirm={confirmDelete} onCancel={() => { if (!deleteSubmitting) { setDeleting(null); setDeleteError(""); } }} />
   </>;
 }

@@ -1298,3 +1298,24 @@
   border-color: #1976d2 !important;
   box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.12);
 }
+
+/* Keep interactive table rows legible against dark surfaces. The utility
+   focus background is intentionally overridden here because its light-theme
+   feedback color is too bright for dark tables. */
+[data-theme="dark"] .data-table-card tbody tr {
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+[data-theme="dark"] .data-table-card tbody tr:hover {
+  background-color: rgba(59, 130, 246, 0.18) !important;
+  box-shadow: inset 3px 0 0 rgba(96, 165, 250, 0.72);
+}
+
+[data-theme="dark"] .data-table-card tbody tr:focus,
+[data-theme="dark"] .data-table-card tbody tr:focus-visible,
+[data-theme="dark"] .data-table-card tbody tr:focus-within {
+  background-color: rgba(59, 130, 246, 0.28) !important;
+  box-shadow:
+    inset 3px 0 0 #60a5fa,
+    inset 0 0 0 1px rgba(96, 165, 250, 0.42);
+}

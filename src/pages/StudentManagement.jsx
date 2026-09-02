@@ -329,7 +329,7 @@ export default function StudentManagement() {
     try {
       const parentPayload = addParentContact ? { parent_name: form.parent_name.trim(), parent_email: form.parent_email.trim(), parent_phone: form.parent_phone.trim(), parent_address: form.parent_address.trim() } : { parent_name: null, parent_email: null, parent_phone: null, parent_address: null };
       const response = await authenticatedRequest(API_CONFIG.UPDATE_STUDENT, {
-        method: "POST",
+        method: "PATCH",
         body: { uuid: selected.id, name: form.name.trim(), nis: form.nis.trim(), nisn: form.nisn.trim(), phone: form.phone.trim(), email: form.email.trim(), class_uuid: form.class_uuid, address: form.address.trim(), gender_uuid: form.gender_uuid, ...parentPayload },
       });
       const responseData = response.data || {};
