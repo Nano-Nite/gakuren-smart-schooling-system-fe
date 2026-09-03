@@ -1,11 +1,12 @@
-import { BellRing, ClipboardCheck, ScanLine, UsersRound } from 'lucide-react'
+import { ClipboardCheck, Database, FileCheck2, UserCheck, Users } from 'lucide-react'
 import { useReveal } from '../hooks/useReveal'
 
 const steps = [
-  { icon: ScanLine, number: '01', title: 'Kehadiran dicatat', desc: 'Guru absen, lalu mencatat siswa dari kelas yang sama melalui QR atau perangkat sekolah.' },
-  { icon: BellRing, number: '02', title: 'Orang tua mendapat kabar', desc: 'Ketidakhadiran memicu pemberitahuan real-time. Izin dan sakit tidak lagi bergantung pada surat kertas.' },
-  { icon: ClipboardCheck, number: '03', title: 'Sekolah menindaklanjuti', desc: 'Keterlambatan, bolos, dan izin tersimpan dalam satu riwayat yang mudah ditelusuri.' },
-  { icon: UsersRound, number: '04', title: 'Tidak ada siswa terlewat', desc: 'Kepala sekolah dan wali kelas melihat kondisi hari ini, bukan sekadar rekap bulan lalu.' },
+  { icon: Users, number: '01', title: 'Data sekolah disiapkan', desc: 'Operator mengelola data siswa, pegawai, kelas, mata pelajaran, akun, dan hak akses.' },
+  { icon: UserCheck, number: '02', title: 'Kegiatan dicatat', desc: 'Guru dan staf mencatat kehadiran serta menjalankan tugas melalui menu masing-masing.' },
+  { icon: ClipboardCheck, number: '03', title: 'Data diperiksa', desc: 'Pengajuan dan catatan yang memerlukan persetujuan diperiksa oleh pihak yang berwenang.' },
+  { icon: Database, number: '04', title: 'Data digunakan kembali', desc: 'Kehadiran dapat digunakan untuk penggajian. Kegiatan belajar dapat digunakan untuk penilaian dan rapor.' },
+  { icon: FileCheck2, number: '05', title: 'Laporan disiapkan', desc: 'Operator dan pimpinan dapat melihat rekap tanpa mengumpulkan kembali data dari setiap bagian.' },
 ]
 
 export default function HowItWorks() {
@@ -15,11 +16,10 @@ export default function HowItWorks() {
       <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_70%_20%,#1e88e5_0,transparent_35%)]" />
       <div ref={ref} className={`reveal relative mx-auto max-w-7xl px-6 lg:px-8 ${visible ? 'is-visible' : ''}`}>
         <div className="max-w-2xl">
-          <span className="text-xs font-bold uppercase tracking-[0.18em] text-brand-400">Satu kejadian, satu alur respons</span>
-          <h2 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">Sekolah tahu lebih cepat.<br />Orang tua tidak menebak-nebak.</h2>
-          <p className="mt-4 text-slate-300">Gakuren menghubungkan momen absensi dengan orang yang perlu mengambil tindakan.</p>
+          <span className="text-xs font-bold uppercase tracking-[0.18em] text-brand-400">Cara kerja</span>
+          <h2 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">Satu data dapat digunakan untuk beberapa pekerjaan.</h2>
         </div>
-        <div className="stagger-grid relative mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="stagger-grid relative mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-5">
           <div className="stagger-decoration absolute left-10 right-10 top-9 hidden h-px bg-gradient-to-r from-brand-500/20 via-brand-400 to-brand-500/20 lg:block" />
           {steps.map((step) => (
             <article key={step.number} className="group relative">
