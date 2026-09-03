@@ -180,6 +180,7 @@ input[name="last-education"]:checked + span > span {
 
   .data-table-card > footer {
     margin-top: auto;
+    flex: 0 0 auto;
   }
 
   .data-table-card > .grid.place-items-center {

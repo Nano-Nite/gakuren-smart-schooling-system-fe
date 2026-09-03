@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Download, Info, Pencil, Plus, RefreshCw, Search, Trash2, Upload, X } from "lucide-react";
+import { ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, Clock3, Download, Info, Pencil, Plus, RefreshCw, Search, Trash2, Upload, X } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import Select from "../components/Select";
 import FormDrawer from "../components/FormDrawer";
@@ -8,6 +8,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import StatusBadge from "../components/StatusBadge";
 import StatusRowActions from "../components/StatusRowActions";
 import UnsavedChangesDialog from "../components/UnsavedChangesDialog";
+import TablePagination from "../components/TablePagination";
 import API_CONFIG from "../config/api";
 import { authenticatedRequest } from "../utils/api";
 import { getCrudPermissions } from "../utils/permissions";
@@ -378,13 +379,13 @@ export default function StudentManagement() {
           </table>
         </div>
 
-        <div className="divide-y divide-slate-100 md:hidden">{rows.map(row => <article key={row.id} onClick={() => openDetail(row)} className="cursor-pointer p-4 text-left transition hover:bg-blue-50/50"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{row.name}</p><p className="mt-1 text-xs text-slate-500">NIS {row.nis} • NISN {row.nisn}</p><p className="mt-1 text-xs text-slate-500">{row.class_name} • {row.phone} • {row.gender}</p></div><div className="flex w-24 shrink-0 flex-col items-stretch gap-3"><StatusBadge status={row.status} className="w-full" /><div className="grid grid-cols-2 justify-items-center gap-2 [&>button:only-child]:col-span-2"><StatusRowActions item={row} label="siswa" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={openDelete} onActivate={setActivating} /></div></div></div></article>)}</div>
+        <div className="divide-y divide-slate-100 md:hidden">{rows.map(row => <article key={row.id} onClick={() => openDetail(row)} className="cursor-pointer p-4 text-left transition hover:bg-blue-50/50"><div className="flex min-w-0 items-start justify-between gap-3"><div className="min-w-0 flex-1 break-words"><p className="font-semibold">{row.name}</p><p className="mt-1 text-xs text-slate-500">NIS {row.nis} • NISN {row.nisn}</p><p className="mt-1 text-xs text-slate-500">{row.class_name} • {row.phone} • {row.gender}</p></div><div className="flex w-24 shrink-0 flex-col items-stretch gap-3"><StatusBadge status={row.status} className="w-full" /><div className="grid grid-cols-2 justify-items-center gap-2 [&>button:only-child]:col-span-2"><StatusRowActions item={row} label="siswa" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={openDelete} onActivate={setActivating} /></div></div></div></article>)}</div>
 
         {error && <div className="grid place-items-center px-4 py-16 text-center text-rose-600"><p className="font-semibold">Gagal memuat data siswa</p><p className="mt-1 text-xs">{error}</p><button disabled={loading} onClick={() => { setLoading(true); setRefreshKey(value => value + 1); }} className="mt-4 inline-flex min-w-24 items-center justify-center gap-2 rounded-lg border border-rose-200 px-4 py-2 text-xs font-semibold disabled:cursor-wait disabled:opacity-70">{loading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}{loading ? "Memuat..." : "Coba lagi"}</button></div>}
         {loading && !rows.length && !error && <div className="grid place-items-center px-4 py-16 text-center"><RefreshCw className="h-8 w-8 animate-spin text-blue-500" /><p className="mt-3 text-sm text-slate-500">Memuat data siswa...</p></div>}
         {!loading && !error && !rows.length && <div className="grid place-items-center px-4 py-16 text-center"><Search className="h-10 w-10 text-slate-300" /><p className="mt-3 font-semibold">Tidak ada siswa ditemukan</p></div>}
 
-        <footer className="grid min-h-[76px] gap-4 border-t border-slate-200 bg-slate-50/50 px-5 py-4 text-xs text-slate-500 sm:grid-cols-3 sm:items-center"><span>Menampilkan <b className="text-slate-700">{statistics.total_row ? `${statistics.start_row}-${statistics.end_row}` : "0"}</b> dari {statistics.total_row} data</span><div className="flex items-center justify-center gap-1.5"><button disabled={page <= 1 || loading} onClick={() => setPage(value => value - 1)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white disabled:opacity-40"><ChevronLeft className="h-4 w-4" /></button>{Array.from({ length: Math.min(statistics.max_page || 1, 5) }, (_, index) => index + 1).map(number => <button key={number} disabled={loading} onClick={() => setPage(number)} className={`h-9 w-9 rounded-lg font-semibold ${page === number ? "bg-blue-600 text-white" : "border border-slate-200 bg-white"}`}>{number}</button>)}<button disabled={page >= (statistics.max_page || 1) || loading} onClick={() => setPage(value => value + 1)} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white disabled:opacity-40"><ChevronRight className="h-4 w-4" /></button></div><div className="flex justify-end"><Select value={pageSize} onChange={value => { setPageSize(Number(value)); setPage(1); }} ariaLabel="Jumlah data per halaman" placement="top" className="w-36 sm:w-40" options={[{ value: 5, label: "5 / Halaman" }, { value: 10, label: "10 / Halaman" }, { value: 25, label: "25 / Halaman" }, { value: 50, label: "50 / Halaman" }]} /></div></footer>
+        <TablePagination page={page} pageCount={statistics.max_page} pageSize={pageSize} total={statistics.total_row} start={statistics.start_row} end={statistics.end_row} loading={loading} onPageChange={setPage} onPageSizeChange={value => { setPageSize(value); setPage(1); }} />
       </section>
     </div>
     <FormDrawer open={creating} title="Tambah Siswa" submitLabel={createSubmitting ? "Menyimpan..." : "Simpan Siswa"} submitting={createSubmitting} noValidate onClose={requestCreateClose} onSubmit={saveStudent}>
