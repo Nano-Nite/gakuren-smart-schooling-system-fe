@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { getApiUrl } from "../config/api";
-import { clearNetworkOfflineFlag, isNetworkAvailable, setNetworkAvailable } from "../utils/api";
+import { clearNetworkOfflineFlag, getScopeHeaders, isNetworkAvailable, setNetworkAvailable } from "../utils/api";
 
 const SECOND_MS = 1000;
 const MINUTE_MS = 60 * SECOND_MS;
@@ -64,7 +64,7 @@ export default function NetworkStatusMonitor() {
           method: "GET",
           cache: "no-store",
           signal: controller.signal,
-          headers: { Accept: "text/plain" },
+          headers: { Accept: "text/plain", ...getScopeHeaders() },
         });
 
         if (!response.ok) throw new Error(`Health check returned ${response.status}`);

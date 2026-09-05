@@ -14,7 +14,7 @@ import Profile from './pages/Profile'
 import SignUp from './pages/SignUp'
 import ModulePlaceholder from './pages/ModulePlaceholder'
 import { getDefaultAuthorizedRoute } from './utils/permissions'
-import { isNetworkAvailable, isUserAuthenticated, setNetworkAvailable } from './utils/api'
+import { initializeAuth, isNetworkAvailable, isUserAuthenticated, setNetworkAvailable } from './utils/api'
 import { getMenuItems, hasAnyPermission, MENU_ROUTES } from './utils/permissions'
 import AccessDenied from './pages/AccessDenied'
 import OfflineUnavailable from './pages/OfflineUnavailable'
@@ -57,6 +57,35 @@ function HomeOrInstalledApp() {
 }
 
 export default function App() {
+  const [ready, setReady] = useState(false)
+  const [restoreError, setRestoreError] = useState('')
+  const [attempt, setAttempt] = useState(0)
+  const [, updateAuth] = useState(0)
+
+  useEffect(() => {
+    const onAuth = () => updateAuth(value => value + 1)
+    window.addEventListener('gakuren:auth', onAuth)
+    return () => window.removeEventListener('gakuren:auth', onAuth)
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    setReady(false)
+    setRestoreError('')
+    initializeAuth().catch(error => {
+      if (active) setRestoreError(error.message || 'Tidak dapat memulihkan sesi.')
+    }).finally(() => { if (active) setReady(true) })
+    return () => { active = false }
+  }, [attempt])
+
+  if (!ready) return <div role="status" className="flex min-h-dvh items-center justify-center">Memulihkan sesi...</div>
+  if (restoreError) return <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
+    <p role="alert">{restoreError}</p>
+    <p>Hubungkan internet untuk memulihkan sesi, atau masuk kembali.</p>
+    <button type="button" onClick={() => setAttempt(value => value + 1)}>Coba lagi</button>
+    <button type="button" onClick={() => { setRestoreError(''); window.history.replaceState(null, '', '/login') }}>Ke halaman login</button>
+  </div>
+
   return (
     <HelmetProvider>
       <BrowserRouter>

@@ -4,6 +4,43 @@ import API_CONFIG, {
   ERROR_MESSAGES,
 } from "../config/api";
 
+import { cacheScopeFor, getCacheScope } from "./authScope";
+import { clearOfflineSessionCache } from "../services/offlineAttendanceStore";
+
+let accessToken = null;
+let sessionVersion = 0;
+let refreshPromise = null;
+let initializePromise = null;
+let loggingOut = false;
+const LOGOUT_KEY = "gakuren:logout";
+export const isServerLogoutPending = () => localStorage.getItem(LOGOUT_KEY)?.startsWith("pending:") === true;
+const notifyAuth = () => window.dispatchEvent(new Event("gakuren:auth"));
+export const getSessionVersion = () => sessionVersion;
+
+// Migrate previous versions without ever reusing persisted bearer/refresh tokens.
+for (const storage of [sessionStorage, localStorage]) {
+  for (const key of [TOKEN_KEYS.ACCESS_TOKEN, TOKEN_KEYS.REFRESH_TOKEN, TOKEN_KEYS.TOKEN_EXPIRY, TOKEN_KEYS.IS_AUTHENTICATED]) storage.removeItem(key);
+}
+
+const authFetch = async (endpoint, options = {}) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), API_CONFIG.REQUEST_TIMEOUT);
+  try {
+    return await fetch(getApiUrl(endpoint), {
+      ...options,
+      credentials: "include",
+      cache: "no-store",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+        // BE must require this header AND validate Origin against its FE allowlist.
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    });
+  } finally { clearTimeout(timer); }
+};
+
 const NETWORK_STATUS_KEY = "gakuren:network-status";
 const persistedNetworkStatus = localStorage.getItem(NETWORK_STATUS_KEY);
 let networkAvailable = navigator.onLine && persistedNetworkStatus !== "offline";
@@ -22,9 +59,23 @@ export const clearNetworkOfflineFlag = () => {
   window.dispatchEvent(new CustomEvent("gakuren:network", { detail: { online: true } }));
 };
 
+export const getScopeHeaders = () => {
+  const userData = getUserData();
+  const tenantId = sessionStorage.getItem(TOKEN_KEYS.TENANT_ID)
+    ?? userData?.tenant_uuid
+    ?? userData?.tenant_id
+    ?? userData?.TenantID
+    ?? userData?.tenant?.id;
+  const schoolUuid = sessionStorage.getItem(TOKEN_KEYS.SCHOOL_UUID)
+    ?? userData?.school_uuid;
+
+  return {
+    ...(tenantId ? { tenant_uuid: tenantId } : {}),
+    ...(schoolUuid ? { school_uuid: schoolUuid } : {}),
+  };
+};
+
 export const loginRequest = async (endpoint, options = {}) => {
-  const url = getApiUrl(endpoint);
-  const accessToken = sessionStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN);
 
   let encryptedPassword = null;
   let requestBody = { ...options.body };
@@ -46,6 +97,7 @@ export const loginRequest = async (endpoint, options = {}) => {
   const headers = {
     "Content-Type": "application/json",
     ...options.headers,
+    ...getScopeHeaders(),
   };
 
   if (encryptedPassword) {
@@ -54,8 +106,8 @@ export const loginRequest = async (endpoint, options = {}) => {
 
   const config = {
     method: options.method,
-    headers,
     ...options,
+    headers,
   };
 
   if (requestBody && typeof requestBody === "object") {
@@ -63,7 +115,7 @@ export const loginRequest = async (endpoint, options = {}) => {
   }
 
   try {
-    const response = await fetch(url, config);
+    const response = await authFetch(endpoint, config);
     const data = await response.json();
 
     if (response.status === 401) {
@@ -85,50 +137,19 @@ export const loginRequest = async (endpoint, options = {}) => {
 };
 
 export const logoutRequest = async (endpoint, options = {}) => {
-  const url = getApiUrl(endpoint);
-  let requestBody = { ...options.body };
-
-  const headers = {
-    "Content-Type": "application/json",
-    ...options.headers,
-  };
-
-  console.log(sessionStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN))
-
-  if (sessionStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN)) {
-    headers.Authorization = `Bearer ${sessionStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN)}`;
-  }
-
-  const config = {
-    method: options.method,
-    headers,
+  const response = await authFetch(endpoint, {
     ...options,
-  };
-
-  if (requestBody && typeof requestBody === "object") {
-    config.body = JSON.stringify(requestBody);
-  }
-
-  try {
-    const response = await fetch(url, config);
-    const data = await response.json();
-
-    if (response.status === 401) {
-      clearAuthData();
-      throw new Error(data.message || ERROR_MESSAGES.UNAUTHORIZED);
-    }
-
-    if (!response.ok) {
-      throw new Error(data.message || ERROR_MESSAGES.SERVER_ERROR);
-    }
-
-    return data;
-  } catch (error) {
-    if (error.message === "Failed to fetch") {
-      throw new Error(ERROR_MESSAGES.NETWORK_ERROR);
-    }
-    throw error;
-  }
+    headers: {
+      ...options.headers,
+      ...getScopeHeaders(),
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify(options.body || {}),
+  });
+  const data = await response.json().catch(() => ({}));
+  // Logout must revoke/expire the refresh cookie even when the access token expired.
+  if (!response.ok || data.error) throw new Error(data.message || "Logout server gagal. Silakan coba lagi.");
+  return data;
 };
 
 function decodeBase64(value) {
@@ -202,71 +223,130 @@ export async function encryptRSA(plainText, publicKey) {
   }
 }
 
-export const loginUser = async (email, password) => {
-  const response = await loginRequest(API_CONFIG.LOGIN, {
-    method: "POST",
-    body: { email, password },
-  });
-
-  if (response.error) {
-    throw new Error(response.message || ERROR_MESSAGES.INVALID_CREDENTIALS);
+const saveSession = (data, expectedScope = null) => {
+  const { token, user_data, menu, permission } = data || {};
+  const tenantId = data?.tenant_uuid ?? data?.tenant_id ?? user_data?.tenant_uuid
+    ?? user_data?.tenant_id ?? user_data?.TenantID ?? user_data?.tenant?.id;
+  const schoolUuid = data?.school_uuid ?? user_data?.school_uuid;
+  if (typeof token?.access_token !== "string" || !token.access_token || !tenantId || !schoolUuid
+    || !cacheScopeFor(tenantId, schoolUuid, user_data) || !Array.isArray(menu) || !Array.isArray(permission)) {
+    throw new Error("Respons sesi tidak lengkap. BE harus mengirim access token, pengguna, tenant, sekolah, menu, dan permission.");
   }
-
-  const { token, user_data, menu, permission } = response.data;
-  const tenantId = response.data.tenant_id
-    ?? response.data.tenant_uuid
-    ?? user_data?.tenant_id
-    ?? user_data?.tenant_uuid
-    ?? user_data?.TenantID
-    ?? user_data?.tenant?.id;
-  sessionStorage.setItem(TOKEN_KEYS.ACCESS_TOKEN, token.access_token);
-  sessionStorage.setItem(TOKEN_KEYS.REFRESH_TOKEN, token.refresh_token);
-  sessionStorage.setItem(TOKEN_KEYS.TOKEN_EXPIRY, token.expired_in);
-  sessionStorage.setItem(TOKEN_KEYS.USER_DATA, JSON.stringify(user_data || {}));
-  if (tenantId) sessionStorage.setItem(TOKEN_KEYS.TENANT_ID, tenantId);
-  sessionStorage.setItem(TOKEN_KEYS.MENU_ITEMS, JSON.stringify(Array.isArray(menu) ? menu : []));
-  sessionStorage.setItem(TOKEN_KEYS.PERMISSIONS, JSON.stringify(Array.isArray(permission) ? permission : []));
-  sessionStorage.setItem(TOKEN_KEYS.IS_AUTHENTICATED, "true");
-
-  return response;
-};
-
-export const logoutUser = async (email) => {
-  const response = await logoutRequest(API_CONFIG.LOGOUT, {
-    method: "POST",
-    body: { email },
-  });
-
-  if (response.error) {
-    throw new Error(response.message || ERROR_MESSAGES.INVALID_CREDENTIALS);
+  if (expectedScope && cacheScopeFor(tenantId, schoolUuid, user_data) !== expectedScope) {
+    throw new Error("Akun atau sekolah berubah. Silakan masuk kembali.");
   }
-  clearAuthData();
-  return response;
+  // Persist only display/context data. Tokens remain exclusively in memory/cookies.
+  const displayFields = ["uuid", "user_uuid", "UserUUID", "id", "user_name", "name", "full_name", "role_name", "email", "phone", "tenant_name", "address"];
+  const displayUser = Object.fromEntries(displayFields.filter(key => ["string", "number"].includes(typeof user_data[key])).map(key => [key, user_data[key]]));
+  sessionStorage.setItem(TOKEN_KEYS.USER_DATA, JSON.stringify(displayUser));
+  sessionStorage.setItem(TOKEN_KEYS.TENANT_ID, tenantId);
+  sessionStorage.setItem(TOKEN_KEYS.SCHOOL_UUID, schoolUuid);
+  sessionStorage.setItem(TOKEN_KEYS.MENU_ITEMS, JSON.stringify(menu));
+  sessionStorage.setItem(TOKEN_KEYS.PERMISSIONS, JSON.stringify(permission));
+  accessToken = token.access_token;
 };
 
 export const clearAuthData = () => {
-  sessionStorage.removeItem(TOKEN_KEYS.ACCESS_TOKEN);
-  sessionStorage.removeItem(TOKEN_KEYS.REFRESH_TOKEN);
-  sessionStorage.removeItem(TOKEN_KEYS.TOKEN_EXPIRY);
-  sessionStorage.removeItem(TOKEN_KEYS.USER_DATA);
-  sessionStorage.removeItem(TOKEN_KEYS.TENANT_ID);
-  sessionStorage.removeItem(TOKEN_KEYS.MENU_ITEMS);
-  sessionStorage.removeItem(TOKEN_KEYS.PERMISSIONS);
-  sessionStorage.removeItem(TOKEN_KEYS.IS_AUTHENTICATED);
+  const scope = getCacheScope();
+  accessToken = null;
+  sessionVersion += 1;
+  for (const key of Object.values(TOKEN_KEYS)) sessionStorage.removeItem(key);
+  for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+    const key = localStorage.key(index);
+    if (key?.startsWith("gakuren:reference:")) localStorage.removeItem(key);
+  }
+  localStorage.removeItem("gakuren:last-menu-route");
+  notifyAuth();
+  // Keep unsynced attendance in its owner partition to avoid losing recorded work.
+  return clearOfflineSessionCache(scope).catch(error => {
+    console.error("Pembersihan cache offline gagal:", error);
+  });
 };
 
-export const isUserAuthenticated = () => {
-  return sessionStorage.getItem(TOKEN_KEYS.IS_AUTHENTICATED) === "true";
+export const loginUser = async (email, password) => {
+  if (loggingOut) throw new Error("Logout sedang diproses.");
+  await clearAuthData();
+  const version = sessionVersion;
+  // Wait for any previous refresh cookie rotation before starting a new login.
+  await refreshPromise?.catch(() => {});
+  const response = await loginRequest(API_CONFIG.LOGIN, {
+    method: "POST", body: { email, password },
+  });
+  if (version !== sessionVersion) throw new Error("Sesi telah berubah. Silakan masuk kembali.");
+  if (response.error) throw new Error(response.message || ERROR_MESSAGES.INVALID_CREDENTIALS);
+  saveSession(response.data);
+  localStorage.removeItem(LOGOUT_KEY);
+  notifyAuth();
+  return response;
 };
 
+export const refreshSession = () => {
+  if (loggingOut || localStorage.getItem(LOGOUT_KEY)) return Promise.reject(new Error("Silakan masuk kembali."));
+  if (!refreshPromise) {
+    const version = sessionVersion;
+    const previousScope = getCacheScope();
+    refreshPromise = (async () => {
+      const response = await authFetch(API_CONFIG.REFRESH_TOKEN, {
+        method: "POST", headers: getScopeHeaders(), body: "{}",
+      });
+      const data = await response.json().catch(() => ({}));
+      if (version !== sessionVersion) throw new Error("Sesi telah berubah.");
+      if (!response.ok || data.error) {
+        if (response.status === 401 || response.status === 403 || (response.ok && data.error)) await clearAuthData();
+        throw Object.assign(new Error(data.message || "Tidak dapat memulihkan sesi. Silakan coba lagi."), { status: response.status });
+      }
+      try {
+        saveSession(data.data, previousScope);
+        notifyAuth();
+      } catch (error) {
+        await clearAuthData();
+        throw error;
+      }
+      return accessToken;
+    })().finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+};
+
+export const initializeAuth = () => {
+  if (!initializePromise) initializePromise = (async () => {
+    if (localStorage.getItem(LOGOUT_KEY)) { await clearAuthData(); return; }
+    try { await refreshSession(); }
+    catch (error) {
+      // Never grant access from a persisted flag, including during a cold offline launch.
+      if (!accessToken) await clearAuthData();
+      if (error.status !== 401 && error.status !== 403) throw error;
+    }
+  })().finally(() => { initializePromise = null; });
+  return initializePromise;
+};
+
+export const logoutUser = async email => {
+  loggingOut = true;
+  sessionVersion += 1;
+  // This marker prevents automatic re-login if cookie revocation fails/offline.
+  localStorage.setItem(LOGOUT_KEY, `pending:${Date.now()}`);
+  try {
+    await refreshPromise?.catch(() => {});
+    const response = await logoutRequest(API_CONFIG.LOGOUT, { method: "POST", body: { email } });
+    localStorage.setItem(LOGOUT_KEY, `complete:${Date.now()}`);
+    return response;
+  } finally {
+    await clearAuthData();
+    loggingOut = false;
+  }
+};
+
+window.addEventListener("storage", event => {
+  if (event.key === LOGOUT_KEY && event.newValue) clearAuthData();
+});
+
+export const isUserAuthenticated = () => Boolean(accessToken) && !loggingOut;
 export const getUserData = () => {
-  const userData = sessionStorage.getItem(TOKEN_KEYS.USER_DATA);
-  return userData ? JSON.parse(userData) : null;
+  try { return JSON.parse(sessionStorage.getItem(TOKEN_KEYS.USER_DATA) || "null"); }
+  catch { return null; }
 };
-
-export const getAccessToken = () => {
-  return sessionStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN);
-};
+export const getAccessToken = () => accessToken;
 
 export const hasPermission = (permission) => {
   const permissions = sessionStorage.getItem(TOKEN_KEYS.PERMISSIONS);
@@ -282,28 +362,27 @@ export const hasPermission = (permission) => {
   }
 };
 
-export const authenticatedRequest = async (endpoint, options = {}) => {
-  const accessToken = getAccessToken();
-  const userData = getUserData();
-  const tenantId = sessionStorage.getItem(TOKEN_KEYS.TENANT_ID)
-    ?? userData?.tenant_id
-    ?? userData?.tenant_uuid
-    ?? userData?.TenantID
-    ?? userData?.tenant?.id;
+export const authenticatedRequest = async (endpoint, options = {}, retried = false) => {
+  const requestVersion = sessionVersion;
+  const requestToken = getAccessToken();
+  const scopeHeaders = getScopeHeaders();
 
-  if (!accessToken) throw new Error(ERROR_MESSAGES.UNAUTHORIZED);
-  if (!tenantId) throw new Error("Tenant ID tidak ditemukan. Silakan masuk kembali.");
+  if (!requestToken || loggingOut) throw new Error(ERROR_MESSAGES.UNAUTHORIZED);
+  if (!scopeHeaders.tenant_uuid) throw new Error("Tenant ID tidak ditemukan. Silakan masuk kembali.");
+  if (!scopeHeaders.school_uuid) throw new Error("School UUID tidak ditemukan. Silakan masuk kembali.");
 
   const config = {
     ...options,
+    credentials: "omit",
+    cache: "no-store",
     method: String(endpoint).split("?")[0].split("/").some(segment => segment.toLowerCase() === "update")
       ? "PATCH"
       : options.method,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      tenant_uuid: tenantId,
       ...options.headers,
+      Authorization: `Bearer ${requestToken}`,
+      ...scopeHeaders,
     },
   };
   if (options.body && typeof options.body === "object") config.body = JSON.stringify(options.body);
@@ -311,8 +390,14 @@ export const authenticatedRequest = async (endpoint, options = {}) => {
   try {
     const response = await fetch(getApiUrl(endpoint), config);
     const data = await response.json().catch(() => ({}));
+    if (requestVersion !== sessionVersion) throw new Error("Sesi telah berubah.");
     if (response.status === 401) {
-      clearAuthData();
+      if (!retried) {
+        if (requestToken === getAccessToken()) await refreshSession();
+        if (requestVersion !== sessionVersion) throw new Error("Sesi telah berubah.");
+        return authenticatedRequest(endpoint, options, true);
+      }
+      await clearAuthData();
       throw new Error(data.message || ERROR_MESSAGES.UNAUTHORIZED);
     }
     if (!response.ok || data.error) {

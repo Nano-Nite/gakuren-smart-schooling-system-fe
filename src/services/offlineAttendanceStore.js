@@ -1,4 +1,6 @@
-const DB_NAME = "gakuren-attendance-offline";
+import { getCacheScope } from "../utils/authScope";
+
+const DB_NAME = "gakuren-attendance-offline:v3";
 const DB_VERSION = 2;
 const CREDENTIALS = "identityCredentials";
 const CONFIGS = "offlineConfigs";
@@ -6,8 +8,9 @@ const ATTENDANCES = "pendingAttendances";
 const TRUSTED_DEVICES = "trustedDevices";
 const SYNC_METADATA = "syncMetadata";
 
-const openDatabase = () => new Promise((resolve, reject) => {
-  const request = indexedDB.open(DB_NAME, DB_VERSION);
+const openDatabase = scope => new Promise((resolve, reject) => {
+  if (!scope) { reject(new Error("Identitas pengguna/sekolah tidak tersedia untuk penyimpanan offline.")); return; }
+  const request = indexedDB.open(`${DB_NAME}:${scope}`, DB_VERSION);
   request.onerror = () => reject(request.error);
   request.onupgradeneeded = () => {
     const database = request.result;
@@ -48,8 +51,10 @@ const requestResult = request => new Promise((resolve, reject) => {
 });
 
 const inStore = async (storeName, mode, operation) => {
-  const database = await openDatabase();
+  const scope = getCacheScope();
+  const database = await openDatabase(scope);
   try {
+    if (scope !== getCacheScope()) throw new Error("Sesi penyimpanan telah berubah.");
     const transaction = database.transaction(storeName, mode);
     const result = await operation(transaction.objectStore(storeName));
     await new Promise((resolve, reject) => {
@@ -117,4 +122,26 @@ export const offlineAttendanceStore = {
   getSyncMetadata(key) {
     return inStore(SYNC_METADATA, "readonly", store => requestResult(store.get(key)));
   },
+};
+
+// Remove cached identity/configuration and completed records on logout. Pending
+// records remain isolated and can only be reopened under the same cache scope.
+export const clearOfflineSessionCache = async scope => {
+  if (!scope || typeof indexedDB === "undefined") return;
+  const database = await openDatabase(scope);
+  try {
+    await new Promise((resolve, reject) => {
+      const transaction = database.transaction([CREDENTIALS, CONFIGS, TRUSTED_DEVICES, SYNC_METADATA, ATTENDANCES], "readwrite");
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+      for (const name of [CREDENTIALS, CONFIGS, TRUSTED_DEVICES, SYNC_METADATA]) transaction.objectStore(name).clear();
+      transaction.objectStore(ATTENDANCES).openCursor().onsuccess = event => {
+        const cursor = event.target.result;
+        if (!cursor) return;
+        if (cursor.value.sync_status !== "PENDING_SYNC") cursor.delete();
+        cursor.continue();
+      };
+    });
+  } finally { database.close(); }
 };

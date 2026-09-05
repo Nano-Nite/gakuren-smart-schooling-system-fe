@@ -41,6 +41,7 @@ export const TOKEN_KEYS = {
   TOKEN_EXPIRY: 'tokenExpiry',
   USER_DATA: 'userData',
   TENANT_ID: 'tenantId',
+  SCHOOL_UUID: 'schoolUuid',
   MENU_ITEMS: 'menuItems',
   PERMISSIONS: 'permissions',
   IS_AUTHENTICATED: 'isAuthenticated',

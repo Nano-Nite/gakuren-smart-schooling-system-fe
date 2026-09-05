@@ -1,20 +1,22 @@
 import { withMinimumDuration } from "../utils/withMinimumDuration"
 import AuthSplash from "../components/AuthSplash"
 import { useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, AlertCircle } from 'lucide-react'
 import { Helmet } from 'react-helmet-async'
-import { loginUser } from '../utils/api'
+import { isServerLogoutPending, loginUser, logoutUser } from '../utils/api'
 import { syncDailyReferences } from '../utils/dailyReferenceCache'
 import { getDefaultAuthorizedRoute } from '../utils/permissions'
 import ThemeToggle from '../components/ThemeToggle'
 
 export default function Login() {
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(location.state?.logoutError || (isServerLogoutPending() ? 'Anda sudah keluar dari aplikasi ini, tetapi sesi server belum berhasil dicabut.' : ''))
+  const [logoutPending, setLogoutPending] = useState(isServerLogoutPending())
   const navigate = useNavigate()
   const splashRef = useRef(null)
 
@@ -139,6 +141,13 @@ export default function Login() {
                   <p className="text-sm text-red-600">{error}</p>
                 </div>
               )}
+
+              {logoutPending && <button type="button" disabled={isLoading} onClick={async () => {
+                setIsLoading(true)
+                try { await logoutUser(); setLogoutPending(false); setError('') }
+                catch { setError('Sesi server belum berhasil dicabut. Periksa koneksi dan coba lagi.') }
+                finally { setIsLoading(false) }
+              }} className="text-sm font-semibold text-brand-700">Coba keluar dari server kembali</button>}
 
               <div className="flex items-center text-sm">
                 <label className="checkbox-label group flex cursor-pointer select-none items-center gap-2.5 transition">

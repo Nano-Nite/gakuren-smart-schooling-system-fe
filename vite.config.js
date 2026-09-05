@@ -46,8 +46,13 @@ export default defineConfig({
       workbox: {
         cleanupOutdatedCaches: true,
         navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/v1\//],
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/v1/'),
+            handler: 'NetworkOnly',
+          },
           {
             urlPattern: ({ url, request }) =>
               url.origin === self.location.origin &&

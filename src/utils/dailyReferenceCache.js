@@ -1,5 +1,7 @@
-import API_CONFIG, { TOKEN_KEYS } from "../config/api";
-import { authenticatedRequest } from "./api";
+import API_CONFIG from "../config/api";
+import { authenticatedRequest, getSessionVersion, isUserAuthenticated } from "./api";
+
+import { getCacheScope } from "./authScope";
 
 const pending = new Map();
 const definitions = {
@@ -24,8 +26,11 @@ const forConsumer = (promise, signal) => {
 
 export const getDailyReference = (type, { isStaff, forceRefresh = false, missingOnly = false, signal } = {}) => {
   if (signal?.aborted) return Promise.reject(abortError());
-  const tenant = sessionStorage.getItem(TOKEN_KEYS.TENANT_ID) || "default";
-  const key = `gakuren:reference:v1:${tenant}:${type}:${isStaff === undefined ? "all" : isStaff ? "staff" : "teacher"}`;
+  const scope = getCacheScope();
+  const version = getSessionVersion();
+  const currentSession = () => isUserAuthenticated() && version === getSessionVersion() && scope === getCacheScope();
+  if (!scope || !currentSession()) return Promise.reject(new Error("Silakan masuk kembali."));
+  const key = `gakuren:reference:v3:${scope}:${type}:${isStaff === undefined ? "all" : isStaff ? "staff" : "teacher"}`;
   const day = today();
   let cached = null;
   try {
@@ -33,12 +38,14 @@ export const getDailyReference = (type, { isStaff, forceRefresh = false, missing
     if (entry && Array.isArray(entry.result) && entry.result.every(item => item && typeof item === "object") && typeof entry.syncedDay === "string") cached = entry;
   } catch { /* Missing or damaged storage is fetched again. */ }
   if (cached && (missingOnly || (!forceRefresh && cached.syncedDay === day))) return forConsumer(Promise.resolve({ result: cached.result }), signal);
-  if (!pending.has(key)) {
+  const pendingKey = `${version}:${key}`;
+  if (!pending.has(pendingKey)) {
     const definition = definitions[type];
     const request = (async () => {
       const result = [];
       let maxPage = 1;
       for (let page = 1; page <= maxPage; page += 1) {
+        if (!currentSession()) throw new Error("Sesi telah berubah.");
         const response = await authenticatedRequest(definition.endpoint, { method: "POST", body: {
           search: null, filter: definition.filter || { is_staff: isStaff }, page,
           row_per_page: definition.rows, sort_by: [definition.sort],
@@ -47,16 +54,17 @@ export const getDailyReference = (type, { isStaff, forceRefresh = false, missing
         result.push(...response.data.result);
         maxPage = Number(response.data.data_statistic?.max_page || 1);
       }
+      if (!currentSession()) throw new Error("Sesi telah berubah.");
       try { localStorage.setItem(key, JSON.stringify({ syncedDay: day, result })); } catch { /* Storage restrictions must not prevent using API results. */ }
       return { result };
     })().catch(error => {
       // Failed synchronization must not mark stale data as synchronized today.
-      if (cached && !forceRefresh) return { result: cached.result };
+      if (cached && !forceRefresh && currentSession()) return { result: cached.result };
       throw error;
-    }).finally(() => pending.delete(key));
-    pending.set(key, request);
+    }).finally(() => pending.delete(pendingKey));
+    pending.set(pendingKey, request);
   }
-  return forConsumer(pending.get(key), signal);
+  return forConsumer(pending.get(pendingKey), signal);
 };
 
 export const syncDailyReferences = ({ signal, forceRefresh = false, missingOnly = false } = {}) => Promise.allSettled([

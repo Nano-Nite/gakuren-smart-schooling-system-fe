@@ -1,5 +1,13 @@
 import { attendanceService } from "./attendanceService";
 import { offlineAttendanceStore } from "./offlineAttendanceStore";
+import { getSessionVersion, getScopeHeaders, isUserAuthenticated } from "../utils/api";
+
+const guardSession = () => {
+  const version = getSessionVersion();
+  return () => {
+    if (!isUserAuthenticated() || version !== getSessionVersion()) throw new Error("Sesi absensi telah berubah. Silakan masuk kembali.");
+  };
+};
 
 export const OFFLINE_ERROR_MESSAGES = {
   INVALID_QR: "Sistem tidak mengenali QR ini.",
@@ -60,19 +68,27 @@ export function resolveAttendanceRule(config, identity, recordedAt = new Date())
 }
 
 export async function getOfflineContext() {
+  const checkSession = guardSession();
+  checkSession();
   const config = await offlineAttendanceStore.getOfflineConfig();
+  checkSession();
   if (!config) throw offlineError("OFFLINE_CONFIG_MISSING");
   const device = await offlineAttendanceStore.getTrustedDevice(config.school_uuid);
+  checkSession();
   if (!device?.trusted || !device.device_uuid || device.school_uuid !== config.school_uuid || !device.location_uuid) throw offlineError("DEVICE_NOT_TRUSTED");
   return { config, device };
 }
 
 export async function createOfflineAttendance(identity, credentialToken, config, device) {
+  const checkSession = guardSession();
+  checkSession();
+  if (config.school_uuid !== getScopeHeaders().school_uuid) throw offlineError("WRONG_SCHOOL");
   const now = new Date();
   const { rule, attendanceType, provisionalStatus } = resolveAttendanceRule(config, identity, now);
   const attendanceDate = localDate(now);
   const deduplicationKey = `${config.school_uuid}:${identity.user_uuid}:${attendanceDate}:${attendanceType}`;
   const existing = await offlineAttendanceStore.getAttendanceByDeduplicationKey(deduplicationKey);
+  checkSession();
   if (existing) {
     const time = new Date(existing.recorded_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
     throw offlineError("ALREADY_ATTENDED", `Kehadiran sudah tercatat pada ${time}.`);
@@ -109,9 +125,13 @@ export async function createOfflineAttendance(identity, credentialToken, config,
 let activeSync;
 
 async function performSync() {
+  const checkSession = guardSession();
+  checkSession();
   const pending = await offlineAttendanceStore.getPendingAttendances();
+  checkSession();
   if (!pending.length) return { total: 0, results: [] };
   const device = await offlineAttendanceStore.getTrustedDevice(pending[0].school_uuid);
+  checkSession();
   if (!device?.trusted) throw offlineError("DEVICE_NOT_TRUSTED");
   window.dispatchEvent(new CustomEvent("gakuren:attendance-sync-state", { detail: { state: "SYNCING", count: pending.length } }));
   const records = pending.map(record => ({
@@ -127,8 +147,10 @@ async function performSync() {
   }));
   try {
     const response = await attendanceService.syncOfflineAttendances(device.device_uuid, records);
+    checkSession();
     const results = Array.isArray(response) ? response : response?.items || response?.results || [];
     for (const result of results) {
+      checkSession();
       const localUuid = result.local_uuid || result.local_id;
       if (!localUuid || !["VERIFIED", "FLAGGED", "REJECTED"].includes(result.status)) continue;
       await offlineAttendanceStore.updateAttendance(localUuid, {
@@ -138,11 +160,13 @@ async function performSync() {
         synced_at: new Date().toISOString(),
       });
     }
+    checkSession();
     await offlineAttendanceStore.setSyncMetadata("last-sync", { success: true, result_count: results.length });
     window.dispatchEvent(new CustomEvent("gakuren:attendance-sync-state", { detail: { state: "COMPLETE", count: results.length } }));
     window.dispatchEvent(new CustomEvent("gakuren:offline-attendance-changed"));
     return { total: pending.length, results };
   } catch (error) {
+    checkSession();
     await offlineAttendanceStore.setSyncMetadata("last-sync", { success: false, error: error.message });
     window.dispatchEvent(new CustomEvent("gakuren:attendance-sync-state", { detail: { state: "ERROR", count: pending.length } }));
     throw error;

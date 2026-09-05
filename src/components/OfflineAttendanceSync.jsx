@@ -16,8 +16,12 @@ export default function OfflineAttendanceSync() {
     };
     const onNetwork = event => { if (event.detail.online) sync(); };
     window.addEventListener("gakuren:network", onNetwork);
+    window.addEventListener("gakuren:auth", sync);
     sync();
-    return () => window.removeEventListener("gakuren:network", onNetwork);
+    return () => {
+      window.removeEventListener("gakuren:network", onNetwork);
+      window.removeEventListener("gakuren:auth", sync);
+    };
   }, []);
   return null;
 }

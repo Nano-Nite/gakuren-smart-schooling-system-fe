@@ -96,7 +96,7 @@ export default function AppLayout() {
     setLoggingOut(true);
     setAccountOpen(false);
     try { await withMinimumDuration(() => logoutUser(user.email)); await splashRef.current?.fadeOut(); navigate("/login"); }
-    catch (error) { console.error("Logout error:", error); }
+    catch (error) { navigate("/login", { replace: true, state: { logoutError: "Anda sudah keluar dari aplikasi ini. Sesi server belum berhasil dicabut; hubungkan internet dan coba keluar dari server kembali." } }); }
     finally { await splashRef.current?.fadeOut(); setLoggingOut(false); }
   };
 
