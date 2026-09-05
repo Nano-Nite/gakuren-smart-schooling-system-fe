@@ -1,3 +1,6 @@
+import { withMinimumDuration } from "../utils/withMinimumDuration";
+import AuthSplash from "./AuthSplash";
+import { syncDailyReferences } from "../utils/dailyReferenceCache";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { BarChart3 as ChartNoAxesColumnIncreasing, CalendarCheck2, CalendarX2, ChevronDown, ChevronLeft, ChevronRight, CircleUser, ClipboardCheck, FileText, GraduationCap, LayoutDashboard, LockKeyhole, LogOut, Menu, QrCode, School, Settings, UsersRound, X } from "lucide-react";
@@ -13,8 +16,31 @@ const sidebarMenuOrder = ["Dashboard", "QR Code", "Teacher and Staff", "Student 
 const sidebarMenuPosition = new Map(sidebarMenuOrder.map((label, index) => [label, index]));
 
 export default function AppLayout() {
+  useEffect(() => {
+    const controller = new AbortController();
+    const sync = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) syncDailyReferences({ signal: controller.signal });
+    };
+    sync();
+    const interval = window.setInterval(sync, 60000);
+    window.addEventListener("online", sync);
+    window.addEventListener("focus", sync);
+    window.addEventListener("storage", sync);
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      controller.abort();
+      window.clearInterval(interval);
+      window.removeEventListener("online", sync);
+      window.removeEventListener("focus", sync);
+      window.removeEventListener("storage", sync);
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, []);
+
   const navigate = useNavigate();
   const location = useLocation();
+  const splashRef = useRef(null);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -29,7 +55,7 @@ export default function AppLayout() {
   const activeMenu = location.pathname === "/profile" ? "Profile" : menus.find(label => MENU_ROUTES[label] === location.pathname) || menus[0];
 
   useEffect(() => {
-    document.title = `${activeMenu ? t(`menu.${activeMenu}`, activeMenu) : "Gakuren"} — Gakuren`;
+    document.title = `${activeMenu ? t(`menu.${activeMenu}`, activeMenu) : "Gakuren"} | Gakuren`;
     if (Object.values(MENU_ROUTES).includes(location.pathname)) {
       localStorage.setItem("gakuren:last-menu-route", location.pathname);
     }
@@ -65,9 +91,17 @@ export default function AppLayout() {
     navigate(target);
   };
   const goTo = label => navigateWithLoading(MENU_ROUTES[label]);
-  const logout = async () => { try { await logoutUser(user.email); navigate("/login"); } catch (error) { console.error("Logout error:", error); } };
+  const logout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setAccountOpen(false);
+    try { await withMinimumDuration(() => logoutUser(user.email)); await splashRef.current?.fadeOut(); navigate("/login"); }
+    catch (error) { console.error("Logout error:", error); }
+    finally { await splashRef.current?.fadeOut(); setLoggingOut(false); }
+  };
 
   return <div className="flex h-dvh min-h-[600px] overflow-hidden bg-slate-50 text-slate-900">
+    <AuthSplash ref={splashRef} open={loggingOut} />
     {mobileOpen && <button aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)} className="no-action-animation fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-sm lg:hidden" />}
     <aside className={`${expanded ? "lg:w-[280px]" : "lg:w-24"} ${mobileOpen ? "translate-x-0" : "-translate-x-full"} fixed inset-y-0 z-40 flex w-[280px] max-w-[86vw] flex-col border-r border-slate-200 bg-white shadow-2xl transition-all duration-500 lg:static lg:relative lg:translate-x-0 lg:shadow-none`}>
       <div className="flex h-[72px] shrink-0 items-center px-3">
@@ -75,7 +109,7 @@ export default function AppLayout() {
         <button aria-label={expanded ? "Ciutkan sidebar" : "Perluas sidebar"} onClick={() => setExpanded(value => !value)} className="sidebar-toggle absolute -right-3 top-6 z-10 hidden h-7 w-7 items-center justify-center rounded-full border shadow-sm transition-colors lg:flex">{expanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
         <button aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)} className="ml-auto rounded-lg p-2 lg:hidden"><X className="h-5 w-5" /></button>
       </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-3">{menus.map(label => { const Icon = icons[label] || FileText; const active = MENU_ROUTES[label] === location.pathname; const allowed = hasMenuAccess(label, permissions); const displayLabel = t(`menu.${label}`, label); return <button key={label} aria-label={displayLabel} title={!expanded ? displayLabel : allowed ? undefined : `${displayLabel} — akses terbatas`} onClick={() => goTo(label)} className={`flex w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2.5 text-sm ${active ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-600 hover:bg-slate-50"}`}><Icon aria-hidden="true" strokeWidth={1.75} className={`h-[18px] w-[18px] shrink-0 transition-transform duration-500 ${expanded ? "lg:translate-x-0" : "lg:translate-x-[15px]"}`} /><span className={`min-w-0 flex-1 truncate whitespace-nowrap text-left transition-all duration-300 ${expanded ? "lg:max-w-[180px] lg:opacity-100" : "lg:max-w-0 lg:opacity-0"}`}>{displayLabel}</span>{!allowed && <LockKeyhole aria-hidden="true" strokeWidth={1.75} className={`h-3.5 w-3.5 shrink-0 text-amber-500 transition-opacity ${expanded ? "opacity-100" : "lg:opacity-0"}`} />}</button>; })}</nav>
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-3">{menus.map(label => { const Icon = icons[label] || FileText; const active = MENU_ROUTES[label] === location.pathname; const allowed = hasMenuAccess(label, permissions); const displayLabel = t(`menu.${label}`, label); return <button key={label} aria-label={displayLabel} title={!expanded ? displayLabel : allowed ? undefined : `${displayLabel} | akses terbatas`} onClick={() => goTo(label)} className={`flex w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2.5 text-sm ${active ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-600 hover:bg-slate-50"}`}><Icon aria-hidden="true" strokeWidth={1.75} className={`h-[18px] w-[18px] shrink-0 transition-transform duration-500 ${expanded ? "lg:translate-x-0" : "lg:translate-x-[15px]"}`} /><span className={`min-w-0 flex-1 truncate whitespace-nowrap text-left transition-all duration-300 ${expanded ? "lg:max-w-[180px] lg:opacity-100" : "lg:max-w-0 lg:opacity-0"}`}>{displayLabel}</span>{!allowed && <LockKeyhole aria-hidden="true" strokeWidth={1.75} className={`h-3.5 w-3.5 shrink-0 text-amber-500 transition-opacity ${expanded ? "opacity-100" : "lg:opacity-0"}`} />}</button>; })}</nav>
       <div className={`m-3 overflow-hidden rounded-xl bg-slate-50 transition-all duration-300 ${expanded ? "p-3 opacity-100" : "lg:m-0 lg:max-h-0 lg:p-0 lg:opacity-0"}`}><p className="whitespace-nowrap text-[10px] text-slate-500">Tahun Ajaran</p><p className="mt-1 whitespace-nowrap text-xs font-semibold text-blue-600">2026/2027 - Genap</p></div>
     </aside>
     <div className="flex min-w-0 flex-1 flex-col">

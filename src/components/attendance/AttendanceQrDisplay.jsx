@@ -2,14 +2,14 @@ import { QRCodeSVG } from "qrcode.react";
 import { Clock3, MapPin, ShieldCheck } from "lucide-react";
 import { getUserData } from "../../utils/api";
 
-const formatTime = value => value ? new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }).format(new Date(value)) : "—";
+const formatTime = value => value ? new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" }).format(new Date(value)) : "|";
 const typeLabel = value => value === "CHECK_OUT" ? "Kehadiran Pulang" : "Kehadiran Masuk";
 
 export default function AttendanceQrDisplay({ session, status, error, onClose }) {
   const user = getUserData() || {};
   const creator = user.user_name || user.name || user.full_name || "User login";
   const active = status === "ACTIVE" || status === "CLOSING";
-  const location = session.location?.name || session.location_name || "—";
+  const location = session.location?.name || session.location_name || "|";
   const radius = session.location?.geofence_radius_meter ?? session.geofence_radius_meter ?? session.location?.radius_meter;
   return <div className="space-y-5">
     {error && <p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}

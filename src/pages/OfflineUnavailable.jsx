@@ -7,7 +7,7 @@ export default function OfflineUnavailable({ menu }) {
   const menuLabel = t(`menu.${menu}`, menu);
 
   return <>
-    <Helmet><title>{menuLabel} Tidak Tersedia — Gakuren</title></Helmet>
+    <Helmet><title>{menuLabel} Tidak Tersedia | Gakuren</title></Helmet>
     <div className="grid min-h-full place-items-center p-4 sm:p-6">
       <section className="w-full max-w-xl rounded-2xl border border-rose-200 bg-white p-7 text-center sm:p-10">
         <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-rose-50 text-rose-600"><WifiOff className="h-10 w-10" /></div>

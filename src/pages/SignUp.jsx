@@ -21,7 +21,7 @@ export default function SignUp() {
   };
 
   return <>
-    <Helmet><title>Daftar — Gakuren</title></Helmet>
+    <Helmet><title>Daftar | Gakuren</title></Helmet>
     <div className="login-page relative flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-white to-brand-100 px-4 py-20 dark:from-[#0b1220] dark:via-[#121212] dark:to-[#111827]">
       <Link to="/login" className="action-lift absolute left-4 top-4 inline-flex items-center gap-2 rounded-xl border border-brand-100 bg-white/80 px-3 py-2 text-sm font-semibold text-brand-700 shadow-sm sm:left-6 sm:top-6"><ArrowLeft className="h-4 w-4" />Kembali ke login</Link>
       <ThemeToggle className="absolute right-4 top-4 sm:right-6 sm:top-6" />

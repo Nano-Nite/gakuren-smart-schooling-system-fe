@@ -1346,3 +1346,85 @@ input[name="last-education"]:checked + span > span {
     inset 3px 0 0 #60a5fa,
     inset 0 0 0 1px rgba(96, 165, 250, 0.42);
 }
+
+/* Transform-only employee timeline and directional content transitions. */
+.wizard-timeline {
+  --step-width: 34%;
+  height: 100px;
+  overflow: hidden;
+  padding-top: 8px;
+}
+.wizard-timeline-track {
+  display: flex;
+  width: 100%;
+  transform: translate3d(calc(50% - var(--step-width) / 2 - var(--active-index) * var(--step-width)), 0, 0);
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.wizard-timeline-item { position: relative; flex: 0 0 var(--step-width); min-width: 0; }
+.wizard-timeline-label { white-space: nowrap; transition: color 900ms ease; }
+.wizard-timeline-node { transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1), background-color 900ms ease, box-shadow 900ms ease; }
+.wizard-timeline-item .wizard-timeline-node { transform: scale(.8); }
+.wizard-timeline-item[data-state="active"] .wizard-timeline-node { transform: scale(1.12); }
+.wizard-node-number, .wizard-node-check { transition: opacity 650ms ease, transform 900ms cubic-bezier(0.22, 1, 0.36, 1); }
+.wizard-node-check { opacity: 0; transform: scale(.5); }
+.wizard-timeline-item[data-state="completed"] .wizard-node-check { opacity: 1; transform: scale(1); }
+.wizard-timeline-item[data-state="completed"] .wizard-node-number { opacity: 0; transform: scale(.5); }
+.wizard-connector { position: absolute; top: 23px; left: 50%; width: 100%; height: 3px; }
+.wizard-connector > span { display: block; height: 100%; transform-origin: left; transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1); }
+.wizard-content-viewport { min-width: 0; overflow-x: clip; overflow-y: visible; }
+.wizard-content-motion { padding: 4px 2px; }
+.wizard-content-motion[data-phase="exit"] { animation: wizardContentExit 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.wizard-content-motion[data-phase="enter"] { animation: wizardContentEnter 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes wizardContentExit {
+  from { opacity: 1; transform: translate3d(0, 0, 0); }
+  to { opacity: 0; transform: translate3d(calc(-32px * var(--step-direction)), 0, 0); }
+}
+@keyframes wizardContentEnter {
+  from { opacity: 0; transform: translate3d(calc(32px * var(--step-direction)), 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@media (max-width: 380px) {
+  .wizard-timeline { --step-width: 44%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wizard-timeline-track, .wizard-timeline-node, .wizard-node-number, .wizard-node-check,
+  .wizard-timeline-label, .wizard-connector > span { transition: none; }
+  .wizard-content-motion[data-phase="exit"] { animation: wizardContentFadeOut 100ms ease both; }
+  .wizard-content-motion[data-phase="enter"] { animation: wizardContentFadeIn 100ms ease both; }
+}
+@keyframes wizardContentFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes wizardContentFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.auth-splash {
+  --auth-splash-blur: 12px;
+  backdrop-filter: blur(var(--auth-splash-blur));
+  -webkit-backdrop-filter: blur(var(--auth-splash-blur));
+  animation: authSplashFadeIn 3000ms ease-out;
+}
+.dark .auth-splash { --auth-splash-blur: 24px; }
+.auth-splash-gear {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: authSplashGearSpin 1.5s linear infinite;
+}
+.auth-splash-logo-glow {
+  background: radial-gradient(circle, theme('colors.blue.300 / 55%') 0%, theme('colors.blue.400 / 35%') 40%, transparent 72%);
+  filter: blur(16px);
+  transform-origin: center;
+  will-change: transform, opacity;
+  animation: authSplashLogoGlow 2.4s ease-in-out infinite;
+}
+@keyframes authSplashLogoGlow {
+  0%, 100% { transform: scale(.75); opacity: .35; }
+  50% { transform: scale(1.65); opacity: .65; }
+}
+@keyframes authSplashGearSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes authSplashFadeIn {
+  from { opacity: 0; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); }
+  to { opacity: 1; backdrop-filter: blur(var(--auth-splash-blur)); -webkit-backdrop-filter: blur(var(--auth-splash-blur)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-splash { animation-duration: 100ms; }
+  .auth-splash-gear { animation-duration: 3s; }
+  .auth-splash-logo-glow { animation-duration: 4s; }
+}

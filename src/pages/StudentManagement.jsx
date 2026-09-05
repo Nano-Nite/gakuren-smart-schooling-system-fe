@@ -352,7 +352,7 @@ export default function StudentManagement() {
   };
 
   return <>
-    <Helmet><title>Siswa — Gakuren</title></Helmet>
+    <Helmet><title>Siswa | Gakuren</title></Helmet>
     <div className="p-4 sm:p-6">
       {successMessage && <div role="status" className={`mb-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold ${noticeTone === "pending" ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300" : noticeTone === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300" : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"}`}>{noticeTone === "pending" ? <Clock3 className="h-5 w-5 shrink-0" /> : noticeTone === "success" ? <CheckCircle2 className="h-5 w-5 shrink-0" /> : <Info className="h-5 w-5 shrink-0" />}{successMessage}</div>}
       <section className="data-table-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">

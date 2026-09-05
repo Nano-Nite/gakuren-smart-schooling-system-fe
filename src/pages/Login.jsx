@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { withMinimumDuration } from "../utils/withMinimumDuration"
+import AuthSplash from "../components/AuthSplash"
+import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, AlertCircle } from 'lucide-react'
 import { Helmet } from 'react-helmet-async'
 import { loginUser } from '../utils/api'
+import { syncDailyReferences } from '../utils/dailyReferenceCache'
 import { getDefaultAuthorizedRoute } from '../utils/permissions'
 import ThemeToggle from '../components/ThemeToggle'
 
@@ -13,9 +16,11 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const splashRef = useRef(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (isLoading) return
     setError('')
     
     if (!email || !password) {
@@ -31,21 +36,27 @@ export default function Login() {
     setIsLoading(true)
 
     try {
-      await loginUser(email, password)
+      await withMinimumDuration(async () => {
+        await loginUser(email, password)
+        await syncDailyReferences({ missingOnly: true })
+      })
+      await splashRef.current?.fadeOut()
       setIsLoading(false)
       
       navigate(getDefaultAuthorizedRoute(), { replace: true })
     } catch (err) {
       console.error('Login error:', err)
       setError(err.message || 'Login gagal. Silakan coba lagi.')
+      await splashRef.current?.fadeOut()
       setIsLoading(false)
     }
   }
 
   return (
     <>
+      <AuthSplash ref={splashRef} open={isLoading} />
       <Helmet>
-        <title>Login — Gakuren</title>
+        <title>Login | Gakuren</title>
         <meta name="description" content="Masuk ke akun Gakuren Anda" />
       </Helmet>
       
@@ -177,7 +188,7 @@ export default function Login() {
           </div>
 
           <div className="login-footer mt-8 space-y-2 text-center text-xs text-slate-600">
-            <p>© 2026 Gakuren — Sistem Manajemen Sekolah</p>
+            <p>© 2026 Gakuren | Sistem Manajemen Sekolah</p>
             <div className="flex items-center justify-center gap-5">
               <a href="#" onClick={(event) => event.preventDefault()} className="font-medium hover:text-brand-700">Kebijakan Privasi</a>
               <a href="#" onClick={(event) => event.preventDefault()} className="font-medium hover:text-brand-700">Syarat Layanan</a>

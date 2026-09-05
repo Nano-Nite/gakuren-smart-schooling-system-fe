@@ -14,7 +14,7 @@ import OfflineAttendanceSync from './components/OfflineAttendanceSync.jsx'
 if (import.meta.env.PROD) {
   registerSW({
     onNeedRefresh() {
-      console.info('Versi baru Gakuren tersedia — akan diperbarui otomatis.')
+      console.info('Versi baru Gakuren tersedia | akan diperbarui otomatis.')
     },
     onOfflineReady() {
       console.info('Gakuren siap digunakan secara offline.')

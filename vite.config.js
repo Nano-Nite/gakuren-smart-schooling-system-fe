@@ -19,7 +19,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
-        name: 'Gakuren — Aplikasi Manajemen Sekolah',
+        name: 'Gakuren | Aplikasi Manajemen Sekolah',
         short_name: 'Gakuren',
         description: 'Kelola absensi, izin, penggajian guru, hingga laporan sekolah dalam satu platform yang aman, mudah digunakan, dan terintegrasi.',
         theme_color: '#4F46E5',

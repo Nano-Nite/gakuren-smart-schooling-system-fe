@@ -24,6 +24,8 @@ const API_CONFIG = {
   // misc
   GET_GENDERS: '/v1/misc/gender',
   GET_TITLES: '/v1/misc/title',
+  GET_POSITIONS: '/v1/misc/position',
+  GET_EMPLOYEE_STATUSES: '/v1/misc/employee_status',
   GET_EDUCATION_LEVELS: '/v1/misc/education-level',
 
   // approval

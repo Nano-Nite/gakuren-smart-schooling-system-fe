@@ -17,7 +17,7 @@ export default function Dashboard() {
     { key: "score", label: "Trust Score", width: "w-[18%]", render: row => <span className="flex items-center gap-1">{row.score}<BadgeCheck className="h-4 w-4 text-emerald-500" /></span> },
   ];
   return <>
-    <Helmet><title>Beranda — Gakuren</title></Helmet>
+    <Helmet><title>Beranda | Gakuren</title></Helmet>
     <div className="mx-auto max-w-[1680px] space-y-4 p-4 sm:p-5">
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
         <div className="mb-4 flex items-center justify-between">

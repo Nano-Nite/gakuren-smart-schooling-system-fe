@@ -6,7 +6,7 @@ export default function Profile() {
   const user = useMemo(() => { try { return JSON.parse(sessionStorage.getItem("userData") || "{}"); } catch { return {}; } }, []);
   const details = [[Mail, "Email", user.email || "-"], [Phone, "Nomor telepon", user.phone || "-"], [School, "Sekolah", user.tenant_name || "-"], [MapPin, "Alamat", user.address || "-"]];
   return <>
-    <Helmet><title>Profil — Gakuren</title></Helmet>
+    <Helmet><title>Profil | Gakuren</title></Helmet>
     <div className="mx-auto max-w-4xl p-4 sm:p-6">
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
         <div className="h-28 bg-gradient-to-r from-blue-600 to-indigo-500" />

@@ -46,7 +46,7 @@ export const features = [
     color: 'bg-blue-50 text-blue-600',
     eyebrow: 'Respons real-time',
     title: 'Orang tua langsung tahu',
-    desc: 'Saat siswa tidak hadir, sekolah dapat memberi kabar lewat WhatsApp saat itu juga—bukan menunggu rekap akhir hari.',
+    desc: 'Saat siswa tidak hadir, sekolah dapat memberi kabar lewat WhatsApp saat itu juga | bukan menunggu rekap akhir hari.',
   },
   {
     icon: TriangleAlert,
