@@ -18,6 +18,8 @@ import { initializeAuth, isNetworkAvailable, isUserAuthenticated, setNetworkAvai
 import { getMenuItems, hasAnyPermission, MENU_ROUTES } from './utils/permissions'
 import AccessDenied from './pages/AccessDenied'
 import OfflineUnavailable from './pages/OfflineUnavailable'
+import SessionSplash from './components/SessionSplash'
+import { withMinimumDuration } from './utils/withMinimumDuration'
 
 const OFFLINE_MENU_ACCESS = new Set(['QR Code', 'Report', 'Setting'])
 
@@ -72,19 +74,17 @@ export default function App() {
     let active = true
     setReady(false)
     setRestoreError('')
-    initializeAuth().catch(error => {
+    withMinimumDuration(() => initializeAuth(), 650).catch(error => {
       if (active) setRestoreError(error.message || 'Tidak dapat memulihkan sesi.')
     }).finally(() => { if (active) setReady(true) })
     return () => { active = false }
   }, [attempt])
 
-  if (!ready) return <div role="status" className="flex min-h-dvh items-center justify-center">Memulihkan sesi...</div>
-  if (restoreError) return <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
-    <p role="alert">{restoreError}</p>
-    <p>Hubungkan internet untuk memulihkan sesi, atau masuk kembali.</p>
-    <button type="button" onClick={() => setAttempt(value => value + 1)}>Coba lagi</button>
-    <button type="button" onClick={() => { setRestoreError(''); window.history.replaceState(null, '', '/login') }}>Ke halaman login</button>
-  </div>
+  if (!ready || restoreError) return <SessionSplash
+    failed={ready && Boolean(restoreError)}
+    onRetry={() => { setReady(false); setRestoreError(''); setAttempt(value => value + 1) }}
+    onLogin={() => { window.history.replaceState(null, '', '/login'); setRestoreError('') }}
+  />
 
   return (
     <HelmetProvider>
