@@ -1,7 +1,7 @@
 import { withMinimumDuration } from "../utils/withMinimumDuration"
-import AuthSplash from "../components/AuthSplash"
-import { useRef, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLoginSplash } from '../context/LoginSplashContext'
+import { useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, AlertCircle } from 'lucide-react'
 import { Helmet } from 'react-helmet-async'
 import { isServerLogoutPending, loginUser, logoutUser } from '../utils/api'
@@ -17,8 +17,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(location.state?.logoutError || (isServerLogoutPending() ? 'Anda sudah keluar dari aplikasi ini, tetapi sesi server belum berhasil dicabut.' : ''))
   const [logoutPending, setLogoutPending] = useState(isServerLogoutPending())
-  const navigate = useNavigate()
-  const splashRef = useRef(null)
+  const splash = useLoginSplash()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -36,27 +35,24 @@ export default function Login() {
     }
 
     setIsLoading(true)
+    splash.start()
 
     try {
       await withMinimumDuration(async () => {
         await loginUser(email, password)
         await syncDailyReferences({ missingOnly: true })
       })
-      await splashRef.current?.fadeOut()
-      setIsLoading(false)
-      
-      navigate(getDefaultAuthorizedRoute(), { replace: true })
+      splash.finish(getDefaultAuthorizedRoute())
     } catch (err) {
       console.error('Login error:', err)
       setError(err.message || 'Login gagal. Silakan coba lagi.')
-      await splashRef.current?.fadeOut()
+      await splash.stop()
       setIsLoading(false)
     }
   }
 
   return (
     <>
-      <AuthSplash ref={splashRef} open={isLoading} />
       <Helmet>
         <title>Login | Gakuren</title>
         <meta name="description" content="Masuk ke akun Gakuren Anda" />
@@ -144,9 +140,10 @@ export default function Login() {
 
               {logoutPending && <button type="button" disabled={isLoading} onClick={async () => {
                 setIsLoading(true)
+                splash.start()
                 try { await logoutUser(); setLogoutPending(false); setError('') }
                 catch { setError('Sesi server belum berhasil dicabut. Periksa koneksi dan coba lagi.') }
-                finally { setIsLoading(false) }
+                finally { await splash.stop(); setIsLoading(false) }
               }} className="text-sm font-semibold text-brand-700">Coba keluar dari server kembali</button>}
 
               <div className="flex items-center text-sm">

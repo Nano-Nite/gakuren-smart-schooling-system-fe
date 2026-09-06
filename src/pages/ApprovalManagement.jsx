@@ -417,8 +417,41 @@ function formatFieldLabel(key) {
 function formatFieldValue(value) {
   if (value === null || value === undefined || value === "") return "-";
   if (typeof value === "boolean") return value ? "Ya" : "Tidak";
-  if (typeof value === "object") return JSON.stringify(value, null, 2);
   return String(value);
+}
+
+const formatNestedLabel = key => ({
+  abbr_name: "Singkatan",
+  birth_date: "Tanggal lahir",
+  birth_place: "Tempat lahir",
+  full_name: "Nama lengkap",
+  is_prefix: "Sebagai awalan",
+  name: "Nama",
+  phone: "No. HP / WhatsApp",
+  sequence: "Urutan",
+  status: "Status",
+  address: "Alamat",
+  email: "Email",
+})[key] || formatFieldLabel(key);
+
+function ApprovalValue({ value, fieldKey, entityType }) {
+  if (value === null || value === undefined || value === "") return <span>-</span>;
+  if (typeof value !== "object") return <span>{formatFieldValue(value)}</span>;
+  const normalizedKey = normalizeApprovalFieldKey(fieldKey);
+  const entries = Array.isArray(value) ? value : Object.entries(value).map(([key, child]) => ({ key, child }));
+  const isTeacherStaff = /teacher|staff|guru/i.test(String(entityType || ""));
+  if (Array.isArray(value)) {
+    const items = value.map(item => {
+      if (!item || typeof item !== "object") return formatFieldValue(item);
+      const display = item.name || item.abbr_name || item.full_name || item.title || item.code;
+      return display || Object.values(item).filter(itemValue => itemValue !== null && itemValue !== "").join(" - ");
+    }).filter(Boolean);
+    return items.length ? <ul className="space-y-1.5">{items.map((item, index) => <li key={`${item}-${index}`} className="rounded-md bg-slate-50 px-2.5 py-1.5 text-sm dark:bg-white/10">{item}</li>)}</ul> : <span>-</span>;
+  }
+  if (isTeacherStaff && normalizedKey === "biodata") {
+    return <div className="grid gap-x-4 gap-y-2 sm:grid-cols-2">{entries.filter(({ child }) => child !== null && child !== undefined && child !== "").map(({ key, child }) => <div key={key} className="min-w-0"><span className="block text-[11px] text-slate-400 dark:text-slate-300">{formatNestedLabel(key)}</span><span className="block break-words">{formatFieldValue(child)}</span></div>)}</div>;
+  }
+  return <div className="space-y-1.5">{entries.filter(({ child }) => child !== null && child !== undefined && child !== "").map(({ key, child }) => <div key={key} className="flex gap-2 rounded-md bg-slate-50 px-2.5 py-1.5 dark:bg-white/10"><span className="shrink-0 text-slate-500 dark:text-slate-300">{formatNestedLabel(key)}:</span><span className="min-w-0 break-words">{typeof child === "object" ? <ApprovalValue value={child} fieldKey={key} entityType={entityType} /> : formatFieldValue(child)}</span></div>)}</div>;
 }
 
 function isSensitiveRequestField(key) {
@@ -473,7 +506,7 @@ function ApprovalDetailDrawer({ approval, currentUser, loading, error, actionErr
           <section><h3 className="mb-3 text-sm font-bold dark:text-white">Rincian Pengajuan</h3>{isUpdate && approval.activeDataError && <div role="status" className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"><span>Data diajukan tetap ditampilkan, tetapi pembanding data aktif gagal dimuat: {approval.activeDataError}</span><button type="button" onClick={onRetry} className="shrink-0 rounded-md border border-amber-300 px-2.5 py-1.5 font-semibold hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-900/40">Coba lagi</button></div>}<dl className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white px-4 dark:divide-slate-800 dark:border-slate-700 dark:bg-transparent">{isUpdate && approval.activeData && requestEntries.length > 0 && <div className="grid grid-cols-[120px_minmax(0,1fr)_minmax(0,1fr)] gap-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-white"><span>Kolom</span><span>Saat Ini</span><span>Diajukan</span></div>}{requestEntries.length ? requestEntries.map(([key, value, label]) => {
             const currentValue = getComparableFieldValue(approval.activeData, key);
             const changed = isUpdate && approval.activeData && !areApprovalValuesEqual(currentValue, value);
-            return isUpdate && approval.activeData ? <div key={key} className={`grid grid-cols-[120px_minmax(0,1fr)_minmax(0,1fr)] gap-3 py-3 text-sm ${changed ? "-mx-4 bg-blue-50/70 px-4 dark:bg-blue-950/30" : ""}`}><dt className="text-slate-500 dark:text-white"><span className="block">{label}</span>{changed && <span className="mt-1.5 block w-fit rounded border border-sky-300 bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-700 dark:border-sky-400/60 dark:bg-sky-400/10 dark:text-sky-200">Berubah</span>}</dt><dd className="whitespace-pre-wrap break-words font-medium text-slate-600 dark:text-white">{formatFieldValue(sanitizeRequestValue(currentValue))}</dd><dd className={`whitespace-pre-wrap break-words font-semibold dark:text-white ${changed ? "text-blue-700" : "text-slate-600"}`}>{formatFieldValue(sanitizeRequestValue(value))}</dd></div> : <div key={key} className="grid grid-cols-[140px_minmax(0,1fr)] gap-3 py-3 text-sm"><dt className="text-slate-500 dark:text-white">{label}</dt><dd className="whitespace-pre-wrap break-words font-medium dark:text-white">{formatFieldValue(sanitizeRequestValue(value))}</dd></div>;
+            return isUpdate && approval.activeData ? <div key={key} className={`grid grid-cols-[120px_minmax(0,1fr)_minmax(0,1fr)] gap-3 py-3 text-sm ${changed ? "-mx-4 bg-blue-50/70 px-4 dark:bg-blue-950/30" : ""}`}><dt className="text-slate-500 dark:text-white"><span className="block">{label}</span>{changed && <span className="mt-1.5 block w-fit rounded border border-sky-300 bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-700 dark:border-sky-400/60 dark:bg-sky-400/10 dark:text-sky-200">Berubah</span>}</dt><dd className="break-words font-medium text-slate-600 dark:text-white"><ApprovalValue value={sanitizeRequestValue(currentValue)} fieldKey={key} entityType={approval.entityType} /></dd><dd className={`break-words font-semibold dark:text-white ${changed ? "text-blue-700" : "text-slate-600"}`}><ApprovalValue value={sanitizeRequestValue(value)} fieldKey={key} entityType={approval.entityType} /></dd></div> : <div key={key} className="grid grid-cols-[140px_minmax(0,1fr)] gap-3 py-3 text-sm"><dt className="text-slate-500 dark:text-white">{label}</dt><dd className="break-words font-medium dark:text-white"><ApprovalValue value={sanitizeRequestValue(value)} fieldKey={key} entityType={approval.entityType} /></dd></div>;
           }) : <div className="py-4 text-sm text-slate-500">Tidak ada data permintaan.</div>}</dl></section>
           <article><h3 className="mb-3 text-sm font-bold">Progres Persetujuan</h3><div className="space-y-0">{timeline.length ? timeline.map((step, index) => {
             const stepNumber = timeline.slice(0, index + 1).filter(item => !["SUBMIT", "CANCEL"].includes(String(item.action_code || "").toUpperCase())).length;

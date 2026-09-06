@@ -19,7 +19,8 @@ const API_CONFIG = {
   DELETE_STUDENT: '/v1/school/student/delete',
 
   // teacher
-  GET_TEACHER_STAFF: '/v1/school/teacher-staff/get',
+  CREATE_TEACHER_STAFF: '/v1/school/tns/create',
+  GET_TEACHER_STAFF: '/v1/school/tns/get',
 
   // misc
   GET_GENDERS: '/v1/misc/gender',

@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Settings } from "lucide-react";
 
-const AuthSplash = forwardRef(function AuthSplash({ open }, ref) {
+const AuthSplash = forwardRef(function AuthSplash({ open, exitDuration = 3000 }, ref) {
   const overlayRef = useRef(null);
   const exitAnimationRef = useRef(null);
   useImperativeHandle(ref, () => ({
@@ -16,12 +16,12 @@ const AuthSplash = forwardRef(function AuthSplash({ open }, ref) {
             { opacity: 1, backdropFilter: `blur(${blur})`, webkitBackdropFilter: `blur(${blur})` },
             { opacity: 0, backdropFilter: "blur(0px)", webkitBackdropFilter: "blur(0px)" },
           ],
-          { duration: reducedMotion ? 100 : 3000, easing: "ease-in-out", fill: "forwards" },
+          { duration: reducedMotion ? 100 : exitDuration, easing: "ease-in-out", fill: "forwards" },
         );
       }
       try { await exitAnimationRef.current.finished; } catch { /* The splash was unmounted. */ }
     },
-  }), []);
+  }), [exitDuration]);
 
   useEffect(() => {
     if (!open) return undefined;

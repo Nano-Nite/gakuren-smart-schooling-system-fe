@@ -19,6 +19,7 @@ import { getMenuItems, hasAnyPermission, MENU_ROUTES } from './utils/permissions
 import AccessDenied from './pages/AccessDenied'
 import OfflineUnavailable from './pages/OfflineUnavailable'
 import SessionSplash from './components/SessionSplash'
+import { LoginSplashProvider } from './context/LoginSplashContext'
 import { withMinimumDuration } from './utils/withMinimumDuration'
 
 const OFFLINE_MENU_ACCESS = new Set(['QR Code', 'Report', 'Setting'])
@@ -89,6 +90,7 @@ export default function App() {
   return (
     <HelmetProvider>
       <BrowserRouter>
+        <LoginSplashProvider>
         <Routes>
           <Route path="/" element={<HomeOrInstalledApp />} />
           <Route path="/login" element={<Login />} />
@@ -108,6 +110,7 @@ export default function App() {
           </Route>
           <Route path="*" element={<DefaultRedirect />} />
         </Routes>
+        </LoginSplashProvider>
       </BrowserRouter>
     </HelmetProvider>
   )

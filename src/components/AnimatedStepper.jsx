@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 
-export default function AnimatedStepper({ steps, activeStep, disabled, onStepChange }) {
+export default function AnimatedStepper({ steps, activeStep, disabled, onStepChange, allowForwardNavigation = false, ariaLabel = "Tahapan formulir" }) {
   const [timelineStep, setTimelineStep] = useState(activeStep);
   const timelineRef = useRef(null);
   const waiting = timelineStep !== activeStep;
@@ -17,7 +17,7 @@ export default function AnimatedStepper({ steps, activeStep, disabled, onStepCha
     return () => { cancelled = true; pause.cancel(); };
   }, [activeStep, timelineStep]);
 
-  return <nav ref={timelineRef} aria-label="Tahapan formulir" className="wizard-timeline mb-6">
+  return <nav ref={timelineRef} aria-label={ariaLabel} className="wizard-timeline mb-6">
     <ol className="wizard-timeline-track" style={{ "--active-index": timelineStep - 1 }}>
       {steps.map((label, index) => {
         const number = index + 1;
@@ -25,7 +25,7 @@ export default function AnimatedStepper({ steps, activeStep, disabled, onStepCha
         const active = number === timelineStep;
         return <li key={label} className="wizard-timeline-item" data-state={active ? "active" : completed ? "completed" : "upcoming"}>
           {index < steps.length - 1 && <div aria-hidden="true" className="wizard-connector bg-slate-100 dark:bg-white/10"><span className="bg-emerald-600 dark:bg-emerald-500" style={{ transform: `scaleX(${completed ? 1 : 0})` }} /></div>}
-          <button type="button" aria-current={active ? "step" : undefined} aria-label={`Langkah ${number}: ${label}${completed ? ", selesai" : active ? ", aktif" : ", berikutnya"}`} disabled={disabled || waiting || number > activeStep} onClick={() => onStepChange(number)} className="relative z-10 flex w-full flex-col items-center gap-3 rounded-lg py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-default">
+          <button type="button" aria-current={active ? "step" : undefined} aria-label={`Langkah ${number}: ${label}${completed ? ", selesai" : active ? ", aktif" : ", berikutnya"}`} disabled={disabled || waiting || (!allowForwardNavigation && number > activeStep)} onClick={() => onStepChange(number)} className="relative z-10 flex w-full flex-col items-center gap-3 rounded-lg py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-default">
             <span className={`wizard-timeline-node relative grid h-8 w-8 place-items-center rounded-full text-xs font-bold ${active ? "bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-500/10" : completed ? "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950" : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-200"}`}>
               <span className="wizard-node-number" aria-hidden="true">{number}</span><Check aria-hidden="true" className="wizard-node-check absolute h-4 w-4" />
             </span>

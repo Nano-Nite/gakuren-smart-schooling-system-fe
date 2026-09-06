@@ -9,6 +9,7 @@ import StatusBadge from "../components/StatusBadge";
 import StatusRowActions from "../components/StatusRowActions";
 import UnsavedChangesDialog from "../components/UnsavedChangesDialog";
 import TablePagination from "../components/TablePagination";
+import StudentDetail from "../components/StudentDetail";
 import API_CONFIG from "../config/api";
 import { authenticatedRequest } from "../utils/api";
 import { getCrudPermissions } from "../utils/permissions";
@@ -455,7 +456,7 @@ export default function StudentManagement() {
       onSubmit={saveEdit}
       footerActions={editing ? <><button type="button" disabled={editSubmitting} onClick={requestEditClose} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">Batal</button><button type="submit" disabled={editSubmitting} className="action-lift rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70">{editSubmitting ? "Menyimpan..." : "Simpan Perubahan"}</button></> : <><button type="button" onClick={() => setSelected(null)} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Tutup</button>{selected?.status === "Nonaktif" ? access.canUpdate && <button type="button" onClick={() => { setActivating(selected); setSelected(null); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"><CheckCircle2 className="h-4 w-4" />Aktifkan</button> : <>{access.canDelete && <button type="button" disabled={selected?.status !== "Aktif"} title={selected?.status !== "Aktif" ? "Aksi hanya tersedia untuk siswa aktif" : "Hapus siswa"} onClick={() => setDeleting(selected)} className="action-lift inline-flex items-center gap-2 rounded-lg border border-rose-200 px-5 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"><Trash2 className="h-4 w-4" />Hapus</button>}{access.canUpdate && <button type="button" disabled={selected?.status !== "Aktif"} title={selected?.status !== "Aktif" ? "Aksi hanya tersedia untuk siswa aktif" : "Edit siswa"} onClick={() => { setEditError(""); setEditing(true); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"><Pencil className="h-4 w-4" />Edit</button>}</>}</>}
     >
-      <div className="space-y-5">
+      {editing ? <div className="space-y-5">
         {editing && editError && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">{editError}</div>}
         {[["Nama Siswa", "name", "text"], ["NIS", "nis", "text"], ["NISN", "nisn", "text"]].map(([label, key, type]) => editing ? <ValidatedInput key={key} label={label} name={key} type={type} value={form[key]} error={formErrors[key]} onChange={event => updateCreateField(key, event.target.value)} onBlur={() => validateCreateField(key)} /> : <label key={key} className="block text-sm"><span className="mb-2 block font-semibold">{label}</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{form[key] || "-"}</div></label>)}
         {editing ? <ClassPicker value={form.class_uuid} selectedName={form.class_name} error={formErrors.class_uuid} onChange={(uuid, name) => { setForm(current => ({ ...current, class_uuid: uuid, class_name: name })); if (formErrors.class_uuid) setFormErrors(current => ({ ...current, class_uuid: validateStudentField("class_uuid", uuid) })); }} onBlur={() => validateCreateField("class_uuid")} /> : <label className="block text-sm"><span className="mb-2 block font-semibold">Kelas</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{form.class_name || "-"}</div></label>}
@@ -499,7 +500,7 @@ export default function StudentManagement() {
           </div>
         </section>}
         {!editing && <div className="text-sm"><span className="mb-2 block font-semibold">Status</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3"><StatusBadge status={form.status} /></div></div>}
-      </div>
+      </div> : <StudentDetail data={form} />}
     </FormDrawer>
     <ConfirmDialog open={activating !== null} title="Aktifkan siswa?" description={activating ? `Siswa ${activating.name} akan diaktifkan.` : ""} confirmLabel="Aktifkan Siswa" tone="success" onConfirm={confirmActivate} onCancel={() => setActivating(null)} />
     <ConfirmDialog open={deleting !== null} title="Hapus siswa?" description={deleteError || (deleting ? `Siswa ${deleting.name} akan dihapus. Tindakan ini tidak dapat dibatalkan.` : "")} confirmLabel={deleteSubmitting ? "Menghapus..." : "Hapus Siswa"} onConfirm={confirmDelete} onCancel={() => { if (!deleteSubmitting) { setDeleting(null); setDeleteError(""); } }} />
