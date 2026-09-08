@@ -5,5 +5,5 @@ const styles = {
 };
 
 export default function StatusBadge({ status, className = "" }) {
-  return <span className={`inline-flex min-w-20 justify-center rounded-full px-3 py-1 text-xs font-medium ${styles[status] || "bg-slate-100 text-slate-600"} ${className}`}>{status === "Pending" ? "Menunggu" : status || "-"}</span>;
+  return <span className={`inline-flex min-w-28 items-center justify-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium ${styles[status] || "bg-slate-100 text-slate-600"} ${className}`}>{status === "Pending" ? "Menunggu" : status || "-"}</span>;
 }

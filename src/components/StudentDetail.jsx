@@ -1,3 +1,4 @@
+import CarouselNavigation from "./CarouselNavigation";
 import { useRef, useState } from "react";
 import StatusBadge from "./StatusBadge";
 
@@ -26,9 +27,7 @@ export default function StudentDetail({ data }) {
     goToSlide(Math.round(viewport.scrollLeft / viewport.clientWidth));
   };
   return <div className="-mx-5 min-w-0 sm:-mx-7" role="region" aria-roledescription="carousel" aria-label="Detail siswa">
-    <div className="-mt-2 mb-2 flex justify-center gap-1" aria-label="Pilih bagian detail">
-      {steps.map((label, index) => <button key={label} type="button" aria-label={`Lihat ${label}`} aria-current={activeSlide === index ? "true" : undefined} onClick={() => goToSlide(index)} className="grid h-6 w-6 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><span className={`h-1.5 w-1.5 rounded-full transition-colors motion-reduce:transition-none ${activeSlide === index ? "bg-slate-700 dark:bg-slate-200" : "bg-slate-300 dark:bg-slate-600"}`} /></button>)}
-    </div>
+    <CarouselNavigation labels={steps} active={activeSlide} onChange={goToSlide} ariaLabel="Pilih bagian detail" className="mb-5" insetClassName="px-5 sm:px-7" />
     <p className="sr-only" aria-live="polite">{steps[activeSlide]}, {activeSlide + 1} dari {steps.length}</p>
     <div ref={viewportRef} tabIndex={0} aria-label="Geser untuk melihat bagian lainnya" className="flex snap-x snap-mandatory items-start overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden cursor-grab active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       onScroll={event => { const viewport = event.currentTarget; if (viewport.clientWidth) setActiveSlide(Math.max(0, Math.min(steps.length - 1, Math.round(viewport.scrollLeft / viewport.clientWidth)))); }}

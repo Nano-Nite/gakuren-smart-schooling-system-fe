@@ -1,10 +1,14 @@
+import { buildStudentActivationPayload } from "../utils/studentActivation";
+import { buildStudentUpdatePayload } from "../utils/studentUpdatePayload";
+import useActivateData from "../hooks/useActivateData";
+import { isStatusMutationBlocked } from "../utils/userStatus";
 import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, Clock3, Download, Info, Pencil, Plus, RefreshCw, Search, Trash2, Upload, X } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import Select from "../components/Select";
 import FormDrawer from "../components/FormDrawer";
 import GenderSelect from "../components/GenderSelect";
-import ConfirmDialog from "../components/ConfirmDialog";
+import StatusChangeDialog from "../components/StatusChangeDialog";
 import StatusBadge from "../components/StatusBadge";
 import StatusRowActions from "../components/StatusRowActions";
 import UnsavedChangesDialog from "../components/UnsavedChangesDialog";
@@ -279,7 +283,7 @@ export default function StudentManagement() {
     setSelected(student);
     setEditing(false);
   };
-  const openEdit = student => {
+  const openEdit = student => { if (isStatusMutationBlocked(student.status)) return;
     setFormErrors({});
     setEditError("");
     setForm({ ...student });
@@ -292,6 +296,7 @@ export default function StudentManagement() {
   const requestEditClose = () => { if (!editSubmitting) editDirty ? setUnsavedTarget("edit") : (setSelected(null), setEditing(false)); };
   const saveEdit = async event => {
     event.preventDefault();
+    if (isStatusMutationBlocked(selected?.status) || isStatusMutationBlocked(form.status)) return;
     if (!editing || editSubmitting) return;
     const editFields = ["name", "nis", "nisn", "class_uuid", "email", "phone", "address", "gender_uuid", ...(addParentContact ? ["parent_name", "parent_email", "parent_phone", "parent_address"] : [])];
     const errors = Object.fromEntries(editFields.map(key => [key, validateStudentField(key, form[key])]).filter(([, message]) => message));
@@ -300,10 +305,10 @@ export default function StudentManagement() {
     setEditSubmitting(true);
     setEditError("");
     try {
-      const parentPayload = addParentContact ? { parent_name: form.parent_name.trim(), parent_email: form.parent_email.trim(), parent_phone: form.parent_phone.trim(), parent_address: form.parent_address.trim() } : { parent_name: null, parent_email: null, parent_phone: null, parent_address: null };
+
       const response = await authenticatedRequest(API_CONFIG.UPDATE_STUDENT, {
         method: "PATCH",
-        body: { uuid: selected.id, name: form.name.trim(), nis: form.nis.trim(), nisn: form.nisn.trim(), phone: form.phone.trim(), email: form.email.trim(), class_uuid: form.class_uuid, address: form.address.trim(), gender_uuid: form.gender_uuid, ...parentPayload },
+        body: buildStudentUpdatePayload(form, selected.id, addParentContact),
       });
       const responseData = response.data || {};
       const responseStatus = String(responseData.status ?? responseData.Status ?? "").toLowerCase();
@@ -322,8 +327,9 @@ export default function StudentManagement() {
       setEditSubmitting(false);
     }
   };
-  const openDelete = student => { setDeleteError(""); setDeleting(student); };
+  const openDelete = student => { if (isStatusMutationBlocked(student.status)) return; setDeleteError(""); setDeleting(student); };
   const confirmDelete = async () => {
+    if (isStatusMutationBlocked(deleting?.status)) return;
     if (!deleting || deleteSubmitting) return;
     setDeleteSubmitting(true);
     setDeleteError("");
@@ -338,7 +344,7 @@ export default function StudentManagement() {
       setPage(1);
       setStatus(pendingApproval ? "Menunggu" : "Semua");
       setNoticeTone(pendingApproval ? "pending" : responseStatus && responseStatus !== "active" ? "success" : "info");
-      setSuccessMessage(pendingApproval ? `Penghapusan siswa ${deletedName} berhasil diajukan dan sedang menunggu persetujuan.` : responseStatus ? `Siswa ${deletedName} berhasil dihapus.` : `Permintaan penghapusan siswa ${deletedName} berhasil dikirim. Status terbaru dimuat dari server.`);
+      setSuccessMessage(pendingApproval ? `Penonaktifan siswa ${deletedName} berhasil diajukan dan sedang menunggu persetujuan.` : responseStatus ? `Siswa ${deletedName} berhasil dinonaktifkan.` : `Permintaan penonaktifan siswa ${deletedName} berhasil dikirim. Status terbaru dimuat dari server.`);
       setRefreshKey(value => value + 1);
       window.setTimeout(() => setSuccessMessage(""), 5000);
     } catch (requestError) {
@@ -347,10 +353,13 @@ export default function StudentManagement() {
       setDeleteSubmitting(false);
     }
   };
-  const confirmActivate = () => {
+  const activation = useActivateData(API_CONFIG.UPDATE_STUDENT, () => {
     setActivating(null);
+    setSelected(null);
+    setStatus("Semua");
     setRefreshKey(value => value + 1);
-  };
+  }, buildStudentActivationPayload);
+  const confirmActivate = () => { if (access.canUpdate) activation.activate(activating); };
 
   return <>
     <Helmet><title>Siswa | Gakuren</title></Helmet>
@@ -380,7 +389,7 @@ export default function StudentManagement() {
           </table>
         </div>
 
-        <div className="divide-y divide-slate-100 md:hidden">{rows.map(row => <article key={row.id} onClick={() => openDetail(row)} className="cursor-pointer p-4 text-left transition hover:bg-blue-50/50"><div className="flex min-w-0 items-start justify-between gap-3"><div className="min-w-0 flex-1 break-words"><p className="font-semibold">{row.name}</p><p className="mt-1 text-xs text-slate-500">NIS {row.nis} • NISN {row.nisn}</p><p className="mt-1 text-xs text-slate-500">{row.class_name} • {row.phone} • {row.gender}</p></div><div className="flex w-24 shrink-0 flex-col items-stretch gap-3"><StatusBadge status={row.status} className="w-full" /><div className="grid grid-cols-2 justify-items-center gap-2 [&>button:only-child]:col-span-2"><StatusRowActions item={row} label="siswa" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={openDelete} onActivate={setActivating} /></div></div></div></article>)}</div>
+        <div className="divide-y divide-slate-100 md:hidden">{rows.map(row => <article key={row.id} onClick={() => openDetail(row)} className="cursor-pointer p-4 text-left transition hover:bg-blue-50/50"><div className="flex min-w-0 items-start justify-between gap-3"><div className="min-w-0 flex-1 break-words"><p className="font-semibold">{row.name}</p><p className="mt-1 text-xs text-slate-500">NIS {row.nis} • NISN {row.nisn}</p><p className="mt-1 text-xs text-slate-500">{row.class_name} • {row.phone} • {row.gender}</p></div><div className="flex w-28 shrink-0 flex-col items-stretch gap-3"><StatusBadge status={row.status} className="w-full" /><div className="grid grid-cols-2 justify-items-center gap-2 [&>button:only-child]:col-span-2"><StatusRowActions item={row} label="siswa" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={openDelete} onActivate={setActivating} /></div></div></div></article>)}</div>
 
         {error && <div className="grid place-items-center px-4 py-16 text-center text-rose-600"><p className="font-semibold">Gagal memuat data siswa</p><p className="mt-1 text-xs">{error}</p><button disabled={loading} onClick={() => { setLoading(true); setRefreshKey(value => value + 1); }} className="mt-4 inline-flex min-w-24 items-center justify-center gap-2 rounded-lg border border-rose-200 px-4 py-2 text-xs font-semibold disabled:cursor-wait disabled:opacity-70">{loading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}{loading ? "Memuat..." : "Coba lagi"}</button></div>}
         {loading && !rows.length && !error && <div className="grid place-items-center px-4 py-16 text-center"><RefreshCw className="h-8 w-8 animate-spin text-blue-500" /><p className="mt-3 text-sm text-slate-500">Memuat data siswa...</p></div>}
@@ -454,13 +463,13 @@ export default function StudentManagement() {
       submitting={editSubmitting}
       onClose={editing ? requestEditClose : () => { if (!editSubmitting) { setSelected(null); setEditing(false); } }}
       onSubmit={saveEdit}
-      footerActions={editing ? <><button type="button" disabled={editSubmitting} onClick={requestEditClose} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">Batal</button><button type="submit" disabled={editSubmitting} className="action-lift rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70">{editSubmitting ? "Menyimpan..." : "Simpan Perubahan"}</button></> : <><button type="button" onClick={() => setSelected(null)} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Tutup</button>{selected?.status === "Nonaktif" ? access.canUpdate && <button type="button" onClick={() => { setActivating(selected); setSelected(null); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"><CheckCircle2 className="h-4 w-4" />Aktifkan</button> : <>{access.canDelete && <button type="button" disabled={selected?.status !== "Aktif"} title={selected?.status !== "Aktif" ? "Aksi hanya tersedia untuk siswa aktif" : "Hapus siswa"} onClick={() => setDeleting(selected)} className="action-lift inline-flex items-center gap-2 rounded-lg border border-rose-200 px-5 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"><Trash2 className="h-4 w-4" />Hapus</button>}{access.canUpdate && <button type="button" disabled={selected?.status !== "Aktif"} title={selected?.status !== "Aktif" ? "Aksi hanya tersedia untuk siswa aktif" : "Edit siswa"} onClick={() => { setEditError(""); setEditing(true); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"><Pencil className="h-4 w-4" />Edit</button>}</>}</>}
+      footerActions={editing ? <><button type="button" disabled={editSubmitting} onClick={requestEditClose} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">Batal</button><button type="submit" disabled={editSubmitting} className="action-lift rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70">{editSubmitting ? "Menyimpan..." : "Simpan Perubahan"}</button></> : <><button type="button" onClick={() => setSelected(null)} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Tutup</button>{selected?.status === "Nonaktif" ? access.canUpdate && <button type="button" onClick={() => { setActivating(selected); setSelected(null); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"><CheckCircle2 className="h-4 w-4" />Aktifkan</button> : <>{access.canDelete && <button type="button" disabled={selected?.status !== "Aktif"} title={selected?.status !== "Aktif" ? "Aksi hanya tersedia untuk siswa aktif" : "Nonaktifkan siswa"} onClick={() => setDeleting(selected)} className="action-lift inline-flex items-center gap-2 rounded-lg border border-rose-200 px-5 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"><Trash2 className="h-4 w-4" />Nonaktifkan</button>}{access.canUpdate && <button type="button" disabled={selected?.status !== "Aktif"} title={selected?.status !== "Aktif" ? "Aksi hanya tersedia untuk siswa aktif" : "Edit siswa"} onClick={() => { setEditError(""); setEditing(true); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"><Pencil className="h-4 w-4" />Edit</button>}</>}</>}
     >
       {editing ? <div className="space-y-5">
         {editing && editError && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">{editError}</div>}
         {[["Nama Siswa", "name", "text"], ["NIS", "nis", "text"], ["NISN", "nisn", "text"]].map(([label, key, type]) => editing ? <ValidatedInput key={key} label={label} name={key} type={type} value={form[key]} error={formErrors[key]} onChange={event => updateCreateField(key, event.target.value)} onBlur={() => validateCreateField(key)} /> : <label key={key} className="block text-sm"><span className="mb-2 block font-semibold">{label}</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{form[key] || "-"}</div></label>)}
         {editing ? <ClassPicker value={form.class_uuid} selectedName={form.class_name} error={formErrors.class_uuid} onChange={(uuid, name) => { setForm(current => ({ ...current, class_uuid: uuid, class_name: name })); if (formErrors.class_uuid) setFormErrors(current => ({ ...current, class_uuid: validateStudentField("class_uuid", uuid) })); }} onBlur={() => validateCreateField("class_uuid")} /> : <label className="block text-sm"><span className="mb-2 block font-semibold">Kelas</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{form.class_name || "-"}</div></label>}
-        {[["Email Siswa", "email", "email"], ["No. HP / WhatsApp", "phone", "tel"], ["Alamat Siswa", "address", "text"]].map(([label, key, type]) => editing ? <ValidatedInput key={key} label={label} name={key} type={type} value={form[key]} error={formErrors[key]} onChange={event => updateCreateField(key, event.target.value)} onBlur={() => validateCreateField(key)} /> : <label key={key} className="block text-sm"><span className="mb-2 block font-semibold">{label}</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{form[key] || "-"}</div></label>)}
+        {[["Email Siswa", "email", "email"], ["No. HP / WhatsApp", "phone", "tel"], ["Alamat Siswa", "address", "text"]].map(([label, key, type]) => editing ? <ValidatedInput key={key} label={label} name={key} type={type} value={form[key]} error={formErrors[key]} disabled={key === "email"} onChange={event => updateCreateField(key, event.target.value)} onBlur={() => validateCreateField(key)} /> : <label key={key} className="block text-sm"><span className="mb-2 block font-semibold">{label}</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{form[key] || "-"}</div></label>)}
         {editing ? <GenderSelect autoSelectFirst value={form.gender_uuid} selectedName={form.gender} error={formErrors.gender_uuid} onChange={(uuid, label) => { setForm(current => ({ ...current, gender_uuid: uuid, gender: label })); if (formErrors.gender_uuid) setFormErrors(current => ({ ...current, gender_uuid: validateStudentField("gender_uuid", uuid) })); }} /> : <label className="block text-sm"><span className="mb-2 block font-semibold">Jenis Kelamin</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{form.gender || "-"}</div></label>}
         {editing && <section className="border-t border-slate-200 pt-5">
           <label className="checkbox-label group flex cursor-pointer select-none items-center gap-2.5 text-sm font-semibold transition">
@@ -480,7 +489,7 @@ export default function StudentManagement() {
           <div aria-hidden={!addParentContact} className={`overflow-hidden transition-[max-height,margin,opacity,transform] duration-300 ease-out ${addParentContact ? "mt-5 max-h-[44rem] translate-y-0 opacity-100" : "pointer-events-none mt-0 max-h-0 -translate-y-6 opacity-0"}`}>
             <div className="space-y-5 rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-100">
               <ValidatedInput label="Nama Orang Tua/Wali" name="parent_name" value={form.parent_name} placeholder="Contoh: Budi Santoso" error={formErrors.parent_name} onChange={event => updateCreateField("parent_name", event.target.value)} onBlur={() => validateCreateField("parent_name")} />
-              <ValidatedInput label="Email Orang Tua/Wali" name="parent_email" type="email" value={form.parent_email} placeholder="Contoh: orangtua@email.com" error={formErrors.parent_email} onChange={event => updateCreateField("parent_email", event.target.value)} onBlur={() => validateCreateField("parent_email")} />
+              <ValidatedInput label="Email Orang Tua/Wali" name="parent_email" type="email" value={form.parent_email} placeholder="Contoh: orangtua@email.com" error={formErrors.parent_email} disabled onChange={event => updateCreateField("parent_email", event.target.value)} onBlur={() => validateCreateField("parent_email")} />
               <ValidatedInput label="No. WhatsApp Orang Tua/Wali" name="parent_phone" type="tel" value={form.parent_phone} placeholder="Contoh: 081234567890" error={formErrors.parent_phone} onChange={event => updateCreateField("parent_phone", event.target.value)} onBlur={() => validateCreateField("parent_phone")} />
               <div className="space-y-3">
                 <label className="checkbox-label group flex cursor-pointer select-none items-center gap-2.5 text-sm font-semibold transition">
@@ -502,8 +511,8 @@ export default function StudentManagement() {
         {!editing && <div className="text-sm"><span className="mb-2 block font-semibold">Status</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3"><StatusBadge status={form.status} /></div></div>}
       </div> : <StudentDetail data={form} />}
     </FormDrawer>
-    <ConfirmDialog open={activating !== null} title="Aktifkan siswa?" description={activating ? `Siswa ${activating.name} akan diaktifkan.` : ""} confirmLabel="Aktifkan Siswa" tone="success" onConfirm={confirmActivate} onCancel={() => setActivating(null)} />
-    <ConfirmDialog open={deleting !== null} title="Hapus siswa?" description={deleteError || (deleting ? `Siswa ${deleting.name} akan dihapus. Tindakan ini tidak dapat dibatalkan.` : "")} confirmLabel={deleteSubmitting ? "Menghapus..." : "Hapus Siswa"} onConfirm={confirmDelete} onCancel={() => { if (!deleteSubmitting) { setDeleting(null); setDeleteError(""); } }} />
+    <StatusChangeDialog item={activating} entityLabel="siswa" action="activate" submitting={activation.submitting} error={activation.error} onConfirm={confirmActivate} onCancel={() => { if (!activation.submitting) { setActivating(null); activation.clearError(); } }} />
+    <StatusChangeDialog item={deleting} entityLabel="siswa" submitting={deleteSubmitting} error={deleteError} onConfirm={confirmDelete} onCancel={() => { if (!deleteSubmitting) { setDeleting(null); setDeleteError(""); } }} />
     <UnsavedChangesDialog open={unsavedTarget !== null} onContinue={() => setUnsavedTarget(null)} onDiscard={() => { const target = unsavedTarget; setUnsavedTarget(null); if (target === "create") setCreating(false); else { setSelected(null); setEditing(false); } }} />
   </>;
 }

@@ -5,10 +5,12 @@ import { getCacheScope } from "./authScope";
 
 const pending = new Map();
 const definitions = {
+  status: { endpoint: API_CONFIG.GET_STATUSES, filter: null, rows: 500, sort: { name: "asc" } },
   gender: { endpoint: API_CONFIG.GET_GENDERS, filter: { status: "active" }, rows: 20, sort: { status: "desc" } },
   title: { endpoint: API_CONFIG.GET_TITLES, filter: { status: "active" }, rows: 200, sort: { name: "asc" } },
   education: { endpoint: API_CONFIG.GET_EDUCATION_LEVELS, filter: { status: "active" }, rows: 200, sort: { level_order: "asc" } },
   position: { endpoint: API_CONFIG.GET_POSITIONS, rows: 20, sort: { name: "asc" } },
+  subject: { endpoint: API_CONFIG.GET_SUBJECTS, rows: 20, sort: { name: "asc" } },
   employeeStatus: { endpoint: API_CONFIG.GET_EMPLOYEE_STATUSES, rows: 20, sort: { name: "desc" } },
 };
 const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
@@ -24,13 +26,13 @@ const forConsumer = (promise, signal) => {
   });
 };
 
-export const getDailyReference = (type, { isStaff, forceRefresh = false, missingOnly = false, signal } = {}) => {
+export const getDailyReference = (type, { isStaff, uuid, forceRefresh = false, missingOnly = false, signal } = {}) => {
   if (signal?.aborted) return Promise.reject(abortError());
   const scope = getCacheScope();
   const version = getSessionVersion();
   const currentSession = () => isUserAuthenticated() && version === getSessionVersion() && scope === getCacheScope();
   if (!scope || !currentSession()) return Promise.reject(new Error("Silakan masuk kembali."));
-  const key = `gakuren:reference:v3:${scope}:${type}:${isStaff === undefined ? "all" : isStaff ? "staff" : "teacher"}`;
+  const key = `gakuren:reference:v3:${scope}:${type}:${isStaff === undefined ? "all" : isStaff ? "staff" : "teacher"}${uuid ? `:uuid:${uuid}` : ""}`;
   const day = today();
   let cached = null;
   try {
@@ -47,7 +49,7 @@ export const getDailyReference = (type, { isStaff, forceRefresh = false, missing
       for (let page = 1; page <= maxPage; page += 1) {
         if (!currentSession()) throw new Error("Sesi telah berubah.");
         const response = await authenticatedRequest(definition.endpoint, { method: "POST", body: {
-          search: null, filter: definition.filter || { is_staff: isStaff }, page,
+          search: null, filter: definition.filter === null && !uuid ? null : { ...(definition.filter || { is_staff: isStaff }), ...(uuid ? { uuid } : {}) }, page,
           row_per_page: definition.rows, sort_by: [definition.sort],
         } });
         if (response.error || !Array.isArray(response.data?.result)) throw new Error("Respons data referensi tidak valid.");
@@ -68,6 +70,6 @@ export const getDailyReference = (type, { isStaff, forceRefresh = false, missing
 };
 
 export const syncDailyReferences = ({ signal, forceRefresh = false, missingOnly = false } = {}) => Promise.allSettled([
-  ...["gender", "title", "education"].map(type => getDailyReference(type, { signal, forceRefresh, missingOnly })),
+  ...["status", "gender", "title", "education", "subject"].map(type => getDailyReference(type, { signal, forceRefresh, missingOnly })),
   ...[false, true].flatMap(isStaff => ["position", "employeeStatus"].map(type => getDailyReference(type, { isStaff, signal, forceRefresh, missingOnly }))),
 ]);

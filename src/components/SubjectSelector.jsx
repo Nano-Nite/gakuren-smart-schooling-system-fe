@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Check, ChevronDown, RefreshCw } from "lucide-react";
 import { getDailyReference } from "../utils/dailyReferenceCache";
 
-export default function PositionSelector({ isStaff, values = [], onChange, error }) {
+export default function SubjectSelector({ values = [], onChange }) {
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
@@ -47,22 +47,20 @@ export default function PositionSelector({ isStaff, values = [], onChange, error
     setLoading(true);
     setOptions([]);
     setRequestError("");
-    setOpen(false);
     const load = async () => {
       try {
-        const response = await getDailyReference("position", { isStaff, forceRefresh: refreshKey > 0, signal: controller.signal });
+        const response = await getDailyReference("subject", { forceRefresh: refreshKey > 0, signal: controller.signal });
         if (controller.signal.aborted) return;
-        const items = response.result;
-        setOptions([...new Map(items.filter(item => item.uuid && item.name && item.is_staff === isStaff && String(item.status).toLowerCase() === "active").map(item => [item.uuid, item])).values()]);
-      } catch (err) {
-        if (!controller.signal.aborted) setRequestError("Gagal memuat data jabatan. Silakan coba lagi.");
+        setOptions([...new Map(response.result.filter(item => item.uuid && item.name).map(item => [item.uuid, item])).values()]);
+      } catch (error) {
+        if (!controller.signal.aborted) setRequestError("Gagal memuat mata pelajaran. Silakan coba lagi.");
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
     };
     load();
     return () => controller.abort();
-  }, [isStaff, refreshKey]);
+  }, [refreshKey]);
 
   const toggle = option => {
     const next = values.includes(option.uuid) ? values.filter(value => value !== option.uuid) : [...values, option.uuid];
@@ -70,19 +68,18 @@ export default function PositionSelector({ isStaff, values = [], onChange, error
   };
 
   return <div ref={rootRef} className="relative min-w-0 text-sm" onKeyDown={event => {
-    if (event.key === "Escape" && open) { event.preventDefault(); event.stopPropagation(); setOpen(false); triggerRef.current?.focus(); }
-  }} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget) && !menuRef.current?.contains(event.relatedTarget)) setOpen(false); }}>
-    <span id={`${id}-label`} className="mb-2 block font-semibold">Jabatan <b className="text-rose-500">*</b></span>
-    <button ref={triggerRef} type="button" disabled={loading || Boolean(requestError) || !options.length} aria-labelledby={`${id}-label`} aria-expanded={open} aria-controls={`${id}-options`} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onClick={() => { updateMenuPosition(); setOpen(current => !current); }} className={`flex h-12 w-full items-center justify-between gap-3 rounded-lg border bg-white px-3.5 text-left text-sm text-slate-700 shadow-sm focus-visible:border-blue-500 disabled:opacity-60 ${error ? "border-rose-400" : "border-slate-200 hover:border-blue-300"}`}>
-      <span className="flex min-w-0 flex-1 items-center gap-1.5" title={values.map(value => options.find(item => item.uuid === value)?.name || value).join(", ")}>
-        {loading ? <span className="flex min-w-0 items-center gap-2 text-slate-400"><RefreshCw className="h-4 w-4 shrink-0 animate-spin" /><span className="truncate">Memuat jabatan…</span></span> : values.length ? <><span className="truncate rounded-md bg-blue-50 px-2 py-1 font-semibold text-blue-700">{options.find(item => item.uuid === values[0])?.name || values[0]}</span>{values.length > 1 && <span className="shrink-0 whitespace-nowrap rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">+{values.length - 1} lainnya</span>}</> : <span data-placeholder="true" className="truncate text-slate-400">Pilih jabatan</span>}
+    if (event.key === "Escape" && open) { event.preventDefault(); setOpen(false); triggerRef.current?.focus(); }
+  }}>
+    <span id={`${id}-label`} className="mb-2 block font-semibold">Mata pelajaran <span className="font-normal text-slate-400">(opsional)</span></span>
+    <button ref={triggerRef} type="button" disabled={loading || Boolean(requestError) || !options.length} aria-labelledby={`${id}-label`} aria-expanded={open} aria-controls={`${id}-options`} onClick={() => { updateMenuPosition(); setOpen(current => !current); }} className="flex h-12 w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3.5 text-left text-sm text-slate-700 shadow-sm hover:border-blue-300 disabled:opacity-60">
+      <span className="flex min-w-0 flex-1 items-center gap-1.5">
+        {loading ? <span className="flex items-center gap-2 text-slate-400"><RefreshCw className="h-4 w-4 animate-spin" />Memuat mata pelajaran...</span> : values.length ? <><span className="truncate rounded-md bg-blue-50 px-2 py-1 font-semibold text-blue-700">{options.find(item => item.uuid === values[0])?.name || values[0]}</span>{values.length > 1 && <span className="shrink-0 rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">+{values.length - 1} lainnya</span>}</> : <span data-placeholder="true" className="text-slate-400">Pilih mata pelajaran</span>}
       </span>
       <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" />
     </button>
     {open && menuStyle.left !== undefined && createPortal(<div ref={menuRef} id={`${id}-options`} role="group" aria-labelledby={`${id}-label`} style={menuStyle} className="fixed z-[100] overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl animate-[fadeUp_150ms_ease-out]">
       {options.map(option => <button key={option.uuid} type="button" aria-pressed={values.includes(option.uuid)} onClick={() => toggle(option)} className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm ${values.includes(option.uuid) ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-700 hover:bg-slate-50"}`}><span><span className="block">{option.name}</span><span className="text-xs font-normal text-slate-400">{option.abbr_name}</span></span>{values.includes(option.uuid) && <Check className="h-4 w-4 shrink-0" />}</button>)}
     </div>, document.body)}
-    {!loading && (requestError || !options.length) && <button type="button" onClick={() => setRefreshKey(value => value + 1)} className="mt-1.5 flex items-center gap-2 text-xs text-rose-600"><RefreshCw className="h-3.5 w-3.5 shrink-0" />{requestError || "Data jabatan tidak ditemukan. Muat ulang."}</button>}
-    {error && <span id={`${id}-error`} role="alert" className="mt-1.5 block text-xs font-medium text-rose-600">{error}</span>}
+    {!loading && (requestError || !options.length) && <button type="button" onClick={() => setRefreshKey(value => value + 1)} className="mt-1.5 flex items-center gap-2 text-xs text-rose-600"><RefreshCw className="h-3.5 w-3.5" />{requestError || "Data mata pelajaran tidak ditemukan. Muat ulang."}</button>}
   </div>;
 }

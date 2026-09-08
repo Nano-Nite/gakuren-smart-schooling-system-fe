@@ -1,8 +1,10 @@
+import { getActiveStatusUuid } from "../utils/activeStatus";
+import { isStatusMutationBlocked } from "../utils/userStatus";
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, Clock3, Download, Info, Pencil, Plus, RefreshCw, Search, Trash2, Upload, X } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import FormDrawer from "../components/FormDrawer";
-import ConfirmDialog from "../components/ConfirmDialog";
+import StatusChangeDialog from "../components/StatusChangeDialog";
 import { getCrudPermissions } from "../utils/permissions";
 import Select from "../components/Select";
 import API_CONFIG from "../config/api";
@@ -121,10 +123,10 @@ export default function ClassManagement() {
     setFieldErrors({});
     setEditing("new");
   };
-  const openEdit = row => { setForm(row); setFormError(""); setFieldErrors({}); setEditing(row.id); };
+  const openEdit = row => { if (isStatusMutationBlocked(row.status)) return; setForm(row); setFormError(""); setFieldErrors({}); setEditing(row.id); };
   const openDetail = row => { setForm(row); setSelected(row); };
   const confirmActivate = async () => {
-    if (!activating || saving) return;
+    if (!activating || saving || !access.canUpdate) return;
     setSaving(true);
     try {
       await authenticatedRequest(API_CONFIG.UPDATE_CLASS, {
@@ -135,7 +137,7 @@ export default function ClassManagement() {
           abbr_name: activating.abbr_name,
           level: Number(activating.level),
           homeroom_teacher: activating.homeroom_teacher,
-          status: "active",
+          status: await getActiveStatusUuid(),
         },
       });
       setActivating(null);
@@ -151,6 +153,7 @@ export default function ClassManagement() {
   };
   const save = async event => {
     event.preventDefault();
+    if (isStatusMutationBlocked(form.status)) return;
     if (saving) return;
     setFormError("");
 
@@ -193,8 +196,9 @@ export default function ClassManagement() {
     setRows(current => current.map(row => row.id === editing ? { ...value, id: editing } : row));
     setEditing(null);
   };
-  const openDelete = item => { setDeleteError(""); setDeleting(item); };
+  const openDelete = item => { if (isStatusMutationBlocked(item.status)) return; setDeleteError(""); setDeleting(item); };
   const confirmDelete = async () => {
+    if (isStatusMutationBlocked(deleting?.status)) return;
     if (!deleting || deleteSubmitting) return;
     setDeleteSubmitting(true);
     setDeleteError("");
@@ -209,7 +213,7 @@ export default function ClassManagement() {
       setPage(1);
       setStatus(pendingApproval ? "Menunggu" : "Semua");
       setNoticeTone(pendingApproval ? "pending" : responseStatus ? "success" : "info");
-      setSuccessMessage(pendingApproval ? `Penghapusan kelas ${deletedName} berhasil diajukan dan sedang menunggu persetujuan.` : responseStatus ? `Kelas ${deletedName} berhasil dihapus.` : `Permintaan penghapusan kelas ${deletedName} berhasil dikirim. Status terbaru dimuat dari server.`);
+      setSuccessMessage(pendingApproval ? `Penonaktifan kelas ${deletedName} berhasil diajukan dan sedang menunggu persetujuan.` : responseStatus ? `Kelas ${deletedName} berhasil dinonaktifkan.` : `Permintaan penonaktifan kelas ${deletedName} berhasil dikirim. Status terbaru dimuat dari server.`);
       setRefreshKey(value => value + 1);
       window.setTimeout(() => setSuccessMessage(""), 5000);
     } catch (requestError) {
@@ -259,7 +263,7 @@ export default function ClassManagement() {
           </table>
         </div>
 
-        <div className="divide-y divide-slate-100 md:hidden">{displayedRows.map(row => <article key={row.id} onClick={() => openDetail(row)} className="cursor-pointer p-4 transition hover:bg-blue-50/50"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{row.name}</p><p className="mt-1 text-xs text-slate-500">Tingkat {row.level} • {row.students} siswa</p><p className="mt-1 truncate text-xs text-slate-500">{row.teacher}</p></div><div className="flex w-24 shrink-0 flex-col items-stretch gap-3"><StatusBadge status={row.status} className="w-full" /><div className="grid grid-cols-2 justify-items-center gap-2 [&>button:only-child]:col-span-2"><StatusRowActions item={row} label="kelas" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={openDelete} onActivate={setActivating} /></div></div></div></article>)}</div>
+        <div className="divide-y divide-slate-100 md:hidden">{displayedRows.map(row => <article key={row.id} onClick={() => openDetail(row)} className="cursor-pointer p-4 transition hover:bg-blue-50/50"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-semibold">{row.name}</p><p className="mt-1 text-xs text-slate-500">Tingkat {row.level} • {row.students} siswa</p><p className="mt-1 truncate text-xs text-slate-500">{row.teacher}</p></div><div className="flex w-28 shrink-0 flex-col items-stretch gap-3"><StatusBadge status={row.status} className="w-full" /><div className="grid grid-cols-2 justify-items-center gap-2 [&>button:only-child]:col-span-2"><StatusRowActions item={row} label="kelas" canUpdate={access.canUpdate} canDelete={access.canDelete} onEdit={openEdit} onDelete={openDelete} onActivate={setActivating} /></div></div></div></article>)}</div>
 
         {error && <div className="grid place-items-center px-4 py-16 text-center text-rose-600"><p className="font-semibold">Gagal memuat data kelas</p><p className="mt-1 text-xs">{error}</p><button disabled={loading} onClick={() => { setLoading(true); setRefreshKey(value => value + 1); }} className="mt-4 inline-flex min-w-24 items-center justify-center gap-2 rounded-lg border border-rose-200 px-4 py-2 text-xs font-semibold hover:bg-rose-50 disabled:cursor-wait disabled:opacity-70">{loading && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}{loading ? "Memuat..." : "Coba lagi"}</button></div>}
         {loading && !rows.length && <div className="grid place-items-center px-4 py-16 text-center"><RefreshCw className="h-8 w-8 animate-spin text-blue-500" /><p className="mt-3 text-sm text-slate-500">Memuat data kelas...</p></div>}
@@ -283,14 +287,14 @@ export default function ClassManagement() {
       title="Detail Kelas"
       onClose={() => setSelected(null)}
       onSubmit={event => event.preventDefault()}
-      footerActions={<><button type="button" onClick={() => setSelected(null)} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Tutup</button>{selected?.status === "Nonaktif" ? access.canUpdate && <button type="button" onClick={() => { setActivating(selected); setSelected(null); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"><CheckCircle2 className="h-4 w-4" />Aktifkan</button> : <>{access.canDelete && <button type="button" disabled={selected?.status === "Pending"} onClick={() => { setDeleting(selected); setSelected(null); }} className="action-lift inline-flex items-center gap-2 rounded-lg border border-rose-200 px-5 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-4 w-4" />Hapus</button>}{access.canUpdate && <button type="button" disabled={selected?.status === "Pending"} onClick={() => { const row = selected; setSelected(null); openEdit(row); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"><Pencil className="h-4 w-4" />Edit</button>}</>}</>}
+      footerActions={<><button type="button" onClick={() => setSelected(null)} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Tutup</button>{selected?.status === "Nonaktif" ? access.canUpdate && <button type="button" onClick={() => { setActivating(selected); setSelected(null); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"><CheckCircle2 className="h-4 w-4" />Aktifkan</button> : <>{access.canDelete && <button type="button" disabled={isStatusMutationBlocked(selected?.status)} onClick={() => { setDeleting(selected); setSelected(null); }} className="action-lift inline-flex items-center gap-2 rounded-lg border border-rose-200 px-5 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-4 w-4" />Nonaktifkan</button>}{access.canUpdate && <button type="button" disabled={isStatusMutationBlocked(selected?.status)} onClick={() => { const row = selected; setSelected(null); openEdit(row); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"><Pencil className="h-4 w-4" />Edit</button>}</>}</>}
     >
       <div className="space-y-5">
         {[["Nama Kelas", "name"], ["Tingkat", "level"], ["Wali Kelas", "teacher"], ["Jumlah Siswa", "students"], ["Status", "status"]].map(([label, key]) => <div key={key} className="text-sm"><span className="mb-2 block font-semibold">{label}</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{key === "status" ? <StatusBadge status={form.status} /> : form[key] ?? "-"}</div></div>)}
       </div>
     </FormDrawer>
-    <ConfirmDialog open={activating !== null} title="Aktifkan kelas?" description={formError || (activating ? `Kelas ${activating.name} akan diaktifkan.` : "")} confirmLabel={saving ? "Mengaktifkan..." : "Aktifkan Kelas"} tone="success" onConfirm={confirmActivate} onCancel={() => { if (!saving) { setActivating(null); setFormError(""); } }} />
-    <ConfirmDialog open={deleting !== null} title="Hapus kelas?" description={deleteError || (deleting ? `Kelas ${deleting.name} akan dihapus. Tindakan ini tidak dapat dibatalkan.` : "")} confirmLabel={deleteSubmitting ? "Menghapus..." : "Hapus Kelas"} onConfirm={confirmDelete} onCancel={() => { if (!deleteSubmitting) { setDeleting(null); setDeleteError(""); } }} />
+    <StatusChangeDialog item={activating} entityLabel="kelas" action="activate" submitting={saving} error={formError} onConfirm={confirmActivate} onCancel={() => { if (!saving) { setActivating(null); setFormError(""); } }} />
+    <StatusChangeDialog item={deleting} entityLabel="kelas" submitting={deleteSubmitting} error={deleteError} onConfirm={confirmDelete} onCancel={() => { if (!deleteSubmitting) { setDeleting(null); setDeleteError(""); } }} />
     <UnsavedChangesDialog open={showUnsavedWarning} onContinue={() => setShowUnsavedWarning(false)} onDiscard={() => { setShowUnsavedWarning(false); setEditing(null); }} />
   </>;
 }

@@ -17,7 +17,7 @@ export default function AnimatedStepper({ steps, activeStep, disabled, onStepCha
     return () => { cancelled = true; pause.cancel(); };
   }, [activeStep, timelineStep]);
 
-  return <nav ref={timelineRef} aria-label={ariaLabel} className="wizard-timeline mb-6">
+  return <nav ref={timelineRef} aria-label={ariaLabel} className="wizard-timeline sticky -top-6 z-20 -mx-5 -mt-6 mb-6 px-0 bg-white/40 backdrop-blur-xl sm:-mx-7 dark:bg-[color-mix(in_srgb,var(--mui-paper)_40%,transparent)]">
     <ol className="wizard-timeline-track" style={{ "--active-index": timelineStep - 1 }}>
       {steps.map((label, index) => {
         const number = index + 1;

@@ -20,12 +20,15 @@ const API_CONFIG = {
 
   // teacher
   CREATE_TEACHER_STAFF: '/v1/school/tns/create',
+  UPDATE_TEACHER_STAFF: '/v1/school/tns/update',
   GET_TEACHER_STAFF: '/v1/school/tns/get',
 
   // misc
+  GET_STATUSES: '/v1/misc/status',
   GET_GENDERS: '/v1/misc/gender',
   GET_TITLES: '/v1/misc/title',
   GET_POSITIONS: '/v1/misc/position',
+  GET_SUBJECTS: '/v1/misc/subjects',
   GET_EMPLOYEE_STATUSES: '/v1/misc/employee_status',
   GET_EDUCATION_LEVELS: '/v1/misc/education-level',
 

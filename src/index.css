@@ -33,9 +33,6 @@ input[name="last-education"]:checked + span > span {
   transform: scale(1);
 }
 
-.dark .education-level-select > button {
-  background-color: rgb(255 255 255 / 0.06);
-}
 
 .dark {
   --mui-primary: #90caf9;
@@ -77,6 +74,30 @@ input[name="last-education"]:checked + span > span {
     font-family: 'Inter', system-ui, sans-serif;
     background-color: var(--mui-background);
     color: var(--mui-text-primary);
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  textarea {
+    background-color: #ffffff !important;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):disabled,
+  textarea:disabled {
+    cursor: not-allowed;
+    background-color: #f1f5f9 !important;
+    border-color: #cbd5e1;
+    color: #64748b;
+    opacity: 1;
+  }
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .dark textarea {
+    background-color: #1E1E1E !important;
+    border-color: #393939;
+    color: #f1f5f9;
+  }
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):disabled,
+  .dark textarea:disabled {
+    background-color: #393939 !important;
+    border-color: #393939;
+    color: #e2e8f0 !important;
   }
   button,
   a[href] {
@@ -1083,7 +1104,7 @@ input[name="last-education"]:checked + span > span {
 }
 
 .dark input::placeholder,
-.dark textarea::placeholder { color: #64768e; }
+.dark textarea::placeholder { color: #A7A7A7; }
 
 .dark .shadow-card,
 .dark .shadow-xl,
@@ -1395,6 +1416,20 @@ input[name="last-education"]:checked + span > span {
 @keyframes wizardContentFadeOut { from { opacity: 1; } to { opacity: 0; } }
 @keyframes wizardContentFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+.teacher-staff-view-transition {
+  --view-direction: 1;
+  min-width: 0;
+  animation: teacherStaffViewEnter 260ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.teacher-staff-view-transition[data-view="detail"] { --view-direction: -1; }
+@keyframes teacherStaffViewEnter {
+  from { opacity: 0; transform: translateX(calc(16px * var(--view-direction))); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .teacher-staff-view-transition { animation: wizardContentFadeIn 120ms ease backwards; }
+}
+
 .auth-splash {
   --auth-splash-blur: 12px;
   backdrop-filter: blur(var(--auth-splash-blur));
@@ -1427,4 +1462,19 @@ input[name="last-education"]:checked + span > span {
   .auth-splash { animation-duration: 100ms; }
   .auth-splash-gear { animation-duration: 3s; }
   .auth-splash-logo-glow { animation-duration: 4s; }
+}
+
+.approval-carousel-slide { animation: teacherStaffViewEnter 240ms ease-out backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .approval-carousel-slide { animation: wizardContentFadeIn 100ms ease backwards; }
+}
+
+/* Shared neutral placeholders for native fields and custom dropdowns. */
+:root { --input-placeholder-color: #737373; }
+.dark { --input-placeholder-color: #a3a3a3; }
+input::placeholder,
+textarea::placeholder,
+[data-placeholder="true"] {
+  color: var(--input-placeholder-color) !important;
+  opacity: 1;
 }

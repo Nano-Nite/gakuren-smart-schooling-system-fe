@@ -1,18 +1,22 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
-export default function FormDrawer({ open, title, onClose, onSubmit, children, submitLabel = "Simpan", submitting = false, footerActions, noValidate = false }) {
+export default function FormDrawer({ open, title, onClose, onSubmit, children, submitLabel = "Simpan", submitting = false, footerActions, noValidate = false, onClosed }) {
   const [rendered, setRendered] = useState(open);
   const [visible, setVisible] = useState(false);
   const panelRef = useRef(null);
   const retainedTitle = useRef(title);
   const retainedSubmitLabel = useRef(submitLabel);
+  const retainedChildren = useRef(children);
+  const retainedFooterActions = useRef(footerActions);
 
   // Keep the current drawer identity while its closing animation is running.
   // Parents commonly clear their edit/create state as soon as close is pressed.
   if (open) {
     retainedTitle.current = title;
     retainedSubmitLabel.current = submitLabel;
+    retainedChildren.current = children;
+    retainedFooterActions.current = footerActions;
   }
 
   useEffect(() => {
@@ -23,13 +27,13 @@ export default function FormDrawer({ open, title, onClose, onSubmit, children, s
       setVisible(true);
     } else {
       setVisible(false);
-      removalTimer = window.setTimeout(() => setRendered(false), 520);
+      removalTimer = window.setTimeout(() => { setRendered(false); onClosed?.(); }, 520);
     }
 
     return () => {
       window.clearTimeout(removalTimer);
     };
-  }, [open]);
+  }, [open, onClosed]);
 
   useLayoutEffect(() => {
     if (!rendered || !open || !panelRef.current) return undefined;
@@ -57,16 +61,16 @@ export default function FormDrawer({ open, title, onClose, onSubmit, children, s
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <button type="button" aria-label="Tutup formulir" onClick={onClose} className={`drawer-backdrop drawer-scrim no-action-animation absolute inset-0 backdrop-blur-sm ${visible ? "is-visible" : ""}`} />
-      <form ref={panelRef} onSubmit={onSubmit} noValidate={noValidate} className={`drawer-panel relative flex h-full w-full flex-col bg-white shadow-2xl sm:w-[72%] md:w-[62%] lg:w-[46%] xl:w-[38%] 2xl:w-1/3 ${visible ? "is-visible" : ""}`}>
+      <form ref={panelRef} inert={!open ? "" : undefined} onSubmit={onSubmit} noValidate={noValidate} className={`drawer-panel relative flex h-full w-full flex-col bg-white shadow-2xl sm:w-[72%] md:w-[62%] lg:w-[46%] xl:w-[38%] 2xl:w-1/3 ${visible ? "is-visible" : ""}`}>
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-5 sm:px-7">
           <h2 className="text-lg font-bold">{retainedTitle.current}</h2>
           <button type="button" aria-label="Tutup" onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
             <X className="h-5 w-5" />
           </button>
         </header>
-        <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-7">{children}</div>
+        <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-7">{retainedChildren.current}</div>
         <footer className="flex shrink-0 justify-end gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
-          {footerActions || <><button type="button" disabled={submitting} onClick={onClose} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Batal</button><button type="submit" disabled={submitting} className="action-lift rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70">{retainedSubmitLabel.current}</button></>}
+          {retainedFooterActions.current || <><button type="button" disabled={submitting} onClick={onClose} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">Batal</button><button type="submit" disabled={submitting} className="action-lift rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-70">{retainedSubmitLabel.current}</button></>}
         </footer>
       </form>
     </div>

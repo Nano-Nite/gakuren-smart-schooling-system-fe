@@ -213,6 +213,28 @@ test('cache is partitioned per owner and late responses cannot repopulate it aft
   assert.equal(env.localStorage.getItem(cacheKey), null);
 });
 
+test('status references fetch all pages with 500 rows and reuse persisted full records', async () => {
+  const env = await setup();
+  await env.api.initializeAuth();
+  const refs = await env.references();
+  const records = [{ uuid: 'active-id', name: 'Aktif', code: 'active' }, { uuid: 'inactive-id', name: 'Nonaktif', code: 'inactive' }];
+  let requests = 0;
+  env.handle((url, options) => {
+    requests += 1;
+    assert.equal(url, 'https://api.example.test/v1/misc/status');
+    assert.equal(options.method, 'POST');
+    const body = JSON.parse(options.body);
+    assert.deepEqual(body, { search: null, filter: null, page: requests, row_per_page: 500, sort_by: [{ name: 'asc' }] });
+    return response({ data: { result: [records[body.page - 1]], data_statistic: { max_page: 2 } } });
+  });
+  const result = await refs.getDailyReference('status');
+  assert.deepEqual(JSON.parse(JSON.stringify(result.result)), records);
+  await refs.getDailyReference('status');
+  assert.equal(requests, 2);
+  const cacheKey = [...Array(env.localStorage.length)].map((_, i) => env.localStorage.key(i)).find(key => key.endsWith(':status:all'));
+  assert.deepEqual(JSON.parse(env.localStorage.getItem(cacheKey)).result, records);
+});
+
 test('logout broadcast clears another tab session', async () => {
   const env = await setup();
   await env.api.initializeAuth();

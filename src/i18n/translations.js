@@ -8,9 +8,9 @@ export const translations = {
       admin: "Admin", administrator: "Administrator", pending: "Menunggu",
     },
     menu: {
-      Dashboard: "Beranda", "QR Code": "QR Kehadiran", "Teacher and Staff": "Guru & Staf",
+      Dashboard: "Beranda", "QR Code": "QR Kehadiran", "Teacher and Staff": "Guru dan Staf",
       "Student Management": "Siswa", "Class Management": "Kelas", Approval: "Persetujuan",
-      Attendance: "Riwayat Kehadiran", Absence: "Izin & Ketidakhadiran", Report: "Laporan",
+      Attendance: "Riwayat Kehadiran", Absence: "Izin dan Ketidakhadiran", Report: "Laporan",
       Setting: "Pengaturan", Profile: "Profil",
     },
     subtitle: {

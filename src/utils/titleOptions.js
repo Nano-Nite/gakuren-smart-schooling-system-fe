@@ -1,4 +1,5 @@
 import { getDailyReference } from "./dailyReferenceCache";
+import { resolveApprovalReference } from "./resolveApprovalReference";
 
 const normalize = payload => (payload.result || []).map(item => ({
   value: item.uuid ?? item.UUID ?? item.id ?? item.ID,
@@ -9,7 +10,11 @@ const normalize = payload => (payload.result || []).map(item => ({
   status: String(item.status ?? item.Status ?? "").toLowerCase(),
 })).filter(item => item.value && item.label && (!item.status || item.status === "active")).sort((a, b) => a.name.localeCompare(b.name, "id"));
 
-export const getTitleOptions = async (options = {}) => normalize(await getDailyReference("title", options));
+export const getTitleOptions = async ({ requiredIds = [], ...options } = {}) => {
+  const response = await resolveApprovalReference(getDailyReference, "title", options, requiredIds);
+  if (response.failed) throw new Error("Gagal memuat data gelar.");
+  return normalize(response);
+};
 
 export const formatIndonesianAcademicName = (name, prefixes = [], suffixes = []) => {
   const baseName = String(name || "").trim();

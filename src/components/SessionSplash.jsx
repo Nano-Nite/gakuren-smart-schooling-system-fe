@@ -43,7 +43,7 @@ export default function SessionSplash({ failed, onRetry, onLogin }) {
             Masuk kembali<ArrowRight aria-hidden="true" className="h-4 w-4" />
           </button>
         </div> : <div role="status" aria-live="polite" className="mt-8 inline-flex items-center gap-2.5 rounded-full border border-blue-100 bg-white/80 px-4 py-2.5 text-xs font-medium text-blue-700 dark:border-blue-400/15 dark:bg-blue-400/5 dark:text-blue-200">
-          <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin motion-reduce:animate-none" />
+          <LoaderCircle aria-hidden="true" className="h-4 w-4 shrink-0 animate-spin motion-reduce:[animation-duration:3s]" />
           Memulihkan sesi
         </div>}
       </div>

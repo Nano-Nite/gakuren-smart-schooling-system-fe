@@ -25,7 +25,7 @@ async function renderWithForm(form) {
         .filter(match => match[2] === specifier)
         .flatMap(match => match[1].startsWith("{") ? match[1].replace(/[{}]/g, "").split(",").map(name => name.trim()) : ["default"]);
     return new vm.SyntheticModule(names, function () {
-      for (const name of names) this.setExport(name, overrides[name] || (specifier.includes("useStepTransition") ? overrides.useStepTransition : noop));
+      for (const name of names) this.setExport(name, overrides[name] || (specifier.includes("useActivateData") ? () => ({ submitting: false, error: "", activate: noop, clearError: noop }) : specifier.includes("useStepTransition") ? overrides.useStepTransition : noop));
     }, { context });
   });
   await module.evaluate();
