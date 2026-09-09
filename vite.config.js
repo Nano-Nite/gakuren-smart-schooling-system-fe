@@ -15,8 +15,18 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    {
+      name: 'authenticated-pwa-manifest',
+      enforce: 'post',
+      generateBundle: { order: 'post', handler(_options, bundle) {
+        const html = bundle['index.html']
+        if (html && typeof html.source === 'string') html.source = html.source.replace(/<link\b[^>]*rel=["']manifest["'][^>]*>/gi, '')
+      } },
+      transformIndexHtml: { order: 'post', handler: html => html.replace(/<link\b[^>]*rel=["']manifest["'][^>]*>/gi, '') },
+    },
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: false,
       includeAssets: ['favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
         name: 'Gakuren | Aplikasi Manajemen Sekolah',

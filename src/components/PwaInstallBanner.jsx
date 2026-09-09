@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { isUserAuthenticated } from '../utils/api'
 import { CheckCircle2, Download, X } from 'lucide-react'
 
 const isStandalone = () =>
@@ -11,27 +12,33 @@ export default function PwaInstallBanner() {
   const [installing, setInstalling] = useState(false)
 
   useEffect(() => {
-    if (isStandalone() || sessionStorage.getItem('pwa-install-banner-dismissed') === 'true') return
 
     let successTimer
 
     const handleInstallAvailable = event => {
       event.preventDefault()
+      if (!isUserAuthenticated() || isStandalone() || sessionStorage.getItem('pwa-install-banner-dismissed') === 'true') return
       setInstallPrompt(event)
       setStatus('available')
     }
 
     const handleInstalled = () => {
+      if (!isUserAuthenticated()) return
       setInstallPrompt(null)
       setInstalling(false)
       setStatus('installed')
       successTimer = window.setTimeout(() => setStatus(null), 5000)
     }
 
+    const handleAuth = () => {
+      if (!isUserAuthenticated()) { setInstallPrompt(null); setStatus(null); setInstalling(false); window.clearTimeout(successTimer) }
+    }
+    window.addEventListener('gakuren:auth', handleAuth)
     window.addEventListener('beforeinstallprompt', handleInstallAvailable)
     window.addEventListener('appinstalled', handleInstalled)
 
     return () => {
+      window.removeEventListener('gakuren:auth', handleAuth)
       window.removeEventListener('beforeinstallprompt', handleInstallAvailable)
       window.removeEventListener('appinstalled', handleInstalled)
       window.clearTimeout(successTimer)
@@ -39,7 +46,7 @@ export default function PwaInstallBanner() {
   }, [])
 
   const install = async () => {
-    if (!installPrompt || installing) return
+    if (!isUserAuthenticated() || !installPrompt || installing) return
     setInstalling(true)
     await installPrompt.prompt()
     const { outcome } = await installPrompt.userChoice
@@ -58,7 +65,7 @@ export default function PwaInstallBanner() {
     setStatus(null)
   }
 
-  if (!status) return null
+  if (!isUserAuthenticated() || !status) return null
 
   const installed = status === 'installed'
 
