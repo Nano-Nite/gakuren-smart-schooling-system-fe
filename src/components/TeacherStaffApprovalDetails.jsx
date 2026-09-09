@@ -72,6 +72,7 @@ export default function TeacherStaffApprovalDetails({ requestData, activeData, i
     </article>)}</div>;
     if (key.endsWith("_date")) return formatTeacherStaffDate(value);
     if (key === "is_staff") return typeof value === "boolean" ? value ? "Staf" : "Guru" : String(value);
+    if (type === "position" || type === "subject") return <ul className="flex flex-wrap gap-1.5">{asList(value).map((item, index) => <li key={index} className="max-w-full rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold leading-5 text-blue-700 dark:bg-blue-950/50 dark:text-blue-200 [overflow-wrap:anywhere]">{referenceLabel(item, type)}</li>)}</ul>;
     if (type) return <ul className="flex flex-wrap gap-x-3 gap-y-1">{asList(value).map((item, index) => <li key={index} className="text-sm">{referenceLabel(item, type)}</li>)}</ul>;
     return String(value);
   };
@@ -99,7 +100,7 @@ export default function TeacherStaffApprovalDetails({ requestData, activeData, i
     <dd className="min-w-0 whitespace-pre-wrap break-words text-sm leading-6 text-slate-800 dark:text-slate-100">
       {row.changed ? <div className="space-y-2">
         <div className="min-w-0 text-slate-500 dark:text-slate-400"><span className="mb-0.5 block text-[11px]">Saat ini</span>{display(row.current, row.key, row.type)}</div>
-        <div className="min-w-0 font-medium text-blue-700 dark:text-blue-300"><span className="mb-0.5 block text-[11px] font-normal"><span aria-hidden="true">→ </span>Diajukan</span>{display(row.value, row.key, row.type)}</div>
+        <div className="min-w-0 font-medium text-orange-700 dark:text-orange-300"><span className="mb-0.5 block text-[11px] font-normal"><span aria-hidden="true">→ </span>Diajukan</span>{display(row.value, row.key, row.type)}</div>
       </div> : display(row.value, row.key, row.type)}
     </dd>
   </div>)}</dl>;

@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 
-export default function Select({ value, options, onChange, ariaLabel, placement = "bottom", className = "", size = "default" }) {
+export default function Select({ value, options, onChange, ariaLabel, placement = "bottom", className = "", size = "default", disabled = false, id, onBlur, renderOption, "aria-invalid": ariaInvalid, "aria-describedby": ariaDescribedBy }) {
   const [open, setOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState({});
   const rootRef = useRef(null);
@@ -57,6 +57,7 @@ export default function Select({ value, options, onChange, ariaLabel, placement 
   }, [open, updatePosition]);
 
   const handleKeyDown = event => {
+    if (disabled || !normalized.length) return;
     if (!["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) return;
     event.preventDefault();
     if (!open) return setOpen(true);
@@ -67,10 +68,12 @@ export default function Select({ value, options, onChange, ariaLabel, placement 
     onChange(normalized[next].value);
   };
 
+  const Trigger = renderOption ? "div" : "button";
+  const Option = renderOption ? "div" : "button";
   return <div ref={rootRef} className={`relative ${className}`}>
-    <button ref={buttonRef} type="button" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(state => !state)} onKeyDown={handleKeyDown} className={`flex ${size === "large" ? "h-12 px-3.5" : "h-10 px-3"} min-w-0 w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white text-left text-sm text-slate-700 shadow-sm hover:border-blue-300 focus-visible:border-blue-500`}><span data-placeholder={selected?.value === "" ? "true" : undefined} className="min-w-0 truncate">{selected?.label}</span><ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200 ${open ? "rotate-180" : ""}`} /></button>
-    {open && createPortal(<div ref={menuRef} role="listbox" style={menuStyle} className="fixed z-[100] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl animate-[fadeUp_150ms_ease-out]">
-      {normalized.map(option => { const active = String(option.value) === String(value); return <button key={option.value} type="button" role="option" aria-selected={active} onClick={() => { onChange(option.value); setOpen(false); }} className={`flex w-full items-center justify-between gap-4 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm ${active ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-700 hover:bg-slate-50"}`}><span>{option.label}</span>{active && <Check className="h-4 w-4" />}</button>; })}
+    <Trigger role={renderOption ? "button" : undefined} tabIndex={renderOption ? (disabled ? -1 : 0) : undefined} aria-disabled={disabled} ref={buttonRef} id={id} disabled={disabled} onBlur={onBlur} aria-invalid={ariaInvalid} aria-describedby={ariaDescribedBy} type="button" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open} onClick={() => { if (!disabled) setOpen(state => !state); }} onKeyDown={handleKeyDown} className={`flex ${renderOption ? "min-h-12 px-3.5 py-2.5" : size === "large" ? "h-12 px-3.5" : "h-10 px-3"} min-w-0 w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white text-left text-sm text-slate-700 shadow-sm hover:border-blue-300 focus-visible:border-blue-500 disabled:cursor-not-allowed disabled:opacity-60 ${ariaInvalid ? "!border-rose-400" : ""}`}><span data-placeholder={selected?.value === "" ? "true" : undefined} className="min-w-0 truncate">{renderOption && selected ? renderOption(selected) : selected?.label}</span><ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200 ${open ? "rotate-180" : ""}`} /></Trigger>
+    {open && !disabled && createPortal(<div ref={menuRef} role="listbox" style={menuStyle} className="fixed z-[100] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl animate-[fadeUp_150ms_ease-out]">
+      {normalized.map((option, index) => { const active = String(option.value) === String(value); return <Fragment key={option.value}>{option.group && option.group !== normalized[index - 1]?.group && <div role="presentation" className={`${index > 0 ? "mt-1.5 border-t border-slate-200 pt-3 dark:border-white/10" : "pt-1.5"} px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400`}>{option.group}</div>}<Option tabIndex={renderOption ? 0 : undefined} onKeyDown={event => { if (renderOption && ["Enter", " "].includes(event.key)) { event.preventDefault(); onChange(option.value); setOpen(false); } }} type="button" role="option" title={option.title} aria-selected={active} onClick={() => { onChange(option.value); setOpen(false); }} className={`flex w-full items-center justify-between gap-4 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm ${active ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-700 hover:bg-slate-50"}`}><span className="min-w-0 truncate">{renderOption ? renderOption(option) : option.label}</span>{active && <Check className="h-4 w-4 shrink-0" />}</Option></Fragment>; })}
     </div>, document.body)}
   </div>;
 }

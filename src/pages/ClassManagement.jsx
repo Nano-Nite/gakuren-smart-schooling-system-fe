@@ -1,9 +1,12 @@
+import ExpandableBadges from "../components/ExpandableBadges";
 import { getActiveStatusUuid } from "../utils/activeStatus";
 import { isStatusMutationBlocked } from "../utils/userStatus";
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, Clock3, Download, Info, Pencil, Plus, RefreshCw, Search, Trash2, Upload, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowDownUp, ArrowUp, CheckCircle2, Clock3, Download, Info, Pencil, Plus, RefreshCw, Search, Trash2, Upload, X } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import FormDrawer from "../components/FormDrawer";
+import ClassDetail from "../components/ClassDetail";
+import { mergeHomeroomTeacherOptions } from "../utils/homeroomTeacherOptions";
 import StatusChangeDialog from "../components/StatusChangeDialog";
 import { getCrudPermissions } from "../utils/permissions";
 import Select from "../components/Select";
@@ -27,8 +30,7 @@ const validateClassField = (key, value) => {
   if (key === "name" && (input.length < 2 || input.length > 100)) return "Nama kelas harus terdiri dari 2–100 karakter.";
   if (key === "abbr_name" && input.length > 30) return "Singkatan kelas maksimal 30 karakter.";
   if (key === "level" && (!/^\d+$/.test(input) || Number(input) < 1 || Number(input) > 12)) return "Tingkat harus berupa bilangan bulat antara 1 dan 12.";
-  if (key === "teacher" && input && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input)) return "Masukkan UUID guru yang valid atau kosongkan field ini.";
-  if (key === "students" && (!/^\d+$/.test(input) || Number(input) < 0)) return "Jumlah siswa harus berupa bilangan bulat nol atau lebih.";
+  // Wali kelas uses a controlled dropdown; existing class data may contain a name instead of a UUID.
   return "";
 };
 
@@ -45,6 +47,11 @@ export default function ClassManagement() {
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [editing, setEditing] = useState(null);
+  const [teacherOptions, setTeacherOptions] = useState([]);
+  const [initialTeacher, setInitialTeacher] = useState("");
+  const [teachersLoading, setTeachersLoading] = useState(false);
+  const [teachersError, setTeachersError] = useState("");
+  const [teachersRefreshKey, setTeachersRefreshKey] = useState(0);
   const [selected, setSelected] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [activating, setActivating] = useState(null);
@@ -96,6 +103,7 @@ export default function ClassManagement() {
             level: item.level ?? item.Level,
             teacher: item.homeroom_teacher ?? item.HomeroomTeacher ?? "-",
             homeroom_teacher: item.homeroom_teacher ?? item.HomeroomTeacher ?? null,
+            homeroom_teacher_uuid: item.homeroom_teacher_uuid ?? item.HomeroomTeacherUUID ?? null,
             students: item.total_student ?? item.TotalStudent ?? 0,
             status: statusLabels[String(itemStatus).toLowerCase()] || itemStatus || "-",
           };
@@ -114,16 +122,50 @@ export default function ClassManagement() {
   }, [access.canView, page, pageSize, query, refreshKey, sort, status]);
 
   const displayedRows = rows;
+  const mergedTeachers = mergeHomeroomTeacherOptions(teacherOptions, initialTeacher);
+  const replacingHomeroomTeacher = editing !== null && editing !== "new" && Boolean(initialTeacher)
+    && form.teacher !== initialTeacher && form.teacher !== mergedTeachers.initialValue;
+
+  useEffect(() => {
+    if (editing === null) return undefined;
+    const controller = new AbortController();
+    setTeachersLoading(true);
+    setTeachersError("");
+    setTeacherOptions([]);
+    const loadTeachers = async () => {
+      try {
+        const response = await authenticatedRequest(API_CONFIG.GET_HOMEROOM_TEACHERS, {
+          method: "GET",
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
+        const items = Array.isArray(response.data) ? response.data : response.data?.result;
+        if (!Array.isArray(items)) throw new Error("Format data wali kelas tidak valid.");
+        setTeacherOptions(items.map(item => ({
+          value: item.uuid ?? item.UUID,
+          label: item.full_name ?? item.FullName ?? item.name ?? item.Name,
+          positions: Array.isArray(item.position) ? [...new Set(item.position.filter(position => typeof position === "string" && position.trim()).map(position => position.trim()))] : [],
+        })).filter(item => typeof item.value === "string" && typeof item.label === "string"));
+      } catch (requestError) {
+        if (!controller.signal.aborted) setTeachersError(requestError.message || "Gagal memuat daftar wali kelas.");
+      } finally {
+        if (!controller.signal.aborted) setTeachersLoading(false);
+      }
+    };
+    loadTeachers();
+    return () => controller.abort();
+  }, [editing, teachersRefreshKey]);
 
   const changeSort = key => { setPage(1); setSort(current => ({ key, direction: current.key === key && current.direction === "asc" ? "desc" : "asc" })); };
   const openCreate = () => {
     if (!access.canCreate) return;
     setForm(emptyForm);
+    setInitialTeacher("");
     setFormError("");
     setFieldErrors({});
     setEditing("new");
   };
-  const openEdit = row => { if (isStatusMutationBlocked(row.status)) return; setForm(row); setFormError(""); setFieldErrors({}); setEditing(row.id); };
+  const openEdit = row => { if (isStatusMutationBlocked(row.status)) return; setForm(row); setInitialTeacher(row.teacher && row.teacher !== "-" ? row.teacher : ""); setFormError(""); setFieldErrors({}); setEditing(row.id); };
   const openDetail = row => { setForm(row); setSelected(row); };
   const confirmActivate = async () => {
     if (!activating || saving || !access.canUpdate) return;
@@ -157,7 +199,7 @@ export default function ClassManagement() {
     if (saving) return;
     setFormError("");
 
-    const fieldsToValidate = editing === "new" ? ["name", "abbr_name", "level", "teacher"] : ["name", "level", "teacher", "students"];
+    const fieldsToValidate = editing === "new" ? ["name", "abbr_name", "level", "teacher"] : ["name", "level", "teacher"];
     const validationErrors = Object.fromEntries(fieldsToValidate.map(key => [key, validateClassField(key, form[key])]).filter(([, message]) => message));
     setFieldErrors(validationErrors);
     if (Object.keys(validationErrors).length) return;
@@ -192,9 +234,42 @@ export default function ClassManagement() {
       return;
     }
 
-    const value = { ...form, students: Number(form.students) };
-    setRows(current => current.map(row => row.id === editing ? { ...value, id: editing } : row));
-    setEditing(null);
+    if (!access.canUpdate) {
+      setFormError("Anda tidak memiliki izin untuk mengubah kelas.");
+      return;
+    }
+    const teacherChanged = form.teacher !== initialTeacher && form.teacher !== mergedTeachers.initialValue;
+    const teacherUuid = form.teacher.trim();
+    if (teacherChanged && teacherUuid && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(teacherUuid)) {
+      setFormError("Guru pengganti tidak valid. Silakan pilih kembali dari daftar wali kelas.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const response = await authenticatedRequest(API_CONFIG.UPDATE_CLASS, {
+        method: "PATCH",
+        body: {
+          uuid: editing,
+          name: form.name.trim(),
+          abbr_name: form.abbr_name?.trim() || null,
+          level: Number(form.level),
+          // Preserve the assignment when unchanged; list responses may only contain its display name.
+          ...(teacherChanged ? { homeroom_teacher: teacherUuid || null } : {}),
+        },
+      });
+      const payload = response.data || {};
+      const pendingApproval = String(payload.status ?? payload.Status ?? "").toLowerCase() === "pending"
+        || Boolean(payload.approval_uuid ?? payload.approvalUUID ?? payload.is_pending);
+      setEditing(null);
+      setNoticeTone(pendingApproval ? "pending" : "success");
+      setSuccessMessage(pendingApproval ? `Perubahan kelas ${form.name.trim()} berhasil diajukan dan menunggu persetujuan.` : `Perubahan kelas ${form.name.trim()} berhasil dikirim.`);
+      setRefreshKey(value => value + 1);
+      window.setTimeout(() => setSuccessMessage(""), 5000);
+    } catch (requestError) {
+      setFormError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
   };
   const openDelete = item => { if (isStatusMutationBlocked(item.status)) return; setDeleteError(""); setDeleting(item); };
   const confirmDelete = async () => {
@@ -278,8 +353,53 @@ export default function ClassManagement() {
         <label className="block text-sm"><span className="mb-2 block font-semibold">Nama Kelas <b className="text-rose-500">*</b></span><input required maxLength={100} value={form.name} placeholder="Contoh: X-IPS-1" aria-invalid={Boolean(fieldErrors.name)} onChange={event => updateCreateField("name", event.target.value)} onBlur={() => validateCreateField("name")} className={`w-full rounded-lg border px-3.5 py-3 outline-none focus:ring-2 ${fieldErrors.name ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"}`} />{fieldErrors.name && <span role="alert" className="mt-1.5 block text-xs font-medium text-rose-600">{fieldErrors.name}</span>}</label>
         {editing === "new" && <label className="block text-sm"><span className="mb-2 block font-semibold">Singkatan Kelas <span className="font-normal text-slate-400">(opsional)</span></span><input maxLength={30} value={form.abbr_name} placeholder="Contoh: X IPS 1" aria-invalid={Boolean(fieldErrors.abbr_name)} onChange={event => updateCreateField("abbr_name", event.target.value)} onBlur={() => validateCreateField("abbr_name")} className={`w-full rounded-lg border px-3.5 py-3 outline-none focus:ring-2 ${fieldErrors.abbr_name ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"}`} />{fieldErrors.abbr_name && <span role="alert" className="mt-1.5 block text-xs font-medium text-rose-600">{fieldErrors.abbr_name}</span>}</label>}
         <label className="block text-sm"><span className="mb-2 block font-semibold">Tingkat <b className="text-rose-500">*</b></span><input required min="1" max="12" step="1" type="number" value={form.level} placeholder="Contoh: 10" aria-invalid={Boolean(fieldErrors.level)} onChange={event => updateCreateField("level", event.target.value)} onBlur={() => validateCreateField("level")} className={`w-full rounded-lg border px-3.5 py-3 outline-none focus:ring-2 ${fieldErrors.level ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"}`} />{fieldErrors.level && <span role="alert" className="mt-1.5 block text-xs font-medium text-rose-600">{fieldErrors.level}</span>}</label>
-        <label className="block text-sm"><span className="mb-2 block font-semibold">Wali Kelas <span className="font-normal text-slate-400">(opsional)</span></span><input value={form.teacher} placeholder="UUID guru, atau kosongkan" aria-invalid={Boolean(fieldErrors.teacher)} onChange={event => updateCreateField("teacher", event.target.value)} onBlur={() => validateCreateField("teacher")} className={`w-full rounded-lg border px-3.5 py-3 outline-none focus:ring-2 ${fieldErrors.teacher ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"}`} />{fieldErrors.teacher ? <span role="alert" className="mt-1.5 block text-xs font-medium text-rose-600">{fieldErrors.teacher}</span> : <span className="mt-1.5 block text-xs text-slate-500">Wali kelas dapat ditentukan nanti jika belum tersedia.</span>}</label>
-        {editing !== "new" && <label className="block text-sm"><span className="mb-2 block font-semibold">Jumlah Siswa <b className="text-rose-500">*</b></span><input required min="0" step="1" type="number" value={form.students} aria-invalid={Boolean(fieldErrors.students)} onChange={event => updateCreateField("students", event.target.value)} onBlur={() => validateCreateField("students")} className={`w-full rounded-lg border px-3.5 py-3 outline-none focus:ring-2 ${fieldErrors.students ? "border-rose-400 focus:border-rose-500 focus:ring-rose-100" : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"}`} />{fieldErrors.students && <span role="alert" className="mt-1.5 block text-xs font-medium text-rose-600">{fieldErrors.students}</span>}</label>}
+        <div className="text-sm">
+          <label htmlFor="class-homeroom-teacher" className="mb-2 block font-semibold">Wali Kelas <span className="font-normal text-slate-400">(opsional)</span></label>
+          <Select
+            id="class-homeroom-teacher"
+            ariaLabel="Wali Kelas"
+            renderOption={option => <span className="block min-w-0">
+              <span className="block truncate font-medium">{option.label}</span>
+              {option.positions?.length > 0 && <span className="mt-1.5 block"><ExpandableBadges items={option.positions} /></span>}
+            </span>}
+            size="large"
+            value={form.teacher === initialTeacher ? mergedTeachers.initialValue : form.teacher}
+            disabled={teachersLoading || saving}
+            aria-invalid={Boolean(fieldErrors.teacher)}
+            aria-describedby="class-homeroom-teacher-help"
+            onChange={value => updateCreateField("teacher", value)}
+            onBlur={() => validateCreateField("teacher")}
+            options={[
+              { value: "", label: teachersLoading ? "Memuat daftar guru..." : "Tanpa wali kelas", group: "Belum ada wali kelas" },
+              ...[...mergedTeachers.options].sort((a, b) => Number(b.value === mergedTeachers.initialValue) - Number(a.value === mergedTeachers.initialValue)).map(option => ({
+                group: initialTeacher && option.value === mergedTeachers.initialValue ? "Wali kelas saat ini" : "Calon wali kelas",
+                value: option.value,
+                title: [option.label, ...option.positions].join(" — "),
+                label: option.label,
+                positions: option.positions,
+              })),
+            ]}
+          />
+          <div id="class-homeroom-teacher-help" className="mt-1.5 text-xs">
+            {replacingHomeroomTeacher && <div role="alert" className="my-3 rounded-lg border border-amber-300 border-l-4 border-l-amber-500 bg-amber-50 p-4 text-amber-950 dark:border-amber-500/40 dark:border-l-amber-400 dark:bg-amber-400/10 dark:text-amber-100">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div className="min-w-0">
+                  <p className="text-sm font-bold">{form.teacher ? "Wali kelas akan diganti" : "Penugasan wali kelas akan dicabut"}</p>
+                  <p className="mt-1.5 leading-5">Setelah pengajuan disetujui:</p>
+                  <ul className="mt-1 list-disc space-y-1.5 pl-4 leading-5">
+                    <li>Guru saat ini kehilangan posisi <strong>Wali Kelas</strong> dan dapat ditugaskan ke kelas lain.</li>
+                    <li>{form.teacher ? <>Guru pengganti mengambil alih kelas ini dan memperoleh posisi <strong>Wali Kelas</strong>.</> : <>Kelas ini <strong>tidak memiliki wali kelas</strong> hingga guru pengganti ditentukan.</>}</li>
+                  </ul>
+                  <p className="mt-3 border-t border-amber-300/70 pt-2.5 font-medium leading-5 dark:border-amber-400/20">Pastikan perubahan penugasan ini sudah sesuai sebelum menyimpan.</p>
+                </div>
+              </div>
+            </div>}
+            {editing === "new" && form.teacher && <p className="mb-1.5 leading-relaxed text-blue-700 dark:text-blue-300">Penambahan kelas dengan guru ini sebagai wali kelas akan otomatis menambahkan posisi Wali Kelas kepada guru tersebut setelah pengajuan disetujui.</p>}
+            {fieldErrors.teacher && <p role="alert" className="font-medium text-rose-600">{fieldErrors.teacher}</p>}
+            {teachersError ? <div role="alert" className="text-rose-600"><p>{teachersError}</p><button type="button" onClick={() => setTeachersRefreshKey(value => value + 1)} className="mt-1 font-semibold underline">Coba lagi</button></div> : (teachersLoading || editing === "new") && <p role="status" className="text-slate-500">{teachersLoading ? "Memuat daftar wali kelas..." : teacherOptions.length || initialTeacher ? "Wali kelas dapat ditentukan nanti jika belum tersedia." : "Belum ada guru tersedia. Wali kelas dapat ditentukan nanti."}</p>}
+          </div>
+        </div>
       </div>
     </FormDrawer>
     <FormDrawer
@@ -289,9 +409,7 @@ export default function ClassManagement() {
       onSubmit={event => event.preventDefault()}
       footerActions={<><button type="button" onClick={() => setSelected(null)} className="action-lift rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Tutup</button>{selected?.status === "Nonaktif" ? access.canUpdate && <button type="button" onClick={() => { setActivating(selected); setSelected(null); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"><CheckCircle2 className="h-4 w-4" />Aktifkan</button> : <>{access.canDelete && <button type="button" disabled={isStatusMutationBlocked(selected?.status)} onClick={() => { setDeleting(selected); setSelected(null); }} className="action-lift inline-flex items-center gap-2 rounded-lg border border-rose-200 px-5 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 className="h-4 w-4" />Nonaktifkan</button>}{access.canUpdate && <button type="button" disabled={isStatusMutationBlocked(selected?.status)} onClick={() => { const row = selected; setSelected(null); openEdit(row); }} className="action-lift inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"><Pencil className="h-4 w-4" />Edit</button>}</>}</>}
     >
-      <div className="space-y-5">
-        {[["Nama Kelas", "name"], ["Tingkat", "level"], ["Wali Kelas", "teacher"], ["Jumlah Siswa", "students"], ["Status", "status"]].map(([label, key]) => <div key={key} className="text-sm"><span className="mb-2 block font-semibold">{label}</span><div className="min-h-12 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-3 text-slate-700">{key === "status" ? <StatusBadge status={form.status} /> : form[key] ?? "-"}</div></div>)}
-      </div>
+      <ClassDetail data={selected || form} />
     </FormDrawer>
     <StatusChangeDialog item={activating} entityLabel="kelas" action="activate" submitting={saving} error={formError} onConfirm={confirmActivate} onCancel={() => { if (!saving) { setActivating(null); setFormError(""); } }} />
     <StatusChangeDialog item={deleting} entityLabel="kelas" submitting={deleteSubmitting} error={deleteError} onConfirm={confirmDelete} onCancel={() => { if (!deleteSubmitting) { setDeleting(null); setDeleteError(""); } }} />

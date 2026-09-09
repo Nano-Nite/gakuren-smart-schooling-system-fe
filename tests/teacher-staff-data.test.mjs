@@ -22,6 +22,19 @@ test("detail retains education years and sorts academic titles without mutating 
   assert.equal(detail.educations[0].end_year, 2017);
 });
 
+test("edit resolves Dr. and dr. separately and respects prefix classification", () => {
+  const references = { title: [
+    { uuid: "doctorate", abbr_name: "Dr.", is_prefix: true },
+    { uuid: "physician", abbr_name: "dr.", is_prefix: true },
+    { uuid: "suffix", abbr_name: "Dr.", is_prefix: false },
+  ] };
+  for (const [abbr_name, expected] of [["Dr.", "doctorate"], ["dr.", "physician"]]) {
+    const form = buildTeacherStaffEditForm({ titles: [{ abbr_name, is_prefix: true }, { abbr_name: "Dr.", is_prefix: false }] }, references);
+    assert.deepEqual(form.title_prefix_uuids, [expected]);
+    assert.deepEqual(form.title_suffix_uuids, ["suffix"]);
+  }
+});
+
 test("account status uses status_user independently of employee_status", () => {
   const row = normalizeTeacherStaff({ status_user: "inactive", employee_status: "Tetap", status: "active" });
   assert.equal(row.status, "Nonaktif");

@@ -6,7 +6,7 @@ import StatusBadge from "./StatusBadge";
 import EmployeeStatusBadge from "./EmployeeStatusBadge";
 
 const Field = ({ label, children, full = false, compact = false }) => <div className={`min-w-0 ${full ? "sm:col-span-2" : ""}`}><dt className={`${compact ? "mb-0.5" : "mb-1.5"} text-xs leading-5 text-slate-500 dark:text-slate-400`}>{label}</dt><dd className={`${compact ? "leading-5" : "leading-6"} whitespace-pre-wrap break-words text-sm font-medium text-slate-800 dark:text-slate-100 [overflow-wrap:anywhere]`}>{children || "—"}</dd></div>;
-const ListField = ({ label, items }) => <Field label={label}>{items?.length ? <ul className="list-disc space-y-1 pl-5">{items.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul> : null}</Field>;
+const ListField = ({ label, items }) => <Field label={label}>{items?.length ? <ul className="flex flex-wrap gap-1.5">{items.map((item, index) => <li key={`${item}-${index}`} className="max-w-full rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold leading-5 text-blue-700 dark:bg-blue-950/50 dark:text-blue-200 [overflow-wrap:anywhere]">{item}</li>)}</ul> : null}</Field>;
 const Group = ({ title, children }) => <section className="border-t border-slate-200 py-6 dark:border-white/10"><h4 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">{title}</h4>{children}</section>;
 const SlideHeading = ({ title, description }) => <header className="mb-6"><h3 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">{title}</h3><p className="mt-1.5 text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</p></header>;
 const steps = ["Biodata", "Pendidikan", "Detail Pekerjaan"];

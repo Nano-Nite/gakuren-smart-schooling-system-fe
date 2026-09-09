@@ -22,6 +22,7 @@ const API_CONFIG = {
   CREATE_TEACHER_STAFF: '/v1/school/tns/create',
   UPDATE_TEACHER_STAFF: '/v1/school/tns/update',
   GET_TEACHER_STAFF: '/v1/school/tns/get',
+  GET_HOMEROOM_TEACHERS: '/v1/school/tns/get-homeroom-teacher',
 
   // misc
   GET_STATUSES: '/v1/misc/status',

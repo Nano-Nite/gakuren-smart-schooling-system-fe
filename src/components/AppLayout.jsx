@@ -125,7 +125,7 @@ export default function AppLayout() {
           </div>
         </div></div>
       </header>
-      <main className="flex-1 overflow-y-auto">{isPageLoading && <PageSkeleton />}<div className={isPageLoading ? "hidden" : "contents"}><Outlet /></div></main>
+      <main className="flex-1 overflow-y-auto">{isPageLoading && <PageSkeleton pathname={location.pathname} />}<div className={isPageLoading ? "hidden" : "page-content-reveal min-h-full"}><Outlet /></div></main>
     </div>
   </div>;
 }

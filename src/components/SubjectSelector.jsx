@@ -1,3 +1,4 @@
+import ExpandableBadges from "./ExpandableBadges";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, RefreshCw } from "lucide-react";
@@ -71,12 +72,12 @@ export default function SubjectSelector({ values = [], onChange }) {
     if (event.key === "Escape" && open) { event.preventDefault(); setOpen(false); triggerRef.current?.focus(); }
   }}>
     <span id={`${id}-label`} className="mb-2 block font-semibold">Mata pelajaran <span className="font-normal text-slate-400">(opsional)</span></span>
-    <button ref={triggerRef} type="button" disabled={loading || Boolean(requestError) || !options.length} aria-labelledby={`${id}-label`} aria-expanded={open} aria-controls={`${id}-options`} onClick={() => { updateMenuPosition(); setOpen(current => !current); }} className="flex h-12 w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3.5 text-left text-sm text-slate-700 shadow-sm hover:border-blue-300 disabled:opacity-60">
+    <div ref={triggerRef} role="button" tabIndex={loading || requestError || !options.length ? -1 : 0} aria-disabled={loading || Boolean(requestError) || !options.length} onKeyDown={event => { if (["Enter", " "].includes(event.key)) { event.preventDefault(); event.currentTarget.click(); } }} aria-labelledby={`${id}-label`} aria-expanded={open} aria-controls={`${id}-options`} onClick={() => { if (loading || requestError || !options.length) return; updateMenuPosition(); setOpen(current => !current); }} className="flex min-h-12 py-2 w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3.5 text-left text-sm text-slate-700 shadow-sm hover:border-blue-300 disabled:opacity-60">
       <span className="flex min-w-0 flex-1 items-center gap-1.5">
-        {loading ? <span className="flex items-center gap-2 text-slate-400"><RefreshCw className="h-4 w-4 animate-spin" />Memuat mata pelajaran...</span> : values.length ? <><span className="truncate rounded-md bg-blue-50 px-2 py-1 font-semibold text-blue-700">{options.find(item => item.uuid === values[0])?.name || values[0]}</span>{values.length > 1 && <span className="shrink-0 rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">+{values.length - 1} lainnya</span>}</> : <span data-placeholder="true" className="text-slate-400">Pilih mata pelajaran</span>}
+        {loading ? <span className="flex items-center gap-2 text-slate-400"><RefreshCw className="h-4 w-4 animate-spin" />Memuat mata pelajaran...</span> : values.length ? <ExpandableBadges limit={1} items={values.map(value => options.find(item => item.uuid === value)?.name || value)} /> : <span data-placeholder="true" className="text-slate-400">Pilih mata pelajaran</span>}
       </span>
       <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" />
-    </button>
+    </div>
     {open && menuStyle.left !== undefined && createPortal(<div ref={menuRef} id={`${id}-options`} role="group" aria-labelledby={`${id}-label`} style={menuStyle} className="fixed z-[100] overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl animate-[fadeUp_150ms_ease-out]">
       {options.map(option => <button key={option.uuid} type="button" aria-pressed={values.includes(option.uuid)} onClick={() => toggle(option)} className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm ${values.includes(option.uuid) ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-700 hover:bg-slate-50"}`}><span><span className="block">{option.name}</span><span className="text-xs font-normal text-slate-400">{option.abbr_name}</span></span>{values.includes(option.uuid) && <Check className="h-4 w-4 shrink-0" />}</button>)}
     </div>, document.body)}

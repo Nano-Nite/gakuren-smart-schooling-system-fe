@@ -6,7 +6,7 @@ export default function ApprovalUpdateDetails({ rows, canCompare, renderValue })
     <dd className="min-w-0 whitespace-pre-wrap break-words text-sm leading-6 text-slate-800 dark:text-slate-100">
       {canCompare && row.changed ? <div className="space-y-2">
         <div className="min-w-0 text-slate-500 dark:text-slate-400"><span className="mb-0.5 block text-[11px]">Saat ini</span>{renderValue(row.current, row.key)}</div>
-        <div className="min-w-0 font-medium text-blue-700 dark:text-blue-300"><span className="mb-0.5 block text-[11px] font-normal"><span aria-hidden="true">→ </span>Diajukan</span>{renderValue(row.value, row.key)}</div>
+        <div className="min-w-0 font-medium text-orange-700 dark:text-orange-300"><span className="mb-0.5 block text-[11px] font-normal"><span aria-hidden="true">→ </span>Diajukan</span>{renderValue(row.value, row.key)}</div>
       </div> : renderValue(row.value, row.key)}
     </dd>
   </div>)}</dl>;

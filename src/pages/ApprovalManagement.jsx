@@ -1,7 +1,8 @@
+import ExpandableBadges from "../components/ExpandableBadges";
 import ApprovalUpdateDetails from "../components/ApprovalUpdateDetails";
 import ApprovalDetailCarousel from "../components/ApprovalDetailCarousel";
 import TeacherStaffApprovalDetails from "../components/TeacherStaffApprovalDetails";
-import { isTeacherStaffEntity } from "../utils/approvalEntityType";
+import { getApprovalEntityLabel, isTeacherStaffEntity } from "../utils/approvalEntityType";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Ban, Check, CheckCircle2, CircleHelp, Clock3, RefreshCw, Search, X, XCircle } from "lucide-react";
 import { Helmet } from "react-helmet-async";
@@ -97,7 +98,7 @@ export default function ApprovalManagement() {
       });
       const payload = response.data || {};
       const instance = payload.instance || {};
-      const requestedAt = formatDateTime(instance.requested_date);
+      const requestedAt = formatDateTime(instance.requested_date ?? row.requestedDate);
       const nextDetail = {
         ...row,
         uuid: instance.uuid || row.uuid,
@@ -108,7 +109,7 @@ export default function ApprovalManagement() {
         requesterUuid: instance.requested_by_uuid || instance.requester_uuid || instance.created_by_uuid || null,
         date: requestedAt.date,
         time: requestedAt.time,
-        requestedDate: instance.requested_date,
+        requestedDate: instance.requested_date ?? row.requestedDate,
         status: instance.status || row.status,
         action: instance.action_code || "-",
         workflowUuid: instance.workflow_uuid || row.workflowUuid,
@@ -122,7 +123,7 @@ export default function ApprovalManagement() {
       };
       setDetail(nextDetail);
 
-      if (String(nextDetail.action).toUpperCase() === "UPDATE" && nextDetail.entityUuid) {
+      if (["UPDATE", "ACTIVATE"].includes(String(nextDetail.action).toUpperCase()) && nextDetail.entityUuid) {
         const endpoint = getApprovalEntityEndpoint(nextDetail.entityType, nextDetail.module, nextDetail.requestData);
         if (!endpoint) {
           setDetail(current => current ? { ...current, activeDataError: "Endpoint data aktif untuk modul ini belum dikonfigurasi." } : current);
@@ -194,7 +195,8 @@ export default function ApprovalManagement() {
             stage: `Tahap ${item.current_step ?? 0} dari ${item.total_step ?? 0}`,
             date: validDate ? new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric" }).format(requestedAt) : "-",
             time: validDate ? new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }).format(requestedAt) : "-",
-            action: item.action || "UPDATE",
+            action: item.action_code || item.action || "UPDATE",
+            requestedDate: item.requested_date,
             status: item.status,
             details: [["Alur Kerja", item.workflow_name || "-"], ["Nomor Tiket", item.ticket_number || "-"], ["Tahap", `${item.current_step ?? 0} dari ${item.total_step ?? 0}`], ["Status", item.status || "-"]],
           };
@@ -346,7 +348,7 @@ export default function ApprovalManagement() {
     </div>
 
     {detail && <ApprovalDetailDrawer approval={detail} currentUser={currentUser} loading={detailLoading} error={detailError} actionError={actionError} actionProgress={actionProgress} executing={executing} note={note} setNote={setNote} canApprove={canApprove} canReject={canReject} onClose={() => { if (!executing) setSelected(null); }} onDecide={decide} onCancel={cancelApproval} onRetry={() => openApprovalDetail(detail)} />}
-    {selected && <div className="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="true" aria-label="Detail pengajuan"><button className="absolute inset-0 bg-slate-950/30 backdrop-blur-[1px]" onClick={() => setSelected(null)} aria-label="Tutup detail" /><aside className="relative flex h-full w-full max-w-xl flex-col bg-white shadow-2xl animate-[slideInRight_200ms_ease-out]"><header className="flex items-start justify-between border-b border-slate-200 px-5 py-5"><div><h2 className="text-lg font-bold">{selected.title}</h2><p className="mt-1 text-sm text-slate-500">{selected.id}</p></div><button onClick={() => setSelected(null)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></header><div className="flex-1 space-y-5 overflow-y-auto p-5"><section className="grid grid-cols-3 gap-3 rounded-xl border border-slate-200 p-4 text-xs"><div><p className="text-slate-500">Pemohon</p><p className="mt-2 font-bold">{selected.applicant}</p><p className="mt-1 text-slate-500">{selected.role}</p></div><div className="border-l pl-3"><p className="text-slate-500">Diajukan</p><p className="mt-2 font-bold">{selected.date}</p><p className="mt-1 text-slate-500">{selected.time}</p></div><div className="border-l pl-3"><p className="text-slate-500">Modul</p><p className="mt-2"><span className={`rounded px-2 py-1 font-medium ${moduleColors[selected.module]}`}>{selected.module}</span></p></div></section><section><h3 className="mb-3 text-sm font-bold">Rincian Pengajuan</h3><dl className="space-y-3 rounded-xl border border-slate-200 p-4">{selected.details.map(([label, value]) => <div key={label} className="grid grid-cols-[140px_1fr] gap-3 text-sm"><dt className="text-slate-500">{label}</dt><dd className="font-medium">{value}</dd></div>)}</dl></section><section><div className="mb-4"><div className="mb-2"><Status value={selected.status} /></div><h3 className="text-sm font-bold">Progres Persetujuan</h3></div><div className="relative ml-2 border-l-2 border-emerald-400 pl-6"><span className="absolute -left-3 -top-0 grid h-6 w-6 place-items-center rounded-full bg-emerald-600 text-xs font-bold text-white">1</span><p className="text-sm font-semibold">{selected.applicant}</p><p className="mt-1 text-xs text-slate-500">{selected.date}, {selected.time}</p><div className="relative mt-6"><span className="absolute -left-[35px] top-0 grid h-6 w-6 place-items-center rounded-full bg-blue-600 text-xs font-bold text-white">2</span><p className="text-sm font-semibold text-blue-600">Menunggu keputusan Anda</p><p className="mt-1 text-xs text-slate-500">Tahap aktif</p></div></div></section><label className="block"><span className="mb-2 block text-sm font-bold">Catatan (opsional)</span><textarea maxLength={500} value={note} onChange={event => setNote(event.target.value)} placeholder="Tulis catatan atau instruksi tambahan..." className="h-28 w-full resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /><span className="-mt-6 mr-3 block text-right text-xs text-slate-400">{note.length} / 500</span></label></div><footer className="relative z-20 grid shrink-0 grid-cols-2 gap-3 bg-white/40 p-5 backdrop-blur-xl dark:bg-[color-mix(in_srgb,var(--mui-paper)_40%,transparent)]">{canReject && <button onClick={() => decide("rejected")} className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-500 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50"><X className="h-4 w-4" />Tolak</button>}{canApprove && <button onClick={() => decide("approved")} className={`${!canReject ? "col-span-2" : ""} inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700`}><Check className="h-4 w-4" />Setujui</button>}{!canApprove && !canReject && <p className="col-span-2 rounded-lg bg-slate-50 p-3 text-center text-sm text-slate-500">Anda tidak memiliki izin untuk memproses pengajuan ini.</p>}</footer></aside></div>}
+    {selected && <div className="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="true" aria-label="Detail pengajuan"><button className="absolute inset-0 bg-slate-950/30 backdrop-blur-[1px]" onClick={() => setSelected(null)} aria-label="Tutup detail" /><aside className="relative flex h-full w-full max-w-xl flex-col bg-white shadow-2xl animate-[slideInRight_200ms_ease-out]"><header className="flex items-start justify-between border-b border-slate-200 px-5 py-5"><div><h2 className="text-lg font-bold">{selected.title}</h2><p className="mt-1 text-sm text-slate-500">{selected.id}</p></div><button onClick={() => setSelected(null)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></header><div className="flex-1 space-y-5 overflow-y-auto p-5"><section className="grid grid-cols-3 gap-3 rounded-xl border border-slate-200 p-4 text-xs"><div><p className="text-slate-500">Pemohon</p><p className="mt-2 font-bold">{selected.applicant}</p><p className="mt-1 text-slate-500">{selected.role}</p></div><div className="border-l pl-3"><p className="text-slate-500">Diajukan</p><p className="mt-2 font-bold">{formatDateTime(selected.requestedDate).time} - {formatDateTime(selected.requestedDate).date}</p></div><div className="border-l pl-3"><p className="text-slate-500">Modul</p><p className="mt-2"><span className={`rounded px-2 py-1 font-medium ${moduleColors[selected.module]}`}>{selected.module}</span></p></div></section><section><h3 className="mb-3 text-sm font-bold">Rincian Pengajuan</h3><dl className="space-y-3 rounded-xl border border-slate-200 p-4">{selected.details.map(([label, value]) => <div key={label} className="grid grid-cols-[140px_1fr] gap-3 text-sm"><dt className="text-slate-500">{label}</dt><dd className="font-medium">{value}</dd></div>)}</dl></section><section><div className="mb-4"><div className="mb-2"><Status value={selected.status} /></div><h3 className="text-sm font-bold">Progres Persetujuan</h3></div><div className="relative ml-2 border-l-2 border-emerald-400 pl-6"><span className="absolute -left-3 -top-0 grid h-6 w-6 place-items-center rounded-full bg-emerald-600 text-xs font-bold text-white">1</span><p className="text-sm font-semibold">{selected.applicant}</p><p className="mt-1 text-xs text-slate-500">{formatDateTime(selected.requestedDate).time} - {formatDateTime(selected.requestedDate).date}</p><div className="relative mt-6"><span className="absolute -left-[35px] top-0 grid h-6 w-6 place-items-center rounded-full bg-blue-600 text-xs font-bold text-white">2</span><p className="text-sm font-semibold text-blue-600">Menunggu keputusan Anda</p><p className="mt-1 text-xs text-slate-500">Tahap aktif</p></div></div></section><label className="block"><span className="mb-2 block text-sm font-bold">Catatan (opsional)</span><textarea maxLength={500} value={note} onChange={event => setNote(event.target.value)} placeholder="Tulis catatan atau instruksi tambahan..." className="h-28 w-full resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /><span className="-mt-6 mr-3 block text-right text-xs text-slate-400">{note.length} / 500</span></label></div><footer className="relative z-20 grid shrink-0 grid-cols-2 gap-3 bg-white/40 p-5 backdrop-blur-xl dark:bg-[color-mix(in_srgb,var(--mui-paper)_40%,transparent)]">{canReject && <button onClick={() => decide("rejected")} className="inline-flex items-center justify-center gap-2 rounded-lg border border-rose-500 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50"><X className="h-4 w-4" />Tolak</button>}{canApprove && <button onClick={() => decide("approved")} className={`${!canReject ? "col-span-2" : ""} inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700`}><Check className="h-4 w-4" />Setujui</button>}{!canApprove && !canReject && <p className="col-span-2 rounded-lg bg-slate-50 p-3 text-center text-sm text-slate-500">Anda tidak memiliki izin untuk memproses pengajuan ini.</p>}</footer></aside></div>}
   </>;
 }
 
@@ -364,8 +366,8 @@ function formatDateTime(value) {
   const parsed = value ? new Date(value) : null;
   if (!parsed || Number.isNaN(parsed.getTime())) return { date: "-", time: "-" };
   return {
-    date: new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric" }).format(parsed),
-    time: new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }).format(parsed),
+    date: new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(parsed),
+    time: `${String(parsed.getHours()).padStart(2, "0")}:${String(parsed.getMinutes()).padStart(2, "0")}`,
   };
 }
 
@@ -444,8 +446,44 @@ const formatNestedLabel = key => ({
   email: "Email",
 })[key] || formatFieldLabel(key);
 
+function ApprovalHomeroomTeacher({ uuid }) {
+  const [result, setResult] = useState(null);
+  const [retry, setRetry] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setResult(null);
+    const loadTeacher = async () => {
+      try {
+        const response = await authenticatedRequest(`${API_CONFIG.GET_TEACHER_STAFF}?uuid=${encodeURIComponent(uuid)}`, {
+          method: "GET",
+          signal: controller.signal,
+        });
+        const teacher = extractActiveEntity(response.data, uuid);
+        const name = teacher?.name || teacher?.full_name || teacher?.biodata?.full_name || teacher?.Name;
+        if (!name) throw new Error("Nama wali kelas tidak ditemukan.");
+        const rawPositions = teacher.positions ?? teacher.position ?? [];
+        const positions = [...new Set((Array.isArray(rawPositions) ? rawPositions : [rawPositions]).map(position => typeof position === "string" ? position : position?.name).filter(position => typeof position === "string" && position.trim()).map(position => position.trim()))];
+        if (!controller.signal.aborted) setResult({ uuid, name, positions });
+      } catch (error) {
+        if (!controller.signal.aborted) setResult({ uuid, error: error.message || "Gagal memuat nama wali kelas." });
+      }
+    };
+    loadTeacher();
+    return () => controller.abort();
+  }, [uuid, retry]);
+
+  if (!result || result.uuid !== uuid) return <span role="status" className="text-slate-500">Memuat nama wali kelas...</span>;
+  if (result.error) return <span role="alert" className="block text-rose-600"><span className="block">{result.error}</span><button type="button" onClick={() => setRetry(value => value + 1)} className="mt-1 text-xs font-semibold underline">Coba lagi</button></span>;
+  return <span className="block">
+    <span className="block">{result.name}</span>
+    {result.positions.length > 0 && <span className="mt-1.5 block"><ExpandableBadges items={result.positions} /></span>}
+  </span>;
+}
+
 function ApprovalValue({ value, fieldKey, entityType }) {
   if (value === null || value === undefined || value === "") return <span>-</span>;
+  if (normalizeApprovalFieldKey(fieldKey) === "homeroomteacher" && typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(value)) return <ApprovalHomeroomTeacher uuid={value} />;
   if (typeof value !== "object") return <span>{formatFieldValue(value)}</span>;
   const normalizedKey = normalizeApprovalFieldKey(fieldKey);
   const entries = Array.isArray(value) ? value : Object.entries(value).map(([key, child]) => ({ key, child }));
@@ -475,10 +513,35 @@ function sanitizeRequestValue(value) {
   return Object.fromEntries(Object.entries(value).filter(([key]) => !isSensitiveRequestField(key)).map(([key, child]) => [key, sanitizeRequestValue(child)]));
 }
 
+function ActivationApprovalDetails({ approval, onRetry }) {
+  const request = approval.requestData || {};
+  const current = approval.activeData || {};
+  const name = request.name || request.full_name || request.biodata?.full_name || current.name || current.Name || current.full_name || current.biodata?.full_name;
+  const isClass = getApprovalFieldSchema(approval.entityType, request) === approvalFieldSchemas.class;
+  return <div className="space-y-4">
+    <div><p className="mb-1 text-xs text-slate-500">Data yang diajukan untuk diaktifkan</p><p className="break-words text-xl font-semibold text-slate-900 dark:text-slate-100">{name || "Nama data belum tersedia"}</p></div>
+    <div className="rounded-xl border border-slate-200 p-4 dark:border-white/10">
+      <p className="mb-2 text-xs text-slate-500">Tindakan yang diajukan</p>
+      <p className="flex flex-wrap items-center gap-2 text-sm"><span className="rounded-md bg-slate-100 px-2 py-1 text-slate-600 dark:bg-white/10 dark:text-slate-300">Nonaktif</span><span aria-hidden="true">→</span><span className="rounded-md bg-orange-50 px-2 py-1 font-semibold text-orange-700 dark:bg-orange-400/10 dark:text-orange-300">Aktif</span></p>
+      <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">Perubahan ini berlaku setelah pengajuan disetujui. Status persetujuan dapat dilihat pada tab Ringkasan.</p>
+    </div>
+    <div role="note" className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 text-xs leading-5 text-blue-800 dark:border-blue-400/20 dark:bg-blue-400/5 dark:text-blue-200">
+      <p className="font-semibold">Dampak pengaktifan</p>
+      <p className="mt-1">Data kembali muncul pada daftar dengan filter Aktif dan dapat dikelola sesuai izin akses pengguna.</p>
+      {isClass && <p className="mt-2">Periksa kembali penugasan wali kelas dan keanggotaan siswa setelah kelas diaktifkan.</p>}
+    </div>
+    {approval.activeDataError && <div role="status" className="text-xs text-slate-500"><p>Detail data belum dapat dimuat: {approval.activeDataError}</p><button type="button" onClick={onRetry} className="mt-2 font-semibold text-blue-600 underline">Muat ulang detail</button></div>}
+  </div>;
+}
+
 function ApprovalDetailDrawer({ approval, currentUser, loading, error, actionError, actionProgress, executing, note, setNote, canApprove, canReject, onClose, onDecide, onCancel, onRetry }) {
+  const requestedAt = formatDateTime(approval.requestedDate);
   const isActive = String(approval.status || "").toLowerCase() === "active";
   const isUpdate = String(approval.action || "").toUpperCase() === "UPDATE";
+  const isActivation = String(approval.action || "").toUpperCase() === "ACTIVATE";
   const requestEntries = getApprovalRequestEntries(approval.requestData || {}, approval.entityType);
+  const addsHomeroomPosition = String(approval.action || "").toUpperCase() === "CREATE"
+    && requestEntries.some(([key, value]) => normalizeApprovalFieldKey(key) === "homeroomteacher" && Boolean(value));
   const isTeacherStaff = isTeacherStaffEntity(approval.entityType);
   const timeline = approval.progress || [];
   const cancelIndex = timeline.findIndex(step => String(step.action_code || "").toUpperCase() === "CANCEL");
@@ -511,17 +574,18 @@ function ApprovalDetailDrawer({ approval, currentUser, loading, error, actionErr
         {!loading && !error && <>
           <ApprovalDetailCarousel key={approval.uuid || approval.id}>
           <div className="space-y-5">
+          {isActivation && <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm font-normal text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300"><CheckCircle2 aria-hidden="true" className="h-5 w-5" /><span>Pengajuan pengaktifan kembali <strong className="font-semibold">{getApprovalEntityLabel(approval.entityType).replace(/^./, character => character.toUpperCase())}</strong></span></div>}
           <section className="pb-2">
             <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">Pemohon</p>
             <p className="break-words text-2xl font-semibold leading-snug tracking-tight text-slate-900 dark:text-slate-100">{approval.applicant}</p>
-            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{approval.role}, {approval.time} {approval.date}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{approval.role}, {requestedAt.time} - {requestedAt.date}</p>
           </section>
           <article className="border-t border-slate-200 pt-5 dark:border-white/10"><div className="mb-4"><div className="mb-3 flex flex-wrap items-center gap-2"><Status value={approval.status} />{approval.stage && <span className="inline-flex items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-300">{approval.stage}</span>}</div><h3 className="text-sm font-bold">Progres Persetujuan</h3></div><div className="space-y-0">{timeline.length ? timeline.map((step, index) => {
             const stepNumber = timeline.slice(0, index + 1).filter(item => !["SUBMIT", "CANCEL"].includes(String(item.action_code || "").toUpperCase())).length;
             return <ProgressStep key={`${step.action_code || step.role_name}-${index}`} step={step} index={index} stepNumber={stepNumber} isLast={index === timeline.length - 1} cancelIndex={cancelIndex} approvalStatus={approval.status} />;
           }) : <p className="text-sm text-slate-500">Belum ada progres persetujuan.</p>}</div></article>
           </div>
-          <section><h3 className="mb-3 text-sm font-bold dark:text-white">Rincian Pengajuan</h3>{isUpdate && approval.activeDataError && <div role="status" className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"><span>Data diajukan tetap ditampilkan, tetapi pembanding data aktif gagal dimuat: {approval.activeDataError}</span><button type="button" onClick={onRetry} className="shrink-0 rounded-md border border-amber-300 px-2.5 py-1.5 font-semibold hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-900/40">Coba lagi</button></div>}{isTeacherStaff ? <TeacherStaffApprovalDetails requestData={approval.requestData || {}} activeData={approval.activeData} isUpdate={isUpdate} /> : isUpdate ? <ApprovalUpdateDetails canCompare={Boolean(approval.activeData)} rows={requestEntries.map(([key, value, label]) => {
+          <section><h3 className="mb-3 text-sm font-bold dark:text-white">{isActivation ? "Rincian Pengaktifan" : "Rincian Pengajuan"}</h3>{addsHomeroomPosition && <p role="note" className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs leading-relaxed text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200">Saat pengajuan penambahan kelas disetujui, posisi Wali Kelas akan otomatis ditambahkan kepada guru yang dipilih.</p>}{isUpdate && approval.activeDataError && <div role="status" className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"><span>Data diajukan tetap ditampilkan, tetapi pembanding data aktif gagal dimuat: {approval.activeDataError}</span><button type="button" onClick={onRetry} className="shrink-0 rounded-md border border-amber-300 px-2.5 py-1.5 font-semibold hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-900/40">Coba lagi</button></div>}{isActivation ? <ActivationApprovalDetails approval={approval} onRetry={onRetry} /> : isTeacherStaff ? <TeacherStaffApprovalDetails requestData={approval.requestData || {}} activeData={approval.activeData} isUpdate={isUpdate} /> : isUpdate ? <ApprovalUpdateDetails canCompare={Boolean(approval.activeData)} rows={requestEntries.map(([key, value, label]) => {
             const current = getComparableFieldValue(approval.activeData, key);
             return { key, value, label, current, changed: Boolean(approval.activeData) && !areApprovalValuesEqual(current, value) };
           })} renderValue={(value, key) => <ApprovalValue value={sanitizeRequestValue(value)} fieldKey={key} entityType={approval.entityType} />} /> : <dl className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white px-4 dark:divide-slate-800 dark:border-slate-700 dark:bg-transparent">{requestEntries.length ? requestEntries.map(([key, value, label]) => <div key={key} className="grid grid-cols-[140px_minmax(0,1fr)] gap-3 py-3 text-sm"><dt className="text-slate-500 dark:text-white">{label}</dt><dd className="break-words font-medium dark:text-white"><ApprovalValue value={sanitizeRequestValue(value)} fieldKey={key} entityType={approval.entityType} /></dd></div>) : <div className="py-4 text-sm text-slate-500">Tidak ada data permintaan.</div>}</dl>}</section>
@@ -558,7 +622,7 @@ function ProgressStep({ step, index, stepNumber, isLast, cancelIndex, approvalSt
   return <div className="relative grid grid-cols-[28px_1fr] gap-3 pb-6 last:pb-0">
     {!isLast && <span className={`absolute left-[13px] top-7 h-[calc(100%-1.25rem)] w-0.5 ${lineClass}`} style={isSubmission ? { maskImage: "repeating-linear-gradient(to bottom, black 0 5px, transparent 5px 9px)", WebkitMaskImage: "repeating-linear-gradient(to bottom, black 0 5px, transparent 5px 9px)" } : undefined} />}
     <span className={`relative z-10 grid place-items-center rounded-full font-bold ${nodeSizeClass} ${nodeClass}`}>{shouldPulse && <span aria-hidden="true" className="absolute inset-0 -z-10 animate-ping rounded-full bg-amber-400 opacity-40" />}<span className="relative z-10">{isSubmission ? null : isNegativeDecision ? <X className="h-4 w-4" /> : state === "past" ? <Check className="h-4 w-4" /> : stepNumber}</span></span>
-    <div className="pt-1"><p className={`text-sm font-semibold ${titleClass}`}>{title}</p>{!isSubmission && step.act_by && <p className={`mt-1 text-xs ${isNegativeDecision || isAffectedByCancellation ? "text-rose-500" : "text-slate-600"}`}>Diproses oleh <strong className="font-bold">{step.act_by}</strong></p>}{step.approve_date && <p className={`mt-1 text-xs ${isNegativeDecision || isAffectedByCancellation ? "text-rose-500" : "text-slate-500"}`}>{approvedAt.date}, {approvedAt.time}</p>}{state === "current" && !isFinalized && !hasRecordedAction && !isAffectedByCancellation && <p className="mt-1 text-xs text-amber-600">Menunggu persetujuan</p>}{step.note && <p className={`mt-2 rounded-lg p-2.5 text-xs italic ${isNegativeDecision || isAffectedByCancellation ? "bg-rose-50 text-rose-600" : "bg-slate-50 text-slate-600"}`}>{step.note}</p>}</div>
+    <div className="pt-1"><p className={`text-sm font-semibold ${titleClass}`}>{title}</p>{!isSubmission && step.act_by && <p className={`mt-1 text-xs ${isNegativeDecision || isAffectedByCancellation ? "text-rose-500" : "text-slate-600"}`}>Diproses oleh <strong className="font-bold">{step.act_by}</strong></p>}{step.approve_date && <p className={`mt-1 text-xs ${isNegativeDecision || isAffectedByCancellation ? "text-rose-500" : "text-slate-500"}`}>{approvedAt.time} - {approvedAt.date}</p>}{state === "current" && !isFinalized && !hasRecordedAction && !isAffectedByCancellation && <p className="mt-1 text-xs text-amber-600">Menunggu persetujuan</p>}{step.note && <p className={`mt-2 rounded-lg p-2.5 text-xs italic ${isNegativeDecision || isAffectedByCancellation ? "bg-rose-50 text-rose-600" : "bg-slate-50 text-slate-600"}`}>{step.note}</p>}</div>
   </div>;
 }
 
