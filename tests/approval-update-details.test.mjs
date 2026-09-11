@@ -47,3 +47,37 @@ test("missing comparison data still displays all requested fields", async () => 
   assert.match(html, /ABC/);
   assert.doesNotMatch(html, /<details|data berubah|Saat ini/);
 });
+
+test("student approval retains changed parent email and renders both values", async () => {
+  const source = await readFile("src/pages/ApprovalManagement.jsx", "utf8");
+  const schemas = source.slice(source.indexOf("const approvalFieldSchemas ="), source.indexOf("const commonApprovalFieldLabels"));
+  const helpers = source.slice(source.indexOf("const normalizeApprovalFieldKey ="));
+  const comparison = source.slice(source.indexOf("function getComparableFieldValue("), source.indexOf("function formatFieldLabel("));
+  const entries = source.slice(source.indexOf("  const requestEntries ="), source.indexOf("  const addsHomeroomPosition ="));
+  const rowsStart = source.indexOf("rows={requestEntries.map(") + "rows={".length;
+  const rows = source.slice(rowsStart, source.indexOf("} renderValue=", rowsStart));
+  const getRows = new Function("approval", `
+    const isUpdate = true, isStudent = true;
+    const isTeacherStaffEntity = () => false;
+    const isSensitiveRequestField = () => false;
+    const sanitizeRequestValue = value => value;
+    const formatFieldLabel = key => key;
+    ${schemas}
+    ${helpers}
+    ${comparison}
+    ${entries}
+    return ${rows};
+  `);
+  for (const key of ["parent_email", "ParentEmail"]) {
+    const approvalRows = getRows({ entityType: "student", requestData: { [key]: "baru@example.com", email: "siswa@example.com" }, activeData: { ParentEmail: "lama@example.com" } });
+    const emailRow = approvalRows.find(row => row.key === key);
+    assert.equal(emailRow.changed, true);
+    assert.equal(emailRow.current, "lama@example.com");
+    const html = await render({ canCompare: true, rows: approvalRows, renderValue: value => value });
+    assert.match(html, /Email Orang Tua\/Wali/);
+    assert.match(html, /Saat ini/);
+    assert.match(html, /Diajukan/);
+    assert.ok(html.indexOf("lama@example.com") < html.indexOf("<details"));
+    assert.ok(html.indexOf("baru@example.com") < html.indexOf("<details"));
+  }
+});

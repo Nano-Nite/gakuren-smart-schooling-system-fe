@@ -44,10 +44,6 @@ export default function PageSkeleton({ pathname = "" }) {
         [{ transform: "translateX(-100%)" }, { transform: "translateX(100%)" }],
         { duration: preference.matches ? 1800 : 1150, iterations: Infinity, delay: -350 },
       ));
-      animations.push(root.querySelector(".skeleton-spinner").animate(
-        [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }],
-        { duration: preference.matches ? 1800 : 900, iterations: Infinity },
-      ));
     };
     start();
     preference.addEventListener("change", start);
@@ -56,7 +52,6 @@ export default function PageSkeleton({ pathname = "" }) {
   const tableColumns = { "/classes": 6, "/students": 8, "/teachers": 8, "/approvals": 5 };
   const isPlaceholder = !tableColumns[pathname] && !["/dashboard", "/profile", "/qr-code"].includes(pathname);
   return <div ref={rootRef} role="status" aria-label="Memuat halaman" className={`page-skeleton p-4 sm:p-6 ${pathname === "/profile" ? "mx-auto max-w-4xl" : pathname === "/dashboard" || pathname === "/qr-code" ? "mx-auto max-w-[1680px]" : ""} ${isPlaceholder ? "grid min-h-full place-items-center" : ""}`}>
-    <div className="mb-3 flex w-full items-center gap-2.5 text-sm font-medium text-slate-600 dark:text-slate-300"><span aria-hidden="true" className="skeleton-spinner h-4 w-4 shrink-0 rounded-full border-2 border-slate-300 border-t-blue-600 dark:border-slate-600 dark:border-t-blue-300" /><span>Memuat halaman...</span></div>
     <div aria-hidden="true" className={`w-full ${isPlaceholder ? "max-w-lg" : ""}`}>
       {tableColumns[pathname] ? <TableSkeleton columns={tableColumns[pathname]} approval={pathname === "/approvals"} /> : pathname === "/dashboard" ? <DashboardSkeleton /> : pathname === "/profile" ? <ProfileSkeleton /> : pathname === "/qr-code" ? <QrSkeleton /> : <Panel className="space-y-5 p-8"><Block className="mx-auto h-16 w-16 rounded-full" /><Block className="mx-auto h-6 w-40" /><Block /><Block className="mx-auto h-3 w-3/4" /></Panel>}
     </div>

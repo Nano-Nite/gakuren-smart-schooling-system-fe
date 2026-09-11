@@ -12,11 +12,13 @@ import TablePagination from "../components/TablePagination";
 import API_CONFIG from "../config/api";
 import { authenticatedRequest, getUserData } from "../utils/api";
 
+const formatApprovalTitle = title => String(title || "").replace(/\bhapus\b/gi, "Non Aktif");
+
 const moduleColors = { Kelas: "bg-blue-50 text-blue-600", Siswa: "bg-emerald-50 text-emerald-600", Absensi: "bg-violet-50 text-violet-600", SDM: "bg-cyan-50 text-cyan-700", Akademik: "bg-sky-50 text-sky-600", Sarpras: "bg-pink-50 text-pink-600" };
 
 const approvalFieldSchemas = {
   class: [["name", "Nama Kelas"], ["abbr_name", "Singkatan Kelas"], ["level", "Tingkat"], ["homeroom_teacher", "Wali Kelas"]],
-  student: [["name", "Nama Siswa"], ["nis", "NIS"], ["class_name", "Kelas"], ["phone", "No. HP / WhatsApp"], ["gender", "Jenis Kelamin"], ["parent_name", "Nama Orang Tua/Wali"], ["parent_email", "Email Orang Tua/Wali"], ["parent_phone", "No. WhatsApp Orang Tua/Wali"], ["parent_address", "Alamat Orang Tua/Wali"]],
+  student: [["name", "Nama Siswa"], ["nis", "NIS"], ["nisn", "NISN"], ["class_name", "Kelas"], ["gender", "Jenis Kelamin"], ["email", "Email Siswa"], ["phone", "No. HP / WhatsApp"], ["address", "Alamat Siswa"], ["parent_name", "Nama Orang Tua/Wali"], ["parent_email", "Email Orang Tua/Wali"], ["parent_phone", "No. WhatsApp Orang Tua/Wali"], ["parent_address", "Alamat Orang Tua/Wali"]],
   teacher: [["name", "Nama"], ["nip", "NIP"], ["email", "Email"], ["phone", "No. HP / WhatsApp"], ["position", "Jabatan"]],
 };
 
@@ -103,7 +105,7 @@ export default function ApprovalManagement() {
         ...row,
         uuid: instance.uuid || row.uuid,
         id: instance.ticket_number || row.id,
-        title: instance.workflow_name || row.title,
+        title: formatApprovalTitle(instance.workflow_name || row.title),
         applicant: instance.requested_by || row.applicant,
         role: instance.role_name || row.role,
         requesterUuid: instance.requested_by_uuid || instance.requester_uuid || instance.created_by_uuid || null,
@@ -188,7 +190,7 @@ export default function ApprovalManagement() {
             uuid: item.uuid,
             workflowUuid: item.workflow_uuid,
             id: item.ticket_number || item.uuid,
-            title: item.workflow_name || "Pengajuan",
+            title: formatApprovalTitle(item.workflow_name || "Pengajuan"),
             applicant: item.requested_by || "-",
             role: item.role_name || "-",
             module: item.module || "-",
@@ -198,7 +200,7 @@ export default function ApprovalManagement() {
             action: item.action_code || item.action || "UPDATE",
             requestedDate: item.requested_date,
             status: item.status,
-            details: [["Alur Kerja", item.workflow_name || "-"], ["Nomor Tiket", item.ticket_number || "-"], ["Tahap", `${item.current_step ?? 0} dari ${item.total_step ?? 0}`], ["Status", item.status || "-"]],
+            details: [["Alur Kerja", formatApprovalTitle(item.workflow_name || "-")], ["Nomor Tiket", item.ticket_number || "-"], ["Tahap", `${item.current_step ?? 0} dari ${item.total_step ?? 0}`], ["Status", item.status || "-"]],
           };
         }));
         setStatistics(payload.data_statistic || { start_row: 0, end_row: 0, total_row: 0, max_page: 1 });
@@ -539,7 +541,9 @@ function ApprovalDetailDrawer({ approval, currentUser, loading, error, actionErr
   const isActive = String(approval.status || "").toLowerCase() === "active";
   const isUpdate = String(approval.action || "").toUpperCase() === "UPDATE";
   const isActivation = String(approval.action || "").toUpperCase() === "ACTIVATE";
-  const requestEntries = getApprovalRequestEntries(approval.requestData || {}, approval.entityType);
+  const isStudent = getApprovalFieldSchema(approval.entityType, approval.requestData || {}) === approvalFieldSchemas.student;
+  const requestEntries = getApprovalRequestEntries(approval.requestData || {}, approval.entityType)
+    .filter(([key]) => !(isUpdate && isStudent && normalizeApprovalFieldKey(key) === "email"));
   const addsHomeroomPosition = String(approval.action || "").toUpperCase() === "CREATE"
     && requestEntries.some(([key, value]) => normalizeApprovalFieldKey(key) === "homeroomteacher" && Boolean(value));
   const isTeacherStaff = isTeacherStaffEntity(approval.entityType);
@@ -585,9 +589,9 @@ function ApprovalDetailDrawer({ approval, currentUser, loading, error, actionErr
             return <ProgressStep key={`${step.action_code || step.role_name}-${index}`} step={step} index={index} stepNumber={stepNumber} isLast={index === timeline.length - 1} cancelIndex={cancelIndex} approvalStatus={approval.status} />;
           }) : <p className="text-sm text-slate-500">Belum ada progres persetujuan.</p>}</div></article>
           </div>
-          <section><h3 className="mb-3 text-sm font-bold dark:text-white">{isActivation ? "Rincian Pengaktifan" : "Rincian Pengajuan"}</h3>{addsHomeroomPosition && <p role="note" className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs leading-relaxed text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200">Saat pengajuan penambahan kelas disetujui, posisi Wali Kelas akan otomatis ditambahkan kepada guru yang dipilih.</p>}{isUpdate && approval.activeDataError && <div role="status" className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"><span>Data diajukan tetap ditampilkan, tetapi pembanding data aktif gagal dimuat: {approval.activeDataError}</span><button type="button" onClick={onRetry} className="shrink-0 rounded-md border border-amber-300 px-2.5 py-1.5 font-semibold hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-900/40">Coba lagi</button></div>}{isActivation ? <ActivationApprovalDetails approval={approval} onRetry={onRetry} /> : isTeacherStaff ? <TeacherStaffApprovalDetails requestData={approval.requestData || {}} activeData={approval.activeData} isUpdate={isUpdate} /> : isUpdate ? <ApprovalUpdateDetails canCompare={Boolean(approval.activeData)} rows={requestEntries.map(([key, value, label]) => {
+          <section><h3 className="mb-3 text-sm font-bold dark:text-white">{isActivation ? "Rincian Pengaktifan" : "Rincian Pengajuan"}</h3>{addsHomeroomPosition && <p role="note" className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-xs leading-relaxed text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200">Saat pengajuan penambahan kelas disetujui, posisi Wali Kelas akan otomatis ditambahkan kepada guru yang dipilih.</p>}{isUpdate && approval.activeDataError && <div role="status" className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"><span>Data diajukan tetap ditampilkan, tetapi pembanding data aktif gagal dimuat: {approval.activeDataError}</span><button type="button" onClick={onRetry} className="shrink-0 rounded-md border border-amber-300 px-2.5 py-1.5 font-semibold hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-900/40">Coba lagi</button></div>}{isActivation ? <ActivationApprovalDetails approval={approval} onRetry={onRetry} /> : isTeacherStaff ? <TeacherStaffApprovalDetails requestData={approval.requestData || {}} activeData={approval.activeData} isUpdate={isUpdate} /> : isUpdate || isStudent ? <ApprovalUpdateDetails canCompare={isUpdate && Boolean(approval.activeData)} rows={requestEntries.map(([key, value, label]) => {
             const current = getComparableFieldValue(approval.activeData, key);
-            return { key, value, label, current, changed: Boolean(approval.activeData) && !areApprovalValuesEqual(current, value) };
+            return { key, value, label, current, group: isStudent ? normalizeApprovalFieldKey(key).startsWith("parent") ? "Orang tua/wali" : ["email", "phone", "address"].includes(normalizeApprovalFieldKey(key)) ? "Kontak siswa" : "Identitas siswa" : undefined, changed: isUpdate && Boolean(approval.activeData) && !areApprovalValuesEqual(current, value) };
           })} renderValue={(value, key) => <ApprovalValue value={sanitizeRequestValue(value)} fieldKey={key} entityType={approval.entityType} />} /> : <dl className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white px-4 dark:divide-slate-800 dark:border-slate-700 dark:bg-transparent">{requestEntries.length ? requestEntries.map(([key, value, label]) => <div key={key} className="grid grid-cols-[140px_minmax(0,1fr)] gap-3 py-3 text-sm"><dt className="text-slate-500 dark:text-white">{label}</dt><dd className="break-words font-medium dark:text-white"><ApprovalValue value={sanitizeRequestValue(value)} fieldKey={key} entityType={approval.entityType} /></dd></div>) : <div className="py-4 text-sm text-slate-500">Tidak ada data permintaan.</div>}</dl>}</section>
           </ApprovalDetailCarousel>
           {actionError && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">{actionError}</div>}

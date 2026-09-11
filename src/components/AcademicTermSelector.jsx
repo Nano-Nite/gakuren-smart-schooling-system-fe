@@ -1,3 +1,4 @@
+import Select from "./Select";
 import { useEffect, useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { getAutomaticAcademicTerm, isValidAcademicTerm, readAcademicTermOverride } from "../utils/academicTerm";
@@ -42,7 +43,7 @@ export default function AcademicTermSelector({ storageKey }) {
         <input type="number" min="1900" max="9998" step="1" value={draft.startYear} onChange={event => setDraft(value => ({ ...value, startYear: event.target.value === "" ? "" : Number(event.target.value) }))} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-white/15 dark:bg-transparent" />
       </label>
       <label className="block text-xs text-slate-600 dark:text-slate-300">Semester
-        <select value={draft.semester} onChange={event => setDraft(value => ({ ...value, semester: event.target.value }))} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-white/15 dark:bg-[var(--mui-paper)]"><option>Ganjil</option><option>Genap</option></select>
+        <Select ariaLabel="Semester" value={draft.semester} onChange={semester => setDraft(value => ({ ...value, semester }))} className="mt-1 w-full" options={["Ganjil", "Genap"]} />
       </label>
       <p className="text-[11px] leading-4 text-slate-500">Otomatis: Ganjil mulai Juli, Genap mulai Januari. Pilihan manual berlaku di browser ini.</p>
       {error && <p role="alert" className="text-xs text-rose-600">{error}</p>}

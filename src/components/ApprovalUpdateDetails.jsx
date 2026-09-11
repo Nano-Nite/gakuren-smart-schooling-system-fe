@@ -1,7 +1,8 @@
 export default function ApprovalUpdateDetails({ rows, canCompare, renderValue }) {
   const changed = rows.filter(row => row.changed);
   const unchanged = rows.filter(row => !row.changed);
-  const renderRows = items => <dl className="divide-y divide-slate-100 dark:divide-white/10">{items.map(row => <div key={row.key} className="py-3">
+  const renderRows = items => <dl className="divide-y divide-slate-100 dark:divide-white/10">{items.map((row, index) => <div key={row.key} className="py-3">
+    {row.group && items[index - 1]?.group !== row.group && <dt className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">{row.group}</dt>}
     <dt className="mb-1 text-xs text-slate-500">{row.label}{row.changed && <span className="sr-only"> — Berubah</span>}</dt>
     <dd className="min-w-0 whitespace-pre-wrap break-words text-sm leading-6 text-slate-800 dark:text-slate-100">
       {canCompare && row.changed ? <div className="space-y-2">

@@ -1095,8 +1095,8 @@ input[name="last-education"]:checked + span > span {
   background-color: #1d4ed8;
 }
 
-.dark input,
-.dark select,
+.dark input:not(.dropdown-trigger),
+.dark select[data-dropdown-custom],
 .dark textarea {
   border-color: rgba(255, 255, 255, 0.23);
   background-color: #242424;
@@ -1521,4 +1521,80 @@ textarea::placeholder,
   .page-skeleton, .page-content-reveal { animation: none; }
   /* Keep the explicitly requested loading indicator visible, at a gentler speed. */
 
+}
+
+/* Shared dropdown design. Use Select for identical popup rendering across browsers.
+   Native selects inherit the trigger style; data-dropdown-custom opts out. */
+.dropdown-trigger,
+select:not([data-dropdown-custom]) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--mui-divider);
+  border-radius: 0.5rem;
+  background-color: var(--mui-paper);
+  color: var(--mui-text-primary);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  text-align: left;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.dropdown-trigger--large { height: 3rem; padding-inline: 0.875rem; }
+.dropdown-trigger--rich { height: auto; min-height: 3rem; padding: 0.625rem 0.875rem; }
+.dropdown-trigger--search { padding-right: 2.5rem; appearance: none; }
+select:not([data-dropdown-custom]) {
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2364748b' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+}
+.dropdown-trigger:hover:not(:disabled),
+select:not([data-dropdown-custom]):hover:not(:disabled) { border-color: var(--mui-primary); }
+.dropdown-trigger:focus-visible,
+select:not([data-dropdown-custom]):focus-visible {
+  border-color: var(--mui-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mui-primary) 18%, transparent);
+}
+.dropdown-trigger[aria-invalid="true"],
+select:not([data-dropdown-custom])[aria-invalid="true"] { border-color: var(--mui-error); }
+.dropdown-trigger:disabled,
+.dropdown-trigger[aria-disabled="true"],
+select:not([data-dropdown-custom]):disabled { cursor: not-allowed; opacity: 0.6; }
+.dropdown-menu {
+  padding: 0.375rem;
+  border: 1px solid var(--mui-divider);
+  border-radius: 0.75rem;
+  background-color: var(--mui-paper);
+  color: var(--mui-text-primary);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.16);
+}
+.dropdown-option {
+  display: flex;
+  width: 100%;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--mui-text-primary);
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+}
+.dropdown-option:hover,
+.dropdown-option:focus-visible { background: color-mix(in srgb, var(--mui-primary) 8%, var(--mui-paper)); }
+.dropdown-option:focus-visible { outline: 2px solid var(--mui-primary); outline-offset: -2px; }
+.dropdown-option[aria-selected="true"] {
+  background: color-mix(in srgb, var(--mui-primary) 12%, var(--mui-paper));
+  color: var(--mui-primary);
+  font-weight: 600;
 }

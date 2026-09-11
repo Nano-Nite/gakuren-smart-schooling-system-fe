@@ -38,7 +38,7 @@ export default function StudentDetail({ data }) {
       <section aria-label="Biodata" aria-roledescription="slide" className="w-full min-w-0 shrink-0 snap-start px-5 pb-2 sm:px-7">
         <SlideHeading title="Biodata" description="Informasi pribadi dan kontak siswa." />
         <div className="pb-5"><p className="mb-2 text-xs text-slate-500 dark:text-slate-400">Nama siswa</p><p className="break-words text-2xl font-semibold leading-snug tracking-tight text-slate-900 dark:text-slate-100">{data.name || "—"}</p></div>
-        <Group title="Identitas"><dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2"><Field label="NIS">{data.nis}</Field><Field label="NISN">{data.nisn}</Field><Field label="Jenis kelamin">{data.gender}</Field><Field label="Kelas">{data.class_name}</Field><Field label="Status siswa"><StatusBadge status={data.status} /></Field></dl></Group>
+        <Group title="Identitas"><dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2"><Field label="NIS">{data.nis}</Field><Field label="NISN">{data.nisn}</Field><Field label="Jenis kelamin">{data.gender}</Field><Field label="Kelas">{data.class_name}</Field><Field label="Status"><StatusBadge status={data.status} /></Field><Field label="Status Siswa"><StatusBadge status={data.student_status} className="max-w-full !whitespace-normal break-words text-center" /></Field></dl></Group>
         <Group title="Kontak"><dl className="grid gap-x-6 gap-y-5"><Field label="Email siswa">{data.email}</Field><Field label="No. HP / WhatsApp">{data.phone}</Field><Field label="Alamat siswa">{data.address}</Field></dl></Group>
       </section>
       <section aria-label="Orang tua atau wali" aria-roledescription="slide" className="w-full min-w-0 shrink-0 snap-start px-5 pb-2 sm:px-7">
