@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildTeacherStaffPayload, buildTeacherStaffUpdatePayload, getTeacherStaffCreateOutcome } from "../src/utils/teacherStaffPayload.js";
+import { formatIndonesianAcademicName, uniqueTitleLabels } from "../src/utils/academicTitleDisplay.js";
 
 const form = {
   name: " Teacher ", email: "teacher@example.com", phone: "081212121213",
@@ -10,6 +11,20 @@ const form = {
   subject_uuids: ["subject"], nik: "3210000000000001", nuptk: "1234567890123456", nip: "198609262015051001",
   join_date: "2026-12-06", resign_date: "", employment_status_uuid: "employee-status",
 };
+
+test("duplicate title labels display once while every selected title ID is sent", () => {
+  const selected = { ...form, uuid: "user-1", employee_uuid: "employee-1", title_prefix_uuids: ["doctor-1", "doctor-2"], title_suffix_uuids: ["education-1", "education-2"], title_prefixes: ["Dr.", "Dr."], title_suffixes: ["S.Pd.", "S.Pd."] };
+  assert.equal(formatIndonesianAcademicName(selected.name, selected.title_prefixes, selected.title_suffixes), "Dr. Teacher, S.Pd.");
+  assert.deepEqual(uniqueTitleLabels(selected.title_suffixes), ["S.Pd."]);
+  for (const build of [buildTeacherStaffPayload, buildTeacherStaffUpdatePayload]) {
+    assert.deepEqual(build(selected).titles, [{ uuid: "doctor-1" }, { uuid: "doctor-2" }, { uuid: "education-1" }, { uuid: "education-2" }]);
+  }
+  assert.deepEqual(selected.title_suffixes, ["S.Pd.", "S.Pd."]);
+});
+
+test("display deduplication preserves distinct Dr. and dr. titles and title order", () => {
+  assert.equal(formatIndonesianAcademicName("Nama", ["Dr.", "dr.", " Dr. "], ["M.Pd.", "S.Pd.", "M.Pd."]), "Dr. dr. Nama, M.Pd., S.Pd.");
+});
 
 test("teacher payload follows the create contract without UI fields", () => {
   assert.deepEqual(buildTeacherStaffPayload(form), {

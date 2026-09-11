@@ -1,3 +1,4 @@
+import { notify } from "../utils/notifications";
 import ExpandableBadges from "../components/ExpandableBadges";
 import ApprovalUpdateDetails from "../components/ApprovalUpdateDetails";
 import ApprovalDetailCarousel from "../components/ApprovalDetailCarousel";
@@ -57,7 +58,6 @@ export default function ApprovalManagement() {
   const [executing, setExecuting] = useState(false);
   const [actionProgress, setActionProgress] = useState("");
   const [actionError, setActionError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [statusById, setStatusById] = useState({});
   const [notesById, setNotesById] = useState({});
   const setSelected = value => {
@@ -270,10 +270,9 @@ export default function ApprovalManagement() {
       const nextStatus = command === "approve" ? "Approved" : "Rejected";
       setStatusById(current => ({ ...current, [detail.id]: nextStatus }));
       setNotesById(current => ({ ...current, [detail.id]: decisionNote }));
-      setSuccessMessage(`Pengajuan ${detail.id} berhasil ${command === "approve" ? "disetujui" : "ditolak"}.`);
+      notify(`Pengajuan ${detail.id} berhasil ${command === "approve" ? "disetujui" : "ditolak"}.`);
       setSelected(null);
       setRefreshKey(value => value + 1);
-      window.setTimeout(() => setSuccessMessage(""), 5000);
     } catch (requestError) {
       const message = requestError.status >= 500
         ? "Pengajuan belum dapat diproses. Periksa konfigurasi status persetujuan atau coba lagi."
@@ -316,10 +315,9 @@ export default function ApprovalManagement() {
       });
       setStatusById(current => ({ ...current, [detail.id]: "Cancelled" }));
       setNotesById(current => ({ ...current, [detail.id]: cancellationNote }));
-      setSuccessMessage(`Pengajuan ${detail.id} berhasil dibatalkan.`);
+      notify(`Pengajuan ${detail.id} berhasil dibatalkan.`);
       setSelected(null);
       setRefreshKey(value => value + 1);
-      window.setTimeout(() => setSuccessMessage(""), 5000);
     } catch (requestError) {
       setActionError(requestError.message);
     } finally {
@@ -331,7 +329,7 @@ export default function ApprovalManagement() {
   return <>
     <Helmet><title>Persetujuan | Gakuren</title></Helmet>
     <div className="p-4 sm:p-6">
-      {successMessage && <div role="status" className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700"><Check className="h-5 w-5" />{successMessage}</div>}
+      
       <section className="approval-table data-table-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
         <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200 px-3 pt-2 sm:px-4">
           {[["mine", "Pengajuan Saya"], ["waiting", "Perlu Tindakan"], ["processed", "Riwayat Keputusan"], ["all", "Semua Pengajuan"]].map(([value, label]) => <button key={value} onClick={() => { setActiveTab(value); setPage(1); }} className={`relative shrink-0 px-3 py-3 text-xs font-semibold transition sm:px-4 ${activeTab === value ? "text-blue-600 dark:text-blue-300" : "text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white"}`}>{label}{activeTab === value && <span className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-blue-600 dark:bg-blue-300" />}</button>)}

@@ -1,5 +1,7 @@
+import { notify } from "../utils/notifications";
 import { buildStudentActivationPayload } from "../utils/studentActivation";
 import { buildStudentUpdatePayload } from "../utils/studentUpdatePayload";
+import { getStudentCreateErrorMessage } from "../utils/studentCreateError";
 import { resolveStudentClass } from "../utils/resolveStudentClass";
 import { hasStudentFormChanges } from "../utils/studentFormChanges";
 import useActivateData from "../hooks/useActivateData";
@@ -153,8 +155,6 @@ export default function StudentManagement() {
   const [formErrors, setFormErrors] = useState({});
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-  const [noticeTone, setNoticeTone] = useState("pending");
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState("");
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
@@ -275,12 +275,10 @@ export default function StudentManagement() {
       setCreating(false);
       setPage(1);
       setStatus("Menunggu");
-      setNoticeTone("pending");
-      setSuccessMessage(`Pengajuan siswa ${form.name.trim()} berhasil dikirim dan sedang menunggu persetujuan.`);
+      notify(`Pengajuan siswa ${form.name.trim()} berhasil dikirim dan sedang menunggu persetujuan.`, { tone: "pending" });
       setRefreshKey(value => value + 1);
-      window.setTimeout(() => setSuccessMessage(""), 5000);
     } catch (requestError) {
-      setCreateError(requestError.message);
+      setCreateError(getStudentCreateErrorMessage(requestError));
     } finally {
       setCreateSubmitting(false);
     }
@@ -332,11 +330,8 @@ export default function StudentManagement() {
       setSelected(null);
       setEditing(false);
       setPage(1);
-      setStatus(pendingApproval ? "Menunggu" : "Semua");
-      setNoticeTone(pendingApproval ? "pending" : responseStatus === "active" ? "success" : "info");
-      setSuccessMessage(pendingApproval ? `Perubahan siswa ${form.name.trim()} berhasil diajukan dan sedang menunggu persetujuan.` : responseStatus ? `Data siswa ${form.name.trim()} berhasil diperbarui.` : `Perubahan siswa ${form.name.trim()} berhasil dikirim. Status terbaru dimuat dari server.`);
+      notify(pendingApproval ? `Perubahan siswa ${form.name.trim()} berhasil diajukan dan sedang menunggu persetujuan.` : responseStatus ? `Data siswa ${form.name.trim()} berhasil diperbarui.` : `Perubahan siswa ${form.name.trim()} berhasil dikirim. Status terbaru dimuat dari server.`, { tone: pendingApproval ? "pending" : responseStatus === "active" ? "success" : "info" });
       setRefreshKey(value => value + 1);
-      window.setTimeout(() => setSuccessMessage(""), 5000);
     } catch (requestError) {
       setEditError(requestError.message);
     } finally {
@@ -358,11 +353,8 @@ export default function StudentManagement() {
       setDeleting(null);
       setSelected(null);
       setPage(1);
-      setStatus(pendingApproval ? "Menunggu" : "Semua");
-      setNoticeTone(pendingApproval ? "pending" : responseStatus && responseStatus !== "active" ? "success" : "info");
-      setSuccessMessage(pendingApproval ? `Penonaktifan siswa ${deletedName} berhasil diajukan dan sedang menunggu persetujuan.` : responseStatus ? `Siswa ${deletedName} berhasil dinonaktifkan.` : `Permintaan penonaktifan siswa ${deletedName} berhasil dikirim. Status terbaru dimuat dari server.`);
+      notify(pendingApproval ? `Penonaktifan siswa ${deletedName} berhasil diajukan dan sedang menunggu persetujuan.` : responseStatus ? `Siswa ${deletedName} berhasil dinonaktifkan.` : `Permintaan penonaktifan siswa ${deletedName} berhasil dikirim. Status terbaru dimuat dari server.`, { tone: pendingApproval ? "pending" : responseStatus && responseStatus !== "active" ? "success" : "info" });
       setRefreshKey(value => value + 1);
-      window.setTimeout(() => setSuccessMessage(""), 5000);
     } catch (requestError) {
       setDeleteError(requestError.message);
     } finally {
@@ -380,7 +372,7 @@ export default function StudentManagement() {
   return <>
     <Helmet><title>Siswa | Gakuren</title></Helmet>
     <div className="p-4 sm:p-6">
-      {successMessage && <div role="status" className={`mb-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold ${noticeTone === "pending" ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300" : noticeTone === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300" : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"}`}>{noticeTone === "pending" ? <Clock3 className="h-5 w-5 shrink-0" /> : noticeTone === "success" ? <CheckCircle2 className="h-5 w-5 shrink-0" /> : <Info className="h-5 w-5 shrink-0" />}{successMessage}</div>}
+      
       <section className="data-table-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
         <div className="flex min-w-0 flex-col gap-3 border-b border-slate-200 p-3 md:flex-row md:items-center md:justify-between lg:p-4">
           <div className="flex min-w-0 flex-1 items-center gap-2 lg:gap-3">

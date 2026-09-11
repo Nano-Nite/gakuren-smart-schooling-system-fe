@@ -1,4 +1,5 @@
 import AcademicTermSelector from "./AcademicTermSelector";
+import NotificationStack from "./NotificationStack";
 import { withMinimumDuration } from "../utils/withMinimumDuration";
 import AuthSplash from "./AuthSplash";
 import { syncDailyReferences } from "../utils/dailyReferenceCache";
@@ -102,6 +103,7 @@ export default function AppLayout() {
   };
 
   return <div className="flex h-dvh min-h-[600px] overflow-hidden bg-slate-50 text-slate-900">
+    <NotificationStack />
     <AuthSplash ref={splashRef} open={loggingOut} />
     {mobileOpen && <button aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)} className="no-action-animation fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-sm lg:hidden" />}
     <aside className={`${expanded ? "lg:w-[280px]" : "lg:w-24"} ${mobileOpen ? "translate-x-0" : "-translate-x-full"} fixed inset-y-0 z-40 flex w-[280px] max-w-[86vw] flex-col border-r border-slate-200 bg-white shadow-2xl transition-all duration-500 lg:static lg:relative lg:translate-x-0 lg:shadow-none`}>

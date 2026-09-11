@@ -1598,3 +1598,26 @@ select:not([data-dropdown-custom]):disabled { cursor: not-allowed; opacity: 0.6;
   color: var(--mui-primary);
   font-weight: 600;
 }
+@keyframes notification-slide-up {
+  from { opacity: 0; transform: translateY(var(--notification-enter-offset, calc(100% + 32px))); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.notification-slide-up {
+  animation: notification-slide-up 2s ease-in-out both;
+}
+
+@keyframes notification-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.notification-fade-out {
+  animation: notification-fade-out 600ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notification-slide-up {
+    --notification-enter-offset: 12px;
+  }
+}

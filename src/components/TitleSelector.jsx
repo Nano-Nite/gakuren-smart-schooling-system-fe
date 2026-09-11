@@ -3,6 +3,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, RefreshCw, Search } from "lucide-react";
 import { getTitleOptions, formatIndonesianAcademicName } from "../utils/titleOptions";
+import { uniqueTitleLabels } from "../utils/academicTitleDisplay";
+
+const normalizeTitleSearch = value => String(value ?? "").replace(/[.,]/g, "").trim().toLocaleLowerCase("id");
 
 export default function TitleSelector({ prefixValues = [], suffixValues = [], onChange, previewName = "" }) {
   const rootRef = useRef(null);
@@ -51,9 +54,10 @@ export default function TitleSelector({ prefixValues = [], suffixValues = [], on
 
   const renderGroup = (type, label, values) => {
     const group = options.filter(option => option.isPrefix === (type === "prefix"));
-    const query = search.trim().toLocaleLowerCase("id");
-    const filtered = group.filter(option => `${option.label} ${option.name}`.toLocaleLowerCase("id").includes(query));
+    const query = normalizeTitleSearch(search);
+    const filtered = group.filter(option => normalizeTitleSearch(`${option.label} ${option.name}`).includes(query));
     const selected = group.filter(option => values.includes(option.value));
+    const selectedLabels = uniqueTitleLabels(selected.map(option => option.label));
     const toggle = option => {
       const nextValues = values.includes(option.value) ? values.filter(value => value !== option.value) : [...values, option.value];
       onChange(type, nextValues, group.filter(item => nextValues.includes(item.value)).sort((a, b) => a.sequence - b.sequence || a.name.localeCompare(b.name, "id")).map(item => item.label));
@@ -72,7 +76,7 @@ export default function TitleSelector({ prefixValues = [], suffixValues = [], on
       {!filtered.length && <p role="status" className="px-3 py-5 text-center text-sm text-slate-500">Tidak ada gelar yang cocok. Coba kata kunci lain.</p>}
       {filtered.map(option => <button key={option.value} data-title-option type="button" aria-pressed={values.includes(option.value)} onClick={() => toggle(option)} className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${values.includes(option.value) ? "bg-blue-50 font-semibold text-blue-600" : "text-slate-700 hover:bg-slate-50"}`}><span><span className="block">{option.label}</span><span className="text-xs font-normal text-slate-400">{option.name}</span></span>{values.includes(option.value) && <Check className="h-4 w-4" />}</button>)}
   </div>, document.body);
-    return <div className="relative"><span className="mb-2 block text-sm font-semibold">{label} <span className="font-normal text-slate-400">(opsional)</span></span><div ref={element => { triggerRefs.current[type] = element; }} role="button" tabIndex={0} onKeyDown={event => { if (["Enter", " "].includes(event.key)) { event.preventDefault(); event.currentTarget.click(); } }} aria-expanded={open === type} aria-label={`Pilih ${label.toLowerCase()}`} onClick={() => { setSearch(""); setOpen(current => current === type ? null : type); }} title={selected.map(option => option.label).join(", ")} className="flex min-h-10 py-2 w-full items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white px-3 text-left text-sm hover:border-blue-300"><span className="flex min-w-0 flex-1 items-center gap-1.5">{selected.length ? <ExpandableBadges limit={1} items={selected.map(option => option.label)} /> : <span data-placeholder="true" className="truncate text-slate-400">Pilih {label.toLowerCase()}</span>}</span><ChevronDown className="h-4 w-4 shrink-0 text-slate-500" /></div>{menu}</div>;
+    return <div className="relative"><span className="mb-2 block text-sm font-semibold">{label} <span className="font-normal text-slate-400">(opsional)</span></span><div ref={element => { triggerRefs.current[type] = element; }} role="button" tabIndex={0} onKeyDown={event => { if (["Enter", " "].includes(event.key)) { event.preventDefault(); event.currentTarget.click(); } }} aria-expanded={open === type} aria-label={`Pilih ${label.toLowerCase()}`} onClick={() => { setSearch(""); setOpen(current => current === type ? null : type); }} title={selectedLabels.join(", ")} className="flex min-h-10 py-2 w-full items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white px-3 text-left text-sm hover:border-blue-300"><span className="flex min-w-0 flex-1 items-center gap-1.5">{selected.length ? <ExpandableBadges limit={1} items={selectedLabels} /> : <span data-placeholder="true" className="truncate text-slate-400">Pilih {label.toLowerCase()}</span>}</span><ChevronDown className="h-4 w-4 shrink-0 text-slate-500" /></div>{menu}</div>;
   };
 
   const prefixLabels = options.filter(option => prefixValues.includes(option.value)).sort((a, b) => a.sequence - b.sequence).map(option => option.label);

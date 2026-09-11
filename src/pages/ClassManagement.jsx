@@ -1,3 +1,4 @@
+import { notify } from "../utils/notifications";
 import ExpandableBadges from "../components/ExpandableBadges";
 import { getActiveStatusUuid } from "../utils/activeStatus";
 import { isStatusMutationBlocked } from "../utils/userStatus";
@@ -59,8 +60,6 @@ export default function ClassManagement() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState("");
-  const [noticeTone, setNoticeTone] = useState("success");
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
@@ -183,10 +182,8 @@ export default function ClassManagement() {
         },
       });
       setActivating(null);
-      setNoticeTone("success");
-      setSuccessMessage(`Kelas ${activating.name} berhasil diaktifkan.`);
+      notify(`Kelas ${activating.name} berhasil diaktifkan.`, { tone: "success" });
       setRefreshKey(value => value + 1);
-      window.setTimeout(() => setSuccessMessage(""), 5000);
     } catch (requestError) {
       setFormError(requestError.message);
     } finally {
@@ -222,10 +219,8 @@ export default function ClassManagement() {
           },
         });
         setEditing(null);
-        setNoticeTone("success");
-        setSuccessMessage(`Kelas ${form.name.trim()} berhasil dibuat.`);
+        notify(`Kelas ${form.name.trim()} berhasil dibuat.`, { tone: "success" });
         setRefreshKey(value => value + 1);
-        window.setTimeout(() => setSuccessMessage(""), 5000);
       } catch (requestError) {
         setFormError(requestError.message);
       } finally {
@@ -261,10 +256,8 @@ export default function ClassManagement() {
       const pendingApproval = String(payload.status ?? payload.Status ?? "").toLowerCase() === "pending"
         || Boolean(payload.approval_uuid ?? payload.approvalUUID ?? payload.is_pending);
       setEditing(null);
-      setNoticeTone(pendingApproval ? "pending" : "success");
-      setSuccessMessage(pendingApproval ? `Perubahan kelas ${form.name.trim()} berhasil diajukan dan menunggu persetujuan.` : `Perubahan kelas ${form.name.trim()} berhasil dikirim.`);
+      notify(pendingApproval ? `Perubahan kelas ${form.name.trim()} berhasil diajukan dan menunggu persetujuan.` : `Perubahan kelas ${form.name.trim()} berhasil dikirim.`, { tone: pendingApproval ? "pending" : "success" });
       setRefreshKey(value => value + 1);
-      window.setTimeout(() => setSuccessMessage(""), 5000);
     } catch (requestError) {
       setFormError(requestError.message);
     } finally {
@@ -286,11 +279,8 @@ export default function ClassManagement() {
       setDeleting(null);
       setSelected(null);
       setPage(1);
-      setStatus(pendingApproval ? "Menunggu" : "Semua");
-      setNoticeTone(pendingApproval ? "pending" : responseStatus ? "success" : "info");
-      setSuccessMessage(pendingApproval ? `Penonaktifan kelas ${deletedName} berhasil diajukan dan sedang menunggu persetujuan.` : responseStatus ? `Kelas ${deletedName} berhasil dinonaktifkan.` : `Permintaan penonaktifan kelas ${deletedName} berhasil dikirim. Status terbaru dimuat dari server.`);
+      notify(pendingApproval ? `Penonaktifan kelas ${deletedName} berhasil diajukan dan sedang menunggu persetujuan.` : responseStatus ? `Kelas ${deletedName} berhasil dinonaktifkan.` : `Permintaan penonaktifan kelas ${deletedName} berhasil dikirim. Status terbaru dimuat dari server.`, { tone: pendingApproval ? "pending" : responseStatus ? "success" : "info" });
       setRefreshKey(value => value + 1);
-      window.setTimeout(() => setSuccessMessage(""), 5000);
     } catch (requestError) {
       setDeleteError(requestError.message);
     } finally {
@@ -309,7 +299,7 @@ export default function ClassManagement() {
   return <>
     <Helmet><title>Kelas | Gakuren</title></Helmet>
     <div className="p-4 sm:p-6">
-      {successMessage && <div role="status" className={`mb-4 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold ${noticeTone === "pending" ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300" : noticeTone === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300" : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"}`}>{noticeTone === "pending" ? <Clock3 className="h-5 w-5" /> : noticeTone === "success" ? <CheckCircle2 className="h-5 w-5" /> : <Info className="h-5 w-5" />}{successMessage}</div>}
+      
       <section className="data-table-card overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
         <div className="flex min-w-0 flex-col gap-2 border-b border-slate-200 p-3 md:flex-row md:items-center md:justify-between lg:gap-4 lg:p-4">
           <div className="flex min-w-0 w-full flex-1 flex-row items-center gap-2 md:w-auto lg:gap-3">

@@ -6,6 +6,8 @@ export default function CarouselNavigation({
   className = "",
   topInset = 24,
   insetClassName = "-mx-5 px-5 sm:-mx-7 sm:px-7",
+  disabledIndices = [],
+  disabledReason,
 }) {
   return (
     <div
@@ -18,9 +20,11 @@ export default function CarouselNavigation({
           <button
             key={label}
             type="button"
+            disabled={disabledIndices.includes(index)}
+            title={disabledIndices.includes(index) ? disabledReason : undefined}
             aria-current={active === index ? "step" : undefined}
             onClick={() => onChange(index)}
-            className={`min-h-11 min-w-0 flex-1 rounded-lg px-2 py-3 text-xs font-semibold transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${active === index ? "bg-white/65 text-blue-700 shadow-sm dark:bg-slate-500/35 dark:text-blue-300" : "text-slate-500 hover:bg-white/60 dark:text-slate-400 dark:hover:bg-white/5"}`}>
+            className={`min-h-11 min-w-0 flex-1 rounded-lg px-2 py-3 text-xs font-semibold transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 ${active === index ? "bg-white/65 text-blue-700 shadow-sm dark:bg-slate-500/35 dark:text-blue-300" : "text-slate-500 hover:bg-white/60 dark:text-slate-400 dark:hover:bg-white/5"}`}>
             {label}
           </button>
         ))}

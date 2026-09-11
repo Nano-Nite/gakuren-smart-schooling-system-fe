@@ -13,13 +13,14 @@ async function resolve(result) {
   return module.namespace.getActiveStatusUuid();
 }
 
-test("activation resolves UUID from exact active code or localized name", async () => {
+test("activation resolves UUID from exact active code or name", async () => {
   assert.equal(await resolve([{ uuid: "inactive-uuid", code: "inactive" }, { uuid: "active-uuid", code: "active" }]), "active-uuid");
-  assert.equal(await resolve([{ uuid: "active-uuid", name: " Aktif " }]), "active-uuid");
+  assert.equal(await resolve([{ uuid: "active-uuid", name: " ACTIVE " }]), "active-uuid");
+  assert.equal(await resolve([{ uuid: "active-uuid", code: "active" }, { uuid: "localized-uuid", name: "Aktif" }]), "active-uuid");
 });
 
 test("missing or ambiguous active UUID never falls back to a text status", async () => {
-  for (const records of [[], [{ name: "Aktif" }], [{ uuid: "a", code: "active" }, { uuid: "b", name: "Aktif" }]]) {
+  for (const records of [[], [{ name: "active" }], [{ uuid: "localized-uuid", name: "Aktif" }], [{ uuid: "localized-uuid", code: "aktif" }], [{ uuid: "a", code: "active" }, { uuid: "b", name: "active" }]]) {
     await assert.rejects(resolve(records), /UUID status aktif/);
   }
 });

@@ -20,21 +20,33 @@ export const formatTeacherStaffDate = value => {
   }).format(date);
 };
 
-// Detail responses contain display labels; edit controls require reference UUIDs.
+// Prefer UUIDs supplied by detail responses; resolve labels only for legacy fields.
 export const buildTeacherStaffEditForm = (item, references = {}) => {
   const list = value => Array.isArray(value) ? value : value ? [value] : [];
   const label = value => typeof value === "object" ? value?.name ?? value?.abbr_name ?? value?.code ?? "" : value;
   const resolve = (value, type) => {
     if (value?.uuid) return value.uuid;
+    if (type === "title" && value?.UUID) return value.UUID;
     if (typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(value)) return value;
     // Title abbreviations are case-sensitive: Dr. (doktor) and dr. (dokter)
     // can both exist, so resolve the exact abbreviation before a loose match.
-    const candidates = (references[type] || []).filter(option => type !== "title" || typeof value?.is_prefix !== "boolean" || option.is_prefix === undefined || (option.is_prefix === true || String(option.is_prefix).toLowerCase() === "true") === value.is_prefix);
+    const candidates = (references[type] || []).filter(option => type !== "title" || typeof value?.is_prefix !== "boolean" || (option.is_prefix ?? option.IsPrefix) === undefined || String(option.is_prefix ?? option.IsPrefix).toLowerCase() === String(value.is_prefix));
     if (type === "title") {
       const abbreviation = typeof value === "object" ? value?.abbr_name : value;
-      const exact = [...new Map(candidates.filter(option => abbreviation && String(option.abbr_name).trim() === String(abbreviation).trim()).map(option => [option.uuid, option])).values()];
-      if (exact.length === 1) return exact[0].uuid;
-      if (exact.length > 1) return "";
+      const normalizedAbbreviation = text => String(text ?? "").replace(/[.,\s]/g, "");
+      const choose = matches => {
+        const unique = [...new Map(matches.filter(option => option.uuid || option.UUID).map(option => [option.uuid ?? option.UUID, option])).values()];
+        if (unique.length === 1) return unique[0].uuid ?? unique[0].UUID;
+        if (unique.length > 1 && value?.sequence != null) {
+          const sameSequence = unique.filter(option => (option.sequence ?? option.Sequence) != null && Number(option.sequence ?? option.Sequence) === Number(value.sequence));
+          if (sameSequence.length === 1) return sameSequence[0].uuid ?? sameSequence[0].UUID;
+        }
+        return "";
+      };
+      const exact = candidates.filter(option => abbreviation && String(option.abbr_name ?? option.AbbrName).trim() === String(abbreviation).trim());
+      if (exact.length) return choose(exact);
+      const punctuationMatches = candidates.filter(option => normalizedAbbreviation(abbreviation) && normalizedAbbreviation(option.abbr_name ?? option.AbbrName) === normalizedAbbreviation(abbreviation));
+      if (punctuationMatches.length) return choose(punctuationMatches);
     }
     const matches = candidates.filter(option => [option.name, option.code, option.abbr_name].some(text => text && String(text).trim().toLowerCase() === String(label(value)).trim().toLowerCase()));
     return matches.length === 1 ? matches[0].uuid : "";

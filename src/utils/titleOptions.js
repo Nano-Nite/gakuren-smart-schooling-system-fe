@@ -16,9 +16,4 @@ export const getTitleOptions = async ({ requiredIds = [], ...options } = {}) => 
   return normalize(response);
 };
 
-export const formatIndonesianAcademicName = (name, prefixes = [], suffixes = []) => {
-  const baseName = String(name || "").trim();
-  const prefixPart = prefixes.filter(Boolean).join(" ");
-  const suffixPart = suffixes.filter(Boolean).join(", ");
-  return `${prefixPart ? `${prefixPart} ` : ""}${baseName}${suffixPart ? `, ${suffixPart}` : ""}`.trim();
-};
+export { formatIndonesianAcademicName } from "./academicTitleDisplay";

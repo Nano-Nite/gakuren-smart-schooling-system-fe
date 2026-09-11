@@ -17,3 +17,9 @@ The QR attendance UI intentionally contains no mock-success fallback. The backen
 Domain errors should expose one of these machine-readable codes: `SESSION_EXPIRED`, `SESSION_CLOSED`, `INVALID_QR`, `ALREADY_ATTENDED`, or `OUTSIDE_GEOFENCE`.
 
 Required create permission: `attendance.qr.create`. The UI temporarily also recognizes the existing resource-style `qrcode.create` permission for compatibility.
+
+## Device location fallback for session creation
+
+The frontend now requests browser geolocation when the locations request fails or returns no active locations. For both today's session and custom sessions, it sends `latitude`, `longitude`, and `accuracy` instead of `location_uuid` in `POST /v1/attendance/sessions`. The remaining session fields are unchanged. No synthetic location UUID is generated.
+
+This is a required backend contract extension; support has not been verified. The backend must validate these coordinates, authorize creation at a device location, apply its configured attendance radius, and return the resolved location with the session. Until supported, the server may reject this fallback request; the frontend displays the error and does not simulate QR creation.
