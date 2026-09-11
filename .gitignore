@@ -11,6 +11,7 @@ coverage/
 .nyc_output/
 
 # Tool caches
+.npm-cache/
 .vite/
 .eslintcache
 *.tsbuildinfo

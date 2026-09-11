@@ -1,3 +1,4 @@
+import { areNetworkChecksPaused } from "../utils/networkCheckPause";
 import { useEffect } from "react";
 import { getApiUrl } from "../config/api";
 import { clearNetworkOfflineFlag, getScopeHeaders, isNetworkAvailable, setNetworkAvailable } from "../utils/api";
@@ -40,7 +41,7 @@ export default function NetworkStatusMonitor() {
     const schedule = delay => {
       window.clearTimeout(timer);
       window.clearInterval(countdownTimer);
-      if (!stopped && recovering) {
+      if (!stopped && recovering && !areNetworkChecksPaused()) {
         let seconds = Math.ceil(delay / 1000);
         const publishCountdown = () => window.dispatchEvent(new CustomEvent("gakuren:network-retry", { detail: { seconds, checking: false } }));
         publishCountdown();
@@ -52,8 +53,8 @@ export default function NetworkStatusMonitor() {
       }
     };
 
-    const checkServer = async () => {
-      if (stopped || !recovering) return;
+    const checkServer = async (manual = false) => {
+      if (stopped || !recovering || (!manual && areNetworkChecksPaused())) return;
       window.clearInterval(countdownTimer);
       window.dispatchEvent(new CustomEvent("gakuren:network-retry", { detail: { seconds: 0, checking: true } }));
       controller?.abort();
@@ -85,7 +86,7 @@ export default function NetworkStatusMonitor() {
     };
 
     const startRecovery = () => {
-      if (stopped || recovering) return;
+      if (stopped || recovering || areNetworkChecksPaused()) return;
       recovering = true;
       failureCount = 0;
       schedule(getNetworkRetryDelay(0));
@@ -100,10 +101,18 @@ export default function NetworkStatusMonitor() {
     };
 
     const retryNow = () => {
-      if (!recovering || stopped) return;
+      if (stopped) return;
+      recovering = true;
       window.clearTimeout(timer);
       window.clearInterval(countdownTimer);
-      checkServer();
+      checkServer(true);
+    };
+
+    const updatePause = () => {
+      if (areNetworkChecksPaused()) {
+        stopRecovery();
+        window.dispatchEvent(new CustomEvent("gakuren:network-retry", { detail: { seconds: 0, checking: false } }));
+      } else if (!isNetworkAvailable()) { stopRecovery(); startRecovery(); }
     };
 
     const updateApplicationNetwork = event => {
@@ -115,6 +124,7 @@ export default function NetworkStatusMonitor() {
     };
     const handleBrowserOffline = () => setNetworkAvailable(false);
 
+    window.addEventListener("gakuren:network-check-pause", updatePause);
     window.addEventListener("gakuren:network", updateApplicationNetwork);
     window.addEventListener("online", handleBrowserOnline);
     window.addEventListener("offline", handleBrowserOffline);
@@ -129,6 +139,7 @@ export default function NetworkStatusMonitor() {
       window.clearTimeout(timer);
       window.clearInterval(countdownTimer);
       controller?.abort();
+      window.removeEventListener("gakuren:network-check-pause", updatePause);
       window.removeEventListener("gakuren:network", updateApplicationNetwork);
       window.removeEventListener("online", handleBrowserOnline);
       window.removeEventListener("offline", handleBrowserOffline);
