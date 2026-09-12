@@ -1,3 +1,5 @@
+import { isMenuMap } from "./permissions";
+export { hasPermission } from "./permissions";
 import API_CONFIG, {
   getApiUrl,
   TOKEN_KEYS,
@@ -224,13 +226,13 @@ export async function encryptRSA(plainText, publicKey) {
 }
 
 const saveSession = (data, expectedScope = null) => {
-  const { token, user_data, menu, permission } = data || {};
+  const { token, user_data, menu } = data || {};
   const tenantId = data?.tenant_uuid ?? data?.tenant_id ?? user_data?.tenant_uuid
     ?? user_data?.tenant_id ?? user_data?.TenantID ?? user_data?.tenant?.id;
   const schoolUuid = data?.school_uuid ?? user_data?.school_uuid;
   if (typeof token?.access_token !== "string" || !token.access_token || !tenantId || !schoolUuid
-    || !cacheScopeFor(tenantId, schoolUuid, user_data) || !Array.isArray(menu) || !Array.isArray(permission)) {
-    throw new Error("Respons sesi tidak lengkap. BE harus mengirim access token, pengguna, tenant, sekolah, menu, dan permission.");
+    || !cacheScopeFor(tenantId, schoolUuid, user_data) || !isMenuMap(menu)) {
+    throw new Error("Respons sesi tidak lengkap. BE harus mengirim access token, pengguna, tenant, sekolah, menu dengan child dan permission.");
   }
   if (expectedScope && cacheScopeFor(tenantId, schoolUuid, user_data) !== expectedScope) {
     throw new Error("Akun atau sekolah berubah. Silakan masuk kembali.");
@@ -242,7 +244,7 @@ const saveSession = (data, expectedScope = null) => {
   sessionStorage.setItem(TOKEN_KEYS.TENANT_ID, tenantId);
   sessionStorage.setItem(TOKEN_KEYS.SCHOOL_UUID, schoolUuid);
   sessionStorage.setItem(TOKEN_KEYS.MENU_ITEMS, JSON.stringify(menu));
-  sessionStorage.setItem(TOKEN_KEYS.PERMISSIONS, JSON.stringify(permission));
+  sessionStorage.removeItem(TOKEN_KEYS.PERMISSIONS);
   accessToken = token.access_token;
 };
 
@@ -347,20 +349,6 @@ export const getUserData = () => {
   catch { return null; }
 };
 export const getAccessToken = () => accessToken;
-
-export const hasPermission = (permission) => {
-  const permissions = sessionStorage.getItem(TOKEN_KEYS.PERMISSIONS);
-  if (!permissions) return false;
-  try {
-    const storedPermissions = JSON.parse(permissions);
-    const permissionsList = Array.isArray(storedPermissions)
-      ? storedPermissions
-      : Object.values(storedPermissions || {});
-    return permissionsList.includes(permission);
-  } catch {
-    return false;
-  }
-};
 
 export const authenticatedRequest = async (endpoint, options = {}, retried = false) => {
   const requestVersion = sessionVersion;

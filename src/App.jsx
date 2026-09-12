@@ -13,9 +13,10 @@ import AppLayout from './components/AppLayout'
 import Profile from './pages/Profile'
 import SignUp from './pages/SignUp'
 import ModulePlaceholder from './pages/ModulePlaceholder'
+import SubmenuPage, { SubmenuContent } from './pages/SubmenuPage'
 import { getDefaultAuthorizedRoute } from './utils/permissions'
 import { initializeAuth, isNetworkAvailable, isUserAuthenticated, setNetworkAvailable } from './utils/api'
-import { getMenuItems, hasAnyPermission, MENU_ROUTES } from './utils/permissions'
+import { getMenuItems, getMenuPermissions, hasAnyPermission, hasMenuAccess, hasChildMenuAccess, CHILD_MENUS, MENU_ROUTES } from './utils/permissions'
 import AccessDenied from './pages/AccessDenied'
 import OfflineUnavailable from './pages/OfflineUnavailable'
 import SessionSplash from './components/SessionSplash'
@@ -24,7 +25,7 @@ import { withMinimumDuration } from './utils/withMinimumDuration'
 
 const OFFLINE_MENU_ACCESS = new Set(['QR Code', 'Report', 'Setting'])
 
-function ProtectedRoute({ children, permissions, menu }) {
+function ProtectedRoute({ children, permissions, menu, child }) {
   const [online, setOnline] = useState(isNetworkAvailable())
 
   useEffect(() => {
@@ -42,7 +43,8 @@ function ProtectedRoute({ children, permissions, menu }) {
 
   if (!isUserAuthenticated()) return <Navigate to="/login" />
   if (menu && !getMenuItems().includes(menu)) return <Navigate to="/" replace />
-  if (permissions?.length && !hasAnyPermission(permissions)) return <AccessDenied menu={menu} />
+  if (child ? !hasChildMenuAccess(menu, child) : menu && !hasMenuAccess(menu)) return <AccessDenied menu={child || menu} />
+  if (permissions?.length && !hasAnyPermission(permissions, getMenuPermissions(menu))) return <AccessDenied menu={menu} />
   if (menu && !online && !OFFLINE_MENU_ACCESS.has(menu)) return <OfflineUnavailable menu={menu} />
   return children
 }
@@ -105,7 +107,14 @@ export default function App() {
             <Route path="/attendance" element={<ProtectedRoute menu="Attendance" permissions={["attendance.view", "attendance.read"]}><ModulePlaceholder title="Attendance" /></ProtectedRoute>} />
             <Route path="/absence" element={<ProtectedRoute menu="Absence" permissions={["absence.view", "absence.read"]}><ModulePlaceholder title="Absence" /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute menu="Report" permissions={["report.view", "report.read"]}><ModulePlaceholder title="Report" /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute menu="Setting" permissions={["setting.view", "setting.read"]}><ModulePlaceholder title="Setting" /></ProtectedRoute>} />
+            {Object.entries(CHILD_MENUS).map(([parent, children]) => (
+              <Route key={parent} path={MENU_ROUTES[parent]} element={<SubmenuPage parent={parent} />}>
+                <Route index element={<ProtectedRoute menu={parent}><SubmenuContent parent={parent} /></ProtectedRoute>} />
+                {Object.entries(children).map(([child, config]) => (
+                  <Route key={child} path={config.route} element={<ProtectedRoute menu={parent} child={child}><SubmenuContent parent={parent} child={child} /></ProtectedRoute>} />
+                ))}
+              </Route>
+            ))}
             <Route path="/profile" element={<Profile />} />
           </Route>
           <Route path="*" element={<DefaultRedirect />} />

@@ -11,7 +11,7 @@ export const translations = {
       Dashboard: "Beranda", "QR Code": "QR Kehadiran", "Teacher and Staff": "Guru dan Staf",
       "Student Management": "Siswa", "Class Management": "Kelas", Approval: "Persetujuan",
       Attendance: "Riwayat Kehadiran", Absence: "Izin dan Ketidakhadiran", Report: "Laporan",
-      Setting: "Pengaturan", Profile: "Profil",
+      Setting: "Pengaturan", Profile: "Profil", Device: "Perangkat", Location: "Lokasi",
     },
     subtitle: {
       Dashboard: "Ringkasan aktivitas sekolah", "QR Code": "Pindai kode QR untuk mencatat kehadiran",
@@ -19,6 +19,7 @@ export const translations = {
       "Class Management": "Kelola data kelas di sekolah", Approval: "Tinjau dan proses pengajuan yang menunggu persetujuan",
       Attendance: "Kelola catatan kehadiran", Absence: "Kelola catatan ketidakhadiran",
       Report: "Lihat dan ekspor laporan sekolah", Setting: "Atur aplikasi dan sekolah",
+      Device: "Kelola perangkat sekolah", Location: "Kelola lokasi sekolah",
       Profile: "Kelola informasi akun", fallback: "Kelola data sekolah",
     },
   },

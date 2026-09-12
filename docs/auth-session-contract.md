@@ -17,11 +17,15 @@ FE tidak dapat membuat atau memverifikasi atribut cookie HttpOnly melalui JavaSc
     "user_data": { "uuid": "user-uuid", "user_name": "Nama", "email": "user@example.com" },
     "tenant_uuid": "tenant-uuid",
     "school_uuid": "school-uuid",
-    "menu": ["Dashboard"],
-    "permission": ["dashboard.read"]
+    "menu": {
+      "Dashboard": { "child": [], "permission": ["dashboard.view"] },
+      "Setting": { "child": ["Device", "Location"], "permission": ["setting.view", "setting.device.view", "setting.location.view"] }
+    }
   }
 }
 ```
+
+Objek `menu` menjadi sumber menu dan izin FE. Setiap menu wajib memiliki array `child` dan `permission`; field `permission` tingkat atas tidak digunakan. Submenu hanya tersedia jika tercantum pada `child`, dengan akses baca diperiksa dari permission menu induknya. Device dan Location sementara memakai halaman placeholder seperti Setting.
 
 BE menentukan dan menegakkan masa berlaku access token yang pendek. FE menyimpannya hanya di memori dan melakukan refresh setelah `401`, lalu mengulang request sekali. BE harus menolak request tanpa otorisasi sebelum melakukan mutasi. Refresh yang bersamaan dalam satu tab memakai satu promise. BE perlu menangani rotasi dari beberapa tab/perangkat sesuai kebijakan sesinya.
 

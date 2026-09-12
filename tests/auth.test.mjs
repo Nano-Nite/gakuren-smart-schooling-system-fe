@@ -17,7 +17,7 @@ const storage = (initial = {}) => {
 const session = (token = 'access-a', overrides = {}) => ({ data: {
   token: { access_token: token, refresh_token: 'must-not-be-stored' },
   user_data: { uuid: 'user-a', email: 'a@example.test', secret: 'must-not-be-stored' },
-  tenant_uuid: 'tenant-a', school_uuid: 'school-a', menu: ['Dashboard'], permission: ['dashboard.read'],
+  tenant_uuid: 'tenant-a', school_uuid: 'school-a', menu: { Dashboard: { child: [], permission: ['dashboard.read'] } },
   ...overrides,
 } });
 const response = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
@@ -58,6 +58,11 @@ async function setup({ stored = {}, local = {} } = {}) {
   await apiModule.evaluate();
   return { api: apiModule.namespace, calls, cleaned, sessionStorage, localStorage, browser,
     handle: fn => { handler = fn; },
+    permissions: async () => {
+      const module = await moduleAt(path.resolve('src/utils/permissions.js'));
+      await module.evaluate();
+      return module.namespace;
+    },
     references: async () => {
       const module = await moduleAt(path.resolve('src/utils/dailyReferenceCache.js'));
       await module.evaluate();
@@ -242,4 +247,56 @@ test('logout broadcast clears another tab session', async () => {
   Object.assign(event, { key: 'gakuren:logout', newValue: 'pending:123' });
   env.browser.dispatchEvent(event);
   assert.equal(env.api.isUserAuthenticated(), false);
+});
+
+
+test('menu mapping controls permissions and assigned children without a top-level permission field', async () => {
+  const env = await setup({ stored: { permissions: '["student.delete"]' } });
+  const menu = {
+    Dashboard: { child: [], permission: ['dashboard.view'] },
+    Approval: { child: [], permission: [] },
+    Setting: { child: ['Device'], permission: ['setting.view', 'setting.device.view', 'setting.location.view'] },
+  };
+  env.handle(() => response(session('access-new', { menu })));
+  await env.api.loginUser('a@example.test', '');
+  const permissions = await env.permissions();
+  assert.equal(env.api.hasPermission('dashboard.view'), true);
+  assert.equal(env.api.hasPermission('student.delete'), false);
+  assert.equal(env.sessionStorage.getItem('permissions'), null);
+  assert.equal(permissions.hasMenuAccess('Dashboard'), true);
+  assert.equal(permissions.hasMenuAccess('Approval'), false);
+  assert.equal(permissions.hasChildMenuAccess('Setting', 'Device'), true);
+  assert.equal(permissions.hasChildMenuAccess('Setting', 'Location'), false);
+  assert.equal(permissions.getDefaultAuthorizedRoute(), '/dashboard');
+  assert.deepEqual(JSON.parse(env.sessionStorage.getItem('menuItems')), menu);
+  env.handle(() => response(session('access-refreshed', { menu: { Setting: { child: [], permission: [] } } })));
+  await env.api.refreshSession();
+  assert.equal(permissions.hasMenuAccess('Dashboard'), false);
+  assert.equal(permissions.hasChildMenuAccess('Setting', 'Device'), false);
+  assert.equal(env.api.hasPermission('dashboard.view'), false);
+});
+
+test('malformed menu contracts are rejected', async () => {
+  for (const menu of [[], null, { Dashboard: { child: [] } }, { Dashboard: { child: [], permission: 'dashboard.view' } }]) {
+    const env = await setup();
+    env.handle(() => response(session('invalid', { menu })));
+    await assert.rejects(env.api.loginUser('a@example.test', ''));
+    assert.equal(env.api.isUserAuthenticated(), false);
+  }
+});
+
+
+test('child navigation stays within its parent page loading boundary', async () => {
+  const env = await setup();
+  const permissions = await env.permissions();
+  for (const [from, to] of [
+    ['/settings', '/settings/device'],
+    ['/settings/device', '/settings/location'],
+    ['/settings/location', '/settings'],
+  ]) assert.equal(permissions.isSameSubmenuPage(from, to), true);
+  for (const [from, to] of [
+    ['/dashboard', '/settings/device'],
+    ['/settings/device', '/students'],
+    ['/settings/device', '/settings/unknown'],
+  ]) assert.equal(permissions.isSameSubmenuPage(from, to), false);
 });

@@ -76,6 +76,11 @@ export default defineConfig({
             }
           },
           {
+            // Let the browser honor OSM cache headers; do not store tiles for offline use.
+            urlPattern: ({ url }) => url.hostname === 'tile.openstreetmap.org',
+            handler: 'NetworkOnly',
+          },
+          {
             urlPattern: ({ request }) => request.destination === 'image',
             handler: 'CacheFirst',
             options: {
