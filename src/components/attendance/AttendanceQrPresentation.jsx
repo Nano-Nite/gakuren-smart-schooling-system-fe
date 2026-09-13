@@ -62,8 +62,8 @@ export default function AttendanceQrPresentation({ session, active, attendances,
     {expanded && createPortal(<dialog ref={dialogRef} aria-labelledby="qr-presentation-title" onCancel={() => setExpanded(false)} onClose={() => setExpanded(false)} className="fixed inset-0 m-0 h-[100dvh] max-h-none w-screen max-w-none bg-slate-950 p-4 text-white backdrop:bg-slate-950 sm:p-6">
       <div className="flex h-full flex-col gap-4">
         <header className="flex shrink-0 items-center justify-between gap-3"><div><h2 id="qr-presentation-title" className="text-lg font-bold">QR Absensi</h2><p className="text-sm text-slate-300">{active ? "Pindai QR untuk mencatat kehadiran" : "Sesi telah berakhir"}</p></div><button autoFocus type="button" onClick={() => setExpanded(false)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-500 px-3 text-sm font-semibold focus-visible:ring-2 focus-visible:ring-blue-400"><Minimize2 className="h-4 w-4" />Tutup</button></header>
-        <div className="flex min-h-0 flex-1 items-center justify-center"><div className="relative aspect-square rounded-2xl bg-white p-4" style={{ width: "min(100%, calc(100dvh - 240px))" }}>
-          <QRCodeSVG value={attendanceQrLink(session.qr_token)} size={1024} level="M" marginSize={4} className="block h-full w-full" />
+        <div className="flex min-h-0 flex-1 items-center justify-center"><div className="relative shrink-0 rounded-2xl bg-white p-4" style={{ width: "min(100%, calc(100dvh - 240px))" }}>
+          <QRCodeSVG value={attendanceQrLink(session.qr_token)} size={1024} level="M" marginSize={4} className="block h-auto w-full" />
           {!active && <div className="absolute inset-0 grid place-items-center rounded-2xl bg-slate-950/80 p-6 text-center text-xl font-bold">Sesi telah berakhir</div>}
         </div></div>
         {popup}

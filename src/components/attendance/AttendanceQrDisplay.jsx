@@ -16,8 +16,8 @@ export default function AttendanceQrDisplay({ session, status, error, onClose, a
   return <div className="space-y-3">
     {error && <p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
     <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">QR Absensi</h2><p className="mt-1 text-sm text-slate-500">Minta peserta memindai QR selama sesi berlangsung.</p></div><span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${active ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-600"}`}><span className={`h-2 w-2 rounded-full ${active ? "bg-emerald-500" : "bg-slate-400"}`} />{status === "EXPIRED" ? "Sesi Kedaluwarsa" : active ? "Sesi Aktif" : "Sesi Ditutup"}</span></div>
-    <div className="relative mx-auto aspect-square w-full max-w-[280px] overflow-hidden rounded-2xl bg-white p-5 ring-1 ring-slate-200">
-      {session.qr_token ? <QRCodeSVG value={attendanceQrLink(session.qr_token)} size={1024} level="M" marginSize={2} className="h-full w-full" /> : <div className="grid h-full place-items-center text-sm text-rose-600">Server tidak mengembalikan qr_token.</div>}
+    <div className="relative mx-auto w-full max-w-[280px] overflow-hidden rounded-2xl bg-white p-5 ring-1 ring-slate-200">
+      {session.qr_token ? <QRCodeSVG value={attendanceQrLink(session.qr_token)} size={1024} level="M" marginSize={2} className="block h-auto w-full" /> : <div className="grid aspect-square place-items-center text-sm text-rose-600">Server tidak mengembalikan qr_token.</div>}
       {!active && <div className="absolute inset-0 grid place-items-center bg-slate-950/70 p-6 text-center text-lg font-bold text-white">{status === "EXPIRED" ? "Sesi absensi telah berakhir" : "Sesi telah berakhir"}</div>}
     </div>
     <p className="flex items-center justify-center gap-2 text-xs text-slate-500"><ShieldCheck className="h-4 w-4 text-emerald-500" />QR hanya berlaku untuk sesi ini</p>
