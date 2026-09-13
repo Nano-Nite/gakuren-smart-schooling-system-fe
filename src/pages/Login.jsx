@@ -8,6 +8,7 @@ import { isServerLogoutPending, loginUser, logoutUser } from '../utils/api'
 import { syncDailyReferences } from '../utils/dailyReferenceCache'
 import { getDefaultAuthorizedRoute } from '../utils/permissions'
 import ThemeToggle from '../components/ThemeToggle'
+import { attendanceLoginReturn } from '../utils/attendanceQrLink'
 
 export default function Login() {
   const location = useLocation()
@@ -42,7 +43,7 @@ export default function Login() {
         await loginUser(email, password)
         await syncDailyReferences({ missingOnly: true })
       })
-      splash.finish(getDefaultAuthorizedRoute())
+      splash.finish(attendanceLoginReturn(location.state?.attendanceReturn) || getDefaultAuthorizedRoute())
     } catch (err) {
       console.error('Login error:', err)
       setError(err.message || 'Login gagal. Silakan coba lagi.')

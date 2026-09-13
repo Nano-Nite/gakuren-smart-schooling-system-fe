@@ -14,5 +14,6 @@ export const getApprovalEntityLabel = entityType => {
   }
   if (/class|kelas/.test(type)) return "kelas";
   if (/student|siswa/.test(type)) return "siswa";
+  if (/location|lokasi|(^|[^a-z])loc([^a-z]|$)/.test(type)) return "lokasi scan";
   return "data";
 };

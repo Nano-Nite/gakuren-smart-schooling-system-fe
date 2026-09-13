@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { HelmetProvider } from 'react-helmet-async'
 import Home from './pages/Home'
 import Login from './pages/Login'
+import AttendanceScan from './pages/AttendanceScan'
 import Dashboard from './pages/Dashboard'
 import ClassManagement from './pages/ClassManagement'
 import StudentManagement from './pages/StudentManagement'
@@ -96,6 +97,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomeOrInstalledApp />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/attendance/scan" element={<AttendanceScan />} />
           <Route path="/signup" element={<SignUp />} />
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<ProtectedRoute menu="Dashboard" permissions={["dashboard.view", "dashboard.read"]}><Dashboard /></ProtectedRoute>} />
