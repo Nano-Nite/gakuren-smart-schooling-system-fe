@@ -78,11 +78,11 @@ test('registration persists non-extractable key before sending exact SPKI contra
   const active = await env.api.refreshTrustedDevice();
   assert.equal(active.status, 'ACTIVE');
   assert.equal(active.key.public_key, pending.key.public_key);
-  assert.equal(env.calls[1].endpoint, `/v1/trusted-devices/${deviceUuid}`);
-  assert.equal(env.calls[1].options.method, 'POST');
+  assert.equal(env.calls[1].endpoint, `/v1/school/trusted-device/${deviceUuid}`);
+  assert.equal(env.calls[1].options.method, 'GET');
 });
 
-test('registration accepts backend trusted response and refresh uses POST without inventing signing metadata', async () => {
+test('registration accepts backend trusted response and refresh uses GET without inventing signing metadata', async () => {
   const env = await setup();
   const response = { data: { device_uuid: deviceUuid, location_uuid: locationUuid, school_uuid: schoolUuid, trusted: true }, error: null, message: 'success' };
   env.handle(() => response);
@@ -94,7 +94,7 @@ test('registration accepts backend trusted response and refresh uses POST withou
   await assert.rejects(env.signer.signTrustedDeviceRequest({ path: '/v1/test' }), /tidak sesuai/);
   env.handle(() => ({ ...response, data: { ...response.data, trusted: false } }));
   assert.equal((await env.api.refreshTrustedDevice()).status, 'PENDING');
-  assert.equal(env.calls[1].options.method, 'POST');
+  assert.equal(env.calls[1].options.method, 'GET');
   for (const extra of [{ trusted: 'true' }, { school_uuid: locationUuid }, { location_uuid: schoolUuid }, { device_uuid: locationUuid }]) {
     env.handle(() => ({ ...response, data: { ...response.data, ...extra } }));
     await assert.rejects(env.api.refreshTrustedDevice());

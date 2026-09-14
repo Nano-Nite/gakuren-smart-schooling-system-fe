@@ -6,7 +6,7 @@ const API_CONFIG = {
   LOGOUT: '/v1/auth/logout',
   REFRESH_TOKEN: '/v1/auth/refresh',
   REGISTER_TRUSTED_DEVICE: '/v1/school/trusted-device/register',
-  TRUSTED_DEVICE: '/v1/trusted-devices',
+  TRUSTED_DEVICE: '/v1/school/trusted-device',
   ATTENDANCE_TRUSTED_DEVICE: '/v1/attendance/trusted-device',
 
   // class

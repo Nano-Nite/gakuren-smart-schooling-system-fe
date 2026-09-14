@@ -335,7 +335,7 @@ test('signed requests reuse exact serialized body after JWT refresh and replace 
 test('trusted device registration and status retain JWT and authoritative tenant and school headers', async () => {
   const env = await setup(); await env.api.initializeAuth();
   env.handle(() => response({ data: {} }));
-  for (const [endpoint, method] of [['/v1/school/trusted-device/register', 'POST'], ['/v1/trusted-devices/device-a', 'GET']]) {
+  for (const [endpoint, method] of [['/v1/school/trusted-device/register', 'POST'], ['/v1/school/trusted-device/device-a', 'GET']]) {
     await env.api.authenticatedRequest(endpoint, { method, ...(method === 'POST' ? { body: { device_name: 'Device' } } : {}), headers: { tenant_uuid: 'wrong-tenant', school_uuid: 'wrong-school' } });
     const sent = env.calls.at(-1);
     assert.equal(sent.headers.Authorization, 'Bearer access-a');

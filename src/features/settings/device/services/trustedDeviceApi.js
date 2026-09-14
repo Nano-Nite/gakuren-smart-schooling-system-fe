@@ -87,7 +87,7 @@ export async function loadTrustedDevice(scope = getCacheScope()) {
 export async function refreshTrustedDevice(scope = getCacheScope(), signal) {
   const record = await loadTrustedDevice(scope);
   if (!record?.deviceUuid) return record;
-  const metadata = parseDeviceResponse(await request(`${API_CONFIG.TRUSTED_DEVICE}/${encodeURIComponent(record.deviceUuid)}`, { method: 'POST', signal }), record.deviceUuid, { schoolUuid: decodeURIComponent(scope.split(':')[1]), locationUuid: record.form.locationUuid });
+  const metadata = parseDeviceResponse(await request(`${API_CONFIG.TRUSTED_DEVICE}/${encodeURIComponent(record.deviceUuid)}`, { method: 'GET', signal }), record.deviceUuid, { schoolUuid: decodeURIComponent(scope.split(':')[1]), locationUuid: record.form.locationUuid });
   assertDeviceScope(scope);
   return updateDeviceRecord(current => {
     if (current.deviceUuid !== record.deviceUuid) throw trustedDeviceError('DEVICE_CHANGED', 'Data perangkat berubah. Muat ulang halaman.');

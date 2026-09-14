@@ -34,7 +34,7 @@ export default function DeviceSettings() {
 
     </header>
 
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+    <div className={`rounded-xl border p-4 text-sm leading-6 ${active ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
 
       <p className="font-semibold">{active ? 'Perangkat sudah disetujui' : registered ? 'Pendaftaran perangkat sudah diterima' : 'Daftarkan perangkat yang Anda gunakan'}</p>
 
@@ -44,7 +44,7 @@ export default function DeviceSettings() {
 
     {error && <div role="alert" className="flex flex-col items-start gap-2 rounded-xl bg-rose-50 p-4 text-sm leading-6 text-rose-700 sm:flex-row sm:items-center sm:justify-between"><p className="min-w-0 break-words">{error}</p><button type="button" disabled={busy} className="min-h-11 shrink-0 rounded-lg px-3 font-semibold underline underline-offset-4 focus-visible:outline focus-visible:outline-2 disabled:opacity-50" onClick={refresh}>Coba muat ulang</button></div>}
 
-    {notice && <p role="status" className="rounded-xl bg-blue-50 p-4 text-sm leading-6 text-blue-700">{notice}</p>}
+    {notice && <p role="status" className={`rounded-xl p-4 text-sm leading-6 ${active ? 'bg-emerald-50 text-emerald-800' : 'bg-blue-50 text-blue-700'}`}>{notice}</p>}
 
     {loading ? <p role="status" className="py-8 text-center text-sm text-slate-500">Memuat informasi perangkat…</p> : <div className="grid min-w-0 items-start gap-5 sm:gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
 
@@ -123,7 +123,7 @@ export default function DeviceSettings() {
 
       <section className="min-w-0 space-y-5 rounded-xl border border-slate-200 p-4 sm:p-6" aria-labelledby="device-status-title">
 
-        <div><h3 id="device-status-title" className="text-base font-semibold">Status perangkat ini</h3><span className="mt-3 inline-flex rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold leading-5 text-amber-800">{statusLabel}</span></div>
+        <div><h3 id="device-status-title" className="text-base font-semibold">Status perangkat ini</h3><span className={`mt-3 inline-flex rounded-full px-3 py-1.5 text-xs font-semibold leading-5 ${active ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>{statusLabel}</span></div>
 
         {draft && <div className="min-w-0"><p className="text-sm text-slate-500">Nama perangkat</p><p className="mt-1 break-words text-sm font-semibold [overflow-wrap:anywhere]">{draft.form.name}</p></div>}
 
@@ -149,7 +149,6 @@ export default function DeviceSettings() {
 
     </div>}
 
-    {draft && <details className="min-w-0 rounded-xl border border-slate-200 p-4 sm:px-6"><summary className="min-h-11 cursor-pointer content-center rounded text-sm font-medium leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">Informasi teknis untuk pengelola</summary><div className="mt-3 min-w-0 space-y-4 border-t border-slate-200 pt-4"><p className="text-sm leading-6 text-slate-500">Informasi ini dapat digunakan pengelola saat membantu Anda. Anda tidak perlu mengubahnya.</p><dl className="grid min-w-0 gap-4 text-sm sm:grid-cols-2"><div className="min-w-0"><dt className="text-slate-500">ID perangkat</dt><dd className="mt-1 break-all font-mono text-xs leading-6">{draft.deviceUuid || 'Belum diterbitkan sekolah'}</dd></div><div className="min-w-0"><dt className="text-slate-500">Fingerprint SHA-256</dt><dd className="mt-1 break-all font-mono text-xs leading-6">{draft.key.fingerprint}</dd></div></dl><p className="text-sm leading-6 text-slate-500">Keamanan menggunakan tanda tangan Ed25519. Kunci pribadi tetap disimpan di perangkat dan tidak disertakan dalam data berikut.</p><pre tabIndex={0} aria-label="Data persiapan perangkat dalam format JSON" className="max-h-80 max-w-full overflow-auto rounded-lg bg-slate-950 p-4 text-xs leading-6 text-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">{JSON.stringify(draft.registrationPayload || { key: draft.key, device_identifier: draft.deviceIdentifier }, null, 2)}</pre></div></details>}
 
   </div>;
 
