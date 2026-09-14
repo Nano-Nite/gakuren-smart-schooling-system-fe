@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getStudentCreateErrorMessage } from "../src/utils/studentCreateError.js";
+import { getStudentCreateErrorMessage } from "../src/features/students/utils/studentCreateError.js";
 
 test("student creation prioritizes the duplicate account reason over the generic backend message", () => {
   const error = Object.assign(new Error("Fail to check user"), { serverError: "Multiple user found" });

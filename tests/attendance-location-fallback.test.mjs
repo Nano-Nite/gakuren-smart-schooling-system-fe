@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { transformWithOxc } from 'vite';
-import * as defaults from '../src/utils/attendanceSessionDefaults.js';
+import * as defaults from '../src/features/attendance/utils/attendanceSessionDefaults.js';
 
 async function setup(getLocations, geolocation) {
   const states = [], effects = [];
   let cursor = 0;
   const context = vm.createContext({ navigator: { geolocation }, AbortController, Date });
-  const { code } = await transformWithOxc(await readFile('src/components/attendance/AttendanceSessionForm.jsx', 'utf8'), 'AttendanceSessionForm.jsx');
+  const { code } = await transformWithOxc(await readFile('src/features/attendance/components/AttendanceSessionForm.jsx', 'utf8'), 'AttendanceSessionForm.jsx');
   const module = new vm.SourceTextModule(code, { context });
   const react = {
     useState: initial => {

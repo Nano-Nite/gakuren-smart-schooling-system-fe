@@ -14,7 +14,7 @@ test('scanner pause suppresses automatic health checks, permits manual retry, an
     setInterval: () => ++nextId, clearInterval: () => {},
   });
   const context = vm.createContext({ window, AbortController, CustomEvent, Event, fetch: async () => { requests++; return { ok: false, status: 503 }; } });
-  const module = new vm.SourceTextModule(await readFile('src/components/NetworkStatusMonitor.jsx', 'utf8'), { context });
+  const module = new vm.SourceTextModule(await readFile('src/shared/components/NetworkStatusMonitor.jsx', 'utf8'), { context });
   await module.link(specifier => {
     const values = specifier === 'react' ? { useEffect: fn => { cleanup = fn(); } } : specifier.includes('networkCheckPause') ? { areNetworkChecksPaused: () => paused } : specifier.includes('config/api') ? { getApiUrl: path => path } : {
       isNetworkAvailable: () => false, getScopeHeaders: () => ({}), clearNetworkOfflineFlag() {}, setNetworkAvailable() {},

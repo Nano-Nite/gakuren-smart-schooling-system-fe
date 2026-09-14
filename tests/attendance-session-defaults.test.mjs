@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { todayAttendanceSession, toLocalInput } from "../src/utils/attendanceSessionDefaults.js";
+import { todayAttendanceSession, toLocalInput } from "../src/features/attendance/utils/attendanceSessionDefaults.js";
 
 test("today session defaults to 06:00–14:00 on the same local day regardless of current time", () => {
   for (const now of [new Date(2026, 8, 11, 0, 1), new Date(2026, 8, 11, 9, 30), new Date(2026, 11, 31, 23, 59, 58)]) {

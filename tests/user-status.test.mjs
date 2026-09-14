@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isNewUserStatus, isStatusMutationBlocked } from "../src/utils/userStatus.js";
+import { isNewUserStatus, isStatusMutationBlocked } from "../src/shared/utils/userStatus.js";
 
 test("new user status aliases block edit and delete", () => {
   for (const status of ["Pengguna Baru", "new_user", "new user", "new-user", " NEW_USER "]) {

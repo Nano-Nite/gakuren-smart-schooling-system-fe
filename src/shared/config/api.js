@@ -1,0 +1,71 @@
+const API_CONFIG = {
+  BASE_URL: import.meta.env.VITE_API_URL,
+
+  // auth
+  LOGIN: '/v1/auth/login',
+  LOGOUT: '/v1/auth/logout',
+  REFRESH_TOKEN: '/v1/auth/refresh',
+  REGISTER_TRUSTED_DEVICE: '/v1/trusted-devices/register',
+  TRUSTED_DEVICE: '/v1/trusted-devices',
+
+  // class
+  GET_CLASSES: '/v1/school/class/get',
+  CREATE_CLASS: '/v1/school/class/create',
+  UPDATE_CLASS: '/v1/school/class/update',
+  DELETE_CLASS: '/v1/school/class/delete',
+
+  // student
+  GET_STUDENTS: '/v1/school/student/get',
+  CREATE_STUDENT: '/v1/school/student/create',
+  UPDATE_STUDENT: '/v1/school/student/update',
+  DELETE_STUDENT: '/v1/school/student/delete',
+
+  // teacher
+  CREATE_TEACHER_STAFF: '/v1/school/tns/create',
+  UPDATE_TEACHER_STAFF: '/v1/school/tns/update',
+  GET_TEACHER_STAFF: '/v1/school/tns/get',
+  GET_HOMEROOM_TEACHERS: '/v1/school/tns/get-homeroom-teacher',
+
+  // misc
+  GET_STATUSES: '/v1/misc/status',
+  GET_GENDERS: '/v1/misc/gender',
+  GET_TITLES: '/v1/misc/title',
+  GET_POSITIONS: '/v1/misc/position',
+  GET_SUBJECTS: '/v1/misc/subjects',
+  GET_EMPLOYEE_STATUSES: '/v1/misc/employee_status',
+  GET_EDUCATION_LEVELS: '/v1/misc/education-level',
+
+  // approval
+  GET_MY_APPROVALS: '/v1/school/approval/my-approval',
+  EXECUTE_MY_APPROVAL: '/v1/school/approval/my-approval/execute',
+
+  REQUEST_TIMEOUT: 30000,
+}
+
+export const TOKEN_KEYS = {
+  ACCESS_TOKEN: 'accessToken',
+  REFRESH_TOKEN: 'refreshToken',
+  TOKEN_EXPIRY: 'tokenExpiry',
+  USER_DATA: 'userData',
+  TENANT_ID: 'tenantId',
+  SCHOOL_UUID: 'schoolUuid',
+  MENU_ITEMS: 'menuItems',
+  PERMISSIONS: 'permissions',
+  IS_AUTHENTICATED: 'isAuthenticated',
+}
+
+export const getApiUrl = (endpoint) => {
+  return `${API_CONFIG.BASE_URL}${endpoint}`
+}
+
+export const ERROR_MESSAGES = {
+  INVALID_CREDENTIALS: 'Email atau password salah',
+  SERVER_ERROR: 'Terjadi kesalahan pada server',
+  NETWORK_ERROR: 'Tidak dapat terhubung ke server. Pastikan koneksi internet Anda aktif.',
+  TIMEOUT: 'Koneksi timeout. Silakan coba lagi.',
+  UNAUTHORIZED: 'Username atau password salah',
+  FORBIDDEN: 'Akses ditolak',
+  NOT_FOUND: 'Halaman tidak ditemukan',
+}
+
+export default API_CONFIG

@@ -5,7 +5,7 @@ import vm from "node:vm";
 import { transformWithOxc } from "vite";
 
 async function load(name) {
-  const source = await readFile(`src/components/${name}.jsx`, "utf8");
+  const source = await readFile(`src/shared/components/${name}.jsx`, "utf8");
   const { code } = await transformWithOxc(source, `${name}.jsx`);
   const context = vm.createContext({ console });
   const module = new vm.SourceTextModule(code, { context });

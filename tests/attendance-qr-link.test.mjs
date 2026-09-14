@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { attendanceQrLink, attendanceLoginReturn } from '../src/utils/attendanceQrLink.js';
+import { attendanceQrLink, attendanceLoginReturn } from '../src/features/attendance/utils/attendanceQrLink.js';
 
 test('attendance QR opens the scan page and preserves the exact token for the existing scanner', () => {
   const token = 'signed+token/with?special=&characters';

@@ -5,7 +5,7 @@ import vm from "node:vm";
 import { transformWithOxc } from "vite";
 
 async function renderDatePicker(props) {
-  const source = await readFile("src/components/DatePicker.jsx", "utf8");
+  const source = await readFile("src/shared/components/DatePicker.jsx", "utf8");
   const { code } = await transformWithOxc(source, "DatePicker.jsx");
   const context = vm.createContext({ console });
   const noop = () => {};

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { hasStudentFormChanges } from "../src/utils/studentFormChanges.js";
+import { hasStudentFormChanges } from "../src/features/students/utils/studentFormChanges.js";
 
 const initial = { name: "Siswa", address: "Jalan Sekolah", class_uuid: "", class_name: "VII A", gender_uuid: "", gender: "Laki-laki" };
 

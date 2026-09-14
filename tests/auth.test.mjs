@@ -27,7 +27,7 @@ const deferred = () => {
   return { promise, resolve };
 };
 
-async function setup({ stored = {}, local = {} } = {}) {
+async function setup({ stored = {}, local = {}, signer } = {}) {
   const calls = [];
   const cleaned = [];
   const browser = new EventTarget();
@@ -38,12 +38,14 @@ async function setup({ stored = {}, local = {} } = {}) {
     sessionStorage, localStorage, window: browser, navigator: { onLine: true },
     Event, CustomEvent, AbortController, DOMException, setTimeout, clearTimeout, console,
     fetch: async (url, options) => { calls.push({ url, ...options }); return handler(url, options); },
-    clean: async scope => cleaned.push(scope),
+    clean: async scope => cleaned.push(scope), signer,
   });
   const modules = new Map();
   async function moduleAt(filename) {
     if (modules.has(filename)) return modules.get(filename);
-    const source = filename.endsWith('offlineAttendanceStore.js')
+    const source = signer && filename.endsWith('trustedDeviceSigner.js')
+      ? 'export const signTrustedDeviceRequest = input => signer(input); export const trustedDeviceHeaders = proof => proof;'
+      : filename.endsWith('offlineAttendanceStore.js')
       ? 'export const clearOfflineSessionCache = scope => clean(scope);'
       : await readFile(filename, 'utf8');
     const module = new vm.SourceTextModule(source, {
@@ -54,17 +56,17 @@ async function setup({ stored = {}, local = {} } = {}) {
     await module.link(specifier => moduleAt(path.resolve(path.dirname(filename), `${specifier}.js`)));
     return module;
   }
-  const apiModule = await moduleAt(path.resolve('src/utils/api.js'));
+  const apiModule = await moduleAt(path.resolve('src/shared/utils/api.js'));
   await apiModule.evaluate();
   return { api: apiModule.namespace, calls, cleaned, sessionStorage, localStorage, browser,
     handle: fn => { handler = fn; },
     permissions: async () => {
-      const module = await moduleAt(path.resolve('src/utils/permissions.js'));
+      const module = await moduleAt(path.resolve('src/shared/utils/permissions.js'));
       await module.evaluate();
       return module.namespace;
     },
     references: async () => {
-      const module = await moduleAt(path.resolve('src/utils/dailyReferenceCache.js'));
+      const module = await moduleAt(path.resolve('src/shared/utils/dailyReferenceCache.js'));
       await module.evaluate();
       return module.namespace;
     },
@@ -299,4 +301,44 @@ test('child navigation stays within its parent page loading boundary', async () 
     ['/settings/device', '/students'],
     ['/settings/device', '/settings/unknown'],
   ]) assert.equal(permissions.isSameSubmenuPage(from, to), false);
+});
+
+
+test('signed requests reuse exact serialized body after JWT refresh and replace untrusted device headers', async () => {
+  const signed = [];
+  const env = await setup({ signer: async input => {
+    signed.push(input);
+    return { 'X-Device-ID': 'device-a', 'X-Key-Version': '1', 'X-Timestamp': '123', 'X-Nonce': `nonce-${signed.length}`, 'X-Signature': `signature-${signed.length}` };
+  } });
+  await env.api.initializeAuth();
+  let serializations = 0;
+  const payload = { toJSON() { serializations++; return { name: 'Exact bytes', serializations }; } };
+  let requests = 0;
+  env.handle(url => {
+    if (url.endsWith('/v1/auth/refresh')) return response(session('access-b'));
+    return ++requests === 1 ? response({}, 401) : response({ data: { ok: true } });
+  });
+  await env.api.authenticatedRequest('/v1/attendance/sessions', { method: 'POST', body: payload, trustedDevice: true, headers: { 'x-device-id': 'attacker', 'X-Signature': 'attacker' } });
+  assert.equal(serializations, 1);
+  assert.equal(signed.length, 2);
+  const sent = env.calls.filter(call => call.url.endsWith('/v1/attendance/sessions'));
+  assert.equal(sent[0].body, signed[0].body);
+  assert.equal(sent[1].body, signed[1].body);
+  assert.equal(sent[0].body, sent[1].body);
+  assert.equal(sent[0].headers['X-Nonce'], 'nonce-1');
+  assert.equal(sent[1].headers['X-Nonce'], 'nonce-2');
+  assert.equal(sent[1].headers.Authorization, 'Bearer access-b');
+  assert.equal(sent[0].headers['x-device-id'], undefined);
+  assert.equal(sent[0].trustedDevice, undefined);
+});
+
+test('session-scoped registration sends JWT but omits tenant and school headers', async () => {
+  const env = await setup(); await env.api.initializeAuth();
+  env.handle(() => response({ data: {} }));
+  await env.api.authenticatedRequest('/v1/trusted-devices/register', { method: 'POST', body: { device_name: 'Device' }, sessionScopeOnly: true });
+  const sent = env.calls.at(-1);
+  assert.equal(sent.headers.Authorization, 'Bearer access-a');
+  assert.equal(sent.headers.tenant_uuid, undefined);
+  assert.equal(sent.headers.school_uuid, undefined);
+  assert.equal(sent.sessionScopeOnly, undefined);
 });

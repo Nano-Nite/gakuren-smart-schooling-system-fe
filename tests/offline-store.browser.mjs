@@ -63,8 +63,8 @@ try {
     pageLoaded.finally(() => clearTimeout(timer));
   })]);
   const result = await send('Runtime.evaluate', { awaitPromise: true, returnByValue: true, expression: `(async () => {
-    const { offlineAttendanceStore: store, clearOfflineSessionCache } = await import('/src/services/offlineAttendanceStore.js');
-    const { getCacheScope } = await import('/src/utils/authScope.js');
+    const { offlineAttendanceStore: store, clearOfflineSessionCache } = await import('/src/features/attendance/services/offlineAttendanceStore.js');
+    const { getCacheScope } = await import('/src/shared/utils/authScope.js');
     const check = (condition, message) => { if (!condition) throw new Error(message); };
     const identify = (user, school = 'school-a') => {
       sessionStorage.setItem('userData', JSON.stringify({ uuid: user }));

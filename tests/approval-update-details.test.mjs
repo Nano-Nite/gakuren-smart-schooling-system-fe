@@ -2,15 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import * as referenceResolver from "../src/utils/resolveApprovalReference.js";
+import * as referenceResolver from "../src/shared/utils/resolveApprovalReference.js";
 import * as React from "react";
 import * as runtime from "react/jsx-runtime";
 import { renderToStaticMarkup } from "react-dom/server";
 import { transformWithOxc } from "vite";
-import { formatTeacherStaffDate } from "../src/utils/teacherStaffData.js";
+import { formatTeacherStaffDate } from "../src/features/teachers-staff/utils/teacherStaffData.js";
 
 async function render(props) {
-  const source = await readFile("src/components/ApprovalUpdateDetails.jsx", "utf8");
+  const source = await readFile("src/features/approvals/components/ApprovalUpdateDetails.jsx", "utf8");
   const { code } = await transformWithOxc(source, "ApprovalUpdateDetails.jsx");
   const context = vm.createContext({ console });
   const module = new vm.SourceTextModule(code, { context });
@@ -49,7 +49,7 @@ test("missing comparison data still displays all requested fields", async () => 
 });
 
 test("student approval retains changed parent email and renders both values", async () => {
-  const source = await readFile("src/pages/ApprovalManagement.jsx", "utf8");
+  const source = await readFile("src/features/approvals/pages/ApprovalManagement.jsx", "utf8");
   const schemas = source.slice(source.indexOf("const approvalFieldSchemas ="), source.indexOf("const commonApprovalFieldLabels"));
   const helpers = source.slice(source.indexOf("const normalizeApprovalFieldKey ="));
   const comparison = source.slice(source.indexOf("function getComparableFieldValue("), source.indexOf("function formatFieldLabel("));

@@ -5,7 +5,7 @@ import vm from "node:vm";
 import { transformWithOxc } from "vite";
 
 async function renderWithForm(form) {
-  const source = await readFile("src/pages/TeacherStaffManagement.jsx", "utf8");
+  const source = await readFile("src/features/teachers-staff/pages/TeacherStaffManagement.jsx", "utf8");
   const { code } = await transformWithOxc(source, "TeacherStaffManagement.jsx");
   const noop = () => {};
   const context = vm.createContext({ console, AbortController, setTimeout, clearTimeout });

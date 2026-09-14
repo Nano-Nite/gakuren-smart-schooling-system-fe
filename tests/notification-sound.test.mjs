@@ -15,7 +15,7 @@ async function load({ blocked = false, failed = false } = {}) {
     counts.fetches += 1;
     return { ok: !failed, arrayBuffer: async () => new ArrayBuffer(0) };
   } });
-  const module = new vm.SourceTextModule(await readFile("src/utils/notificationSound.js", "utf8"), { context });
+  const module = new vm.SourceTextModule(await readFile("src/shared/utils/notificationSound.js", "utf8"), { context });
   await module.link(() => new vm.SyntheticModule(["default"], function () { this.setExport("default", "/notification.mp3"); }, { context }));
   await module.evaluate();
   return { sound: module.namespace, counts };

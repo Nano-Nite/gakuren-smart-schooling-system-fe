@@ -5,7 +5,7 @@ import vm from 'node:vm'
 import { transformWithOxc } from 'vite'
 
 async function setup({ routeKey = 'menu', loading = false } = {}) {
-  const source = await readFile('src/context/LoginSplashContext.jsx', 'utf8')
+  const source = await readFile('src/shared/context/LoginSplashContext.jsx', 'utf8')
   const { code } = await transformWithOxc(source, 'LoginSplashContext.jsx')
   const frames = new Map()
   const timers = new Map()

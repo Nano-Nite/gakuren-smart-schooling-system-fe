@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { isTeacherStaffEntity } from "../src/utils/approvalEntityType.js";
+import { isTeacherStaffEntity } from "../src/features/approvals/utils/approvalEntityType.js";
 
 test("teacher and staff aliases share the approval layout", () => {
   for (const type of ["tns", "TNS", "teacher", "staff", "staf", "guru", "teacher_and_staff", "school_tns"]) {
@@ -11,7 +11,7 @@ test("teacher and staff aliases share the approval layout", () => {
 });
 
 test("approval schema uses entity type independently of optional NIP", async () => {
-  const source = await readFile("src/pages/ApprovalManagement.jsx", "utf8");
+  const source = await readFile("src/features/approvals/pages/ApprovalManagement.jsx", "utf8");
   const start = source.indexOf("function getApprovalFieldSchema(");
   const end = source.indexOf("\nfunction getApprovalRequestEntries", start);
   const schemas = { teacher: "teacher", student: "student", class: "class" };

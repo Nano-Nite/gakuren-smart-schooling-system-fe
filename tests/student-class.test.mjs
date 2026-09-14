@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveStudentClass } from "../src/utils/resolveStudentClass.js";
-import { buildStudentUpdatePayload } from "../src/utils/studentUpdatePayload.js";
+import { resolveStudentClass } from "../src/features/students/utils/resolveStudentClass.js";
+import { buildStudentUpdatePayload } from "../src/features/students/utils/studentUpdatePayload.js";
 
 test("unchanged class with only a name resolves across pages for update", async () => {
   const form = { name: "Siswa", nis: "1234", nisn: "1234567890", phone: "081234567890", email: "siswa@example.com", address: "Jalan Sekolah", gender_uuid: "gender-1", class_name: "VII A", class_uuid: "" };

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getStudentDetail } from "../src/utils/studentDetail.js";
-import { buildStudentUpdatePayload } from "../src/utils/studentUpdatePayload.js";
+import { getStudentDetail } from "../src/features/students/utils/studentDetail.js";
+import { buildStudentUpdatePayload } from "../src/features/students/utils/studentUpdatePayload.js";
 
 const detail = { UUID: "student-1", Name: "Siswa", NIS: "1234", NISN: "1234567890", PhoneNumber: "081234567890", Email: "siswa@example.com", ClassUUID: "class-1", Address: "Jalan Sekolah", GenderUUID: "gender-1", ParentName: "Wali", ParentEmail: "wali@example.com", ParentPhone: "081234567891", ParentAddress: "Jalan Sekolah" };
 

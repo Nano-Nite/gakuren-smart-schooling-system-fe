@@ -5,7 +5,7 @@ import vm from "node:vm";
 
 async function resolve(result) {
   const context = vm.createContext({});
-  const module = new vm.SourceTextModule(await readFile("src/utils/activeStatus.js", "utf8"), { context });
+  const module = new vm.SourceTextModule(await readFile("src/shared/utils/activeStatus.js", "utf8"), { context });
   await module.link(() => new vm.SyntheticModule(["getDailyReference"], function () {
     this.setExport("getDailyReference", async type => { assert.equal(type, "status"); return { result }; });
   }, { context }));

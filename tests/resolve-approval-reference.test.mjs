@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveApprovalReference } from "../src/utils/resolveApprovalReference.js";
+import { resolveApprovalReference } from "../src/shared/utils/resolveApprovalReference.js";
 
 test("missing UUID refreshes once and resolves its label", async () => {
   const calls = [];

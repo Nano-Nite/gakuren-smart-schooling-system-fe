@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildTeacherStaffPayload, buildTeacherStaffUpdatePayload, getTeacherStaffCreateOutcome } from "../src/utils/teacherStaffPayload.js";
-import { formatIndonesianAcademicName, uniqueTitleLabels } from "../src/utils/academicTitleDisplay.js";
+import { buildTeacherStaffPayload, buildTeacherStaffUpdatePayload, getTeacherStaffCreateOutcome } from "../src/features/teachers-staff/utils/teacherStaffPayload.js";
+import { formatIndonesianAcademicName, uniqueTitleLabels } from "../src/shared/utils/academicTitleDisplay.js";
 
 const form = {
   name: " Teacher ", email: "teacher@example.com", phone: "081212121213",

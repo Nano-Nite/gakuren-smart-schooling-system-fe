@@ -50,7 +50,7 @@ test('camera adapter ignores late decodes after stopping and tolerates rejected 
     async start() {}
     destroy() { this.destroyed = true; }
   }
-  const module = new vm.SourceTextModule(await readFile('src/utils/qrCamera.js', 'utf8'), { context: vm.createContext({}) });
+  const module = new vm.SourceTextModule(await readFile('src/features/attendance/utils/qrCamera.js', 'utf8'), { context: vm.createContext({}) });
   await module.link(() => new vm.SyntheticModule(['default'], function () { this.setExport('default', Scanner); }, { context: module.context }));
   await module.evaluate();
   const results = [];

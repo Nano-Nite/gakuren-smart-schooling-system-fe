@@ -12,7 +12,7 @@ async function setup() {
   const marker = layer(), circle = layer(), tiles = layer();
   const leaflet = { icon: () => ({}), map: () => map, tileLayer: () => tiles, marker: () => marker, circle: () => circle };
   const context = vm.createContext({ ResizeObserver: class { observe() {} disconnect() { disconnected = true; } } });
-  const { code } = await transformWithOxc(await readFile('src/components/LocationMap.jsx', 'utf8'), 'LocationMap.jsx');
+  const { code } = await transformWithOxc(await readFile('src/shared/components/LocationMap.jsx', 'utf8'), 'LocationMap.jsx');
   const module = new vm.SourceTextModule(code, { context });
   await module.link(name => {
     const values = name === 'react' ? {

@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 async function setup(body, status = 200) {
   const calls = [];
   const context = vm.createContext({ URL, AbortController, setTimeout, clearTimeout, window: { location: { origin: 'https://gakuren.test' } }, fetch: async (url, options) => { calls.push({ url, options }); return { ok: status === 200, status, json: async () => body }; } });
-  const module = new vm.SourceTextModule(await readFile('src/services/addressSearch.js', 'utf8'), { context, initializeImportMeta: meta => { meta.env = {}; } });
+  const module = new vm.SourceTextModule(await readFile('src/shared/services/addressSearch.js', 'utf8'), { context, initializeImportMeta: meta => { meta.env = {}; } });
   await module.link(() => {}); await module.evaluate();
   return { search: module.namespace.searchAddresses, calls };
 }

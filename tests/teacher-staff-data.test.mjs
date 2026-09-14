@@ -1,7 +1,7 @@
 import test from "node:test";
-import { buildTeacherStaffUpdatePayload } from "../src/utils/teacherStaffPayload.js";
+import { buildTeacherStaffUpdatePayload } from "../src/features/teachers-staff/utils/teacherStaffPayload.js";
 import assert from "node:assert/strict";
-import { normalizeTeacherStaff, formatTeacherStaffDate, buildTeacherStaffEditForm } from "../src/utils/teacherStaffData.js";
+import { normalizeTeacherStaff, formatTeacherStaffDate, buildTeacherStaffEditForm } from "../src/features/teachers-staff/utils/teacherStaffData.js";
 
 test("updated detail UUIDs preselect every title, position and subject and survive saving", () => {
   const response = {

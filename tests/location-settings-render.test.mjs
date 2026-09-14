@@ -9,17 +9,17 @@ import * as icons from "lucide-react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 async function render(permissions) {
-  const filename = "src/pages/LocationSettings.jsx";
+  const filename = "src/features/settings/location/pages/LocationSettings.jsx";
   const { code } = await transformWithOxc(await readFile(filename, "utf8"), filename);
   const context = vm.createContext({});
   const imports = {
-    "../components/LocationMap": { default: () => runtime.jsx("div", { "aria-label": "Peta lokasi absensi" }) },
-    "../components/AddressSearch": { default: () => null },
+    "../../../../shared/components/LocationMap": { default: () => runtime.jsx("div", { "aria-label": "Peta lokasi absensi" }) },
+    "../../../../shared/components/AddressSearch": { default: () => null },
     react: React,
     "react/jsx-runtime": runtime,
     "lucide-react": icons,
-    "../services/attendanceService": { attendanceService: {} },
-    "../utils/permissions": { getMenuPermissions: () => permissions },
+    "../../../attendance/services/attendanceService": { attendanceService: {} },
+    "../../../../shared/utils/permissions": { getMenuPermissions: () => permissions },
   };
   const module = new vm.SourceTextModule(code, { context });
   await module.link(name => {

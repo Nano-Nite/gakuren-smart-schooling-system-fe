@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getAutomaticAcademicTerm, isValidAcademicTerm, readAcademicTermOverride } from "../src/utils/academicTerm.js";
+import { getAutomaticAcademicTerm, isValidAcademicTerm, readAcademicTermOverride } from "../src/shared/utils/academicTerm.js";
 
 test("academic term changes at January and July boundaries", () => {
   for (const [date, startYear, semester] of [

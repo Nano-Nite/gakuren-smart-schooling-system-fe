@@ -11,7 +11,8 @@ async function renderSubmenu(props, children = ["Device", "Location"]) {
   const labels = { Setting: "Pengaturan", Device: "Perangkat", Location: "Lokasi" };
   let Content;
   const stubs = {
-    "./LocationSettings": { default: () => jsxRuntime.jsx("h2", { children: "Lokasi" }) },
+    "../../features/settings/device/pages/DeviceSettings": { default: () => jsxRuntime.jsx("h2", { children: "Perangkat" }) },
+    "../../features/settings/location/pages/LocationSettings": { default: () => jsxRuntime.jsx("h2", { children: "Lokasi" }) },
     "react/jsx-runtime": jsxRuntime,
     "lucide-react": { Monitor: () => null, MapPin: () => null, Settings: () => null, Construction: () => null, LockKeyhole: () => null, ShieldAlert: () => null },
     "react-helmet-async": { Helmet: () => null },
@@ -19,15 +20,15 @@ async function renderSubmenu(props, children = ["Device", "Location"]) {
       useLocation: () => ({ pathname: props.child ? `/settings/${props.child.toLowerCase()}` : "/settings" }),
       Outlet: () => jsxRuntime.jsx(Content, props),
       NavLink: ({ children, to, ...props }) => jsxRuntime.jsx("a", { ...props, href: to, children }) },
-    "../context/LocaleContext": { useLocale: () => ({ t: (key, fallback) => labels[key.split(".")[1]] || fallback }) },
-    "../utils/permissions": {
+    "../../shared/context/LocaleContext": { useLocale: () => ({ t: (key, fallback) => labels[key.split(".")[1]] || fallback }) },
+    "../../shared/utils/permissions": {
       CHILD_MENUS: { Setting: { Device: { route: "/settings/device" }, Location: { route: "/settings/location" } } },
       getMenuChildren: () => children,
       hasChildMenuAccess: () => true,
     },
   };
   async function load(name) {
-    const filename = `src/pages/${name}.jsx`;
+    const filename = `src/app/pages/${name}.jsx`;
     const { code } = await transformWithOxc(await readFile(filename, "utf8"), filename);
     const module = new vm.SourceTextModule(code, { context });
     await module.link(specifier => {

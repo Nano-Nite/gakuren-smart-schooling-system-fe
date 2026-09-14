@@ -79,18 +79,16 @@ Route yang tidak dikenal akan diarahkan kembali ke `/`.
 
 ```text
 src/
-├── components/   # Komponen landing page dan OfflineBanner
-├── config/       # Konfigurasi endpoint API
-├── data/         # Konten fitur, testimoni, dan data grafik
-├── hooks/        # Custom React hooks
-├── pages/        # Home, Login, dan Dashboard
-├── utils/        # API client dan pengelolaan autentikasi
-├── App.jsx       # Router dan protected route
+├── app/          # Router, layout aplikasi, dan halaman sistem
+├── features/     # Halaman, komponen, hooks, dan logic per menu/fitur
+├── shared/       # Komponen dan utilitas yang dapat dipakai lintas menu
 ├── index.css     # Global styles
 └── main.jsx      # Entry point aplikasi
 ```
 
 Konfigurasi Vite dan PWA berada di `vite.config.js`. Ikon aplikasi berada di `public/icons/`.
+
+Lihat [panduan struktur folder dan komponen reusable](docs/folder-structure.md) untuk pembagian menu, contoh import, dan aturan penempatan file baru.
 
 ## Production build
 

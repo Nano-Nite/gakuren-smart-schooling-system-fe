@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { notify, dismissNotification, clearNotifications, getNotifications, subscribeNotifications } from "../src/utils/notifications.js";
+import { notify, dismissNotification, clearNotifications, getNotifications, subscribeNotifications } from "../src/shared/utils/notifications.js";
 
 test("notification stack retains the latest three messages, including repeated messages", () => {
   clearNotifications();
