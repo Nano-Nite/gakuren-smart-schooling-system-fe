@@ -332,13 +332,14 @@ test('signed requests reuse exact serialized body after JWT refresh and replace 
   assert.equal(sent[0].trustedDevice, undefined);
 });
 
-test('session-scoped registration sends JWT but omits tenant and school headers', async () => {
+test('trusted device registration and status retain JWT and authoritative tenant and school headers', async () => {
   const env = await setup(); await env.api.initializeAuth();
   env.handle(() => response({ data: {} }));
-  await env.api.authenticatedRequest('/v1/trusted-devices/register', { method: 'POST', body: { device_name: 'Device' }, sessionScopeOnly: true });
-  const sent = env.calls.at(-1);
-  assert.equal(sent.headers.Authorization, 'Bearer access-a');
-  assert.equal(sent.headers.tenant_uuid, undefined);
-  assert.equal(sent.headers.school_uuid, undefined);
-  assert.equal(sent.sessionScopeOnly, undefined);
+  for (const [endpoint, method] of [['/v1/school/trusted-device/register', 'POST'], ['/v1/trusted-devices/device-a', 'GET']]) {
+    await env.api.authenticatedRequest(endpoint, { method, ...(method === 'POST' ? { body: { device_name: 'Device' } } : {}), headers: { tenant_uuid: 'wrong-tenant', school_uuid: 'wrong-school' } });
+    const sent = env.calls.at(-1);
+    assert.equal(sent.headers.Authorization, 'Bearer access-a');
+    assert.equal(sent.headers.tenant_uuid, 'tenant-a');
+    assert.equal(sent.headers.school_uuid, 'school-a');
+  }
 });

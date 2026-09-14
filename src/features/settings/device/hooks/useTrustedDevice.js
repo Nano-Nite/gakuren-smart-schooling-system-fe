@@ -34,7 +34,7 @@ export default function useTrustedDevice() {
           const remote = await refreshTrustedDevice(scope, controller.signal);
           if (current()) {
             setRecord(remote);
-            if (remote.localKeyVersion !== remote.keyVersion) throw trustedDeviceError('KEY_VERSION', 'Versi kunci keamanan perangkat tidak sesuai. Hubungi pengelola sekolah.');
+            if (remote.keyVersion != null && remote.localKeyVersion !== remote.keyVersion) throw trustedDeviceError('KEY_VERSION', 'Versi kunci keamanan perangkat tidak sesuai. Hubungi pengelola sekolah.');
             setVerified(true);
           }
         }
@@ -54,7 +54,7 @@ export default function useTrustedDevice() {
     const current = () => generation.current === run && scope === getCacheScope();
     try {
       const result = await registerTrustedDevice(form, scope);
-      if (current()) { setRecord(result); setVerified(false); setNotice('Pendaftaran berhasil dikirim. Periksa status untuk melihat persetujuan pengelola sekolah.'); }
+      if (current()) { setRecord(result); setVerified(typeof result.trusted === 'boolean'); setNotice(result.trusted === true ? 'Perangkat berhasil didaftarkan dan sudah dipercaya oleh sekolah.' : 'Pendaftaran berhasil dikirim. Periksa status untuk melihat persetujuan pengelola sekolah.'); }
     } catch (e) {
       if (current()) {
         setError(trustedDeviceErrorMessage(e));

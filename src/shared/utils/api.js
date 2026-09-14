@@ -468,10 +468,6 @@ export const authenticatedRequest = async (
     config.body = JSON.stringify(options.body);
 
   delete config.trustedDevice;
-  delete config.sessionScopeOnly;
-  if (options.sessionScopeOnly) {
-    for (const key of Object.keys(config.headers)) if (['tenant_uuid', 'school_uuid'].includes(key.toLowerCase())) delete config.headers[key];
-  }
   if (options.trustedDevice) {
     for (const key of Object.keys(config.headers)) if (['x-device-id', 'x-key-version', 'x-timestamp', 'x-nonce', 'x-signature'].includes(key.toLowerCase())) delete config.headers[key];
     const proof = await signTrustedDeviceRequest({ method: config.method || 'GET', path: endpoint, body: config.body ?? '' });

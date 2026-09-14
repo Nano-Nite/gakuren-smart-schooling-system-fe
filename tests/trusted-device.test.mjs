@@ -7,12 +7,13 @@ import vm from 'node:vm';
 
 const locationUuid = '9be60e56-e8c8-45fc-bf8e-c2f1ad07191c';
 const deviceUuid = '7c78ef12-a525-4507-b212-bc5674e20250';
+const schoolUuid = '6bf09a3d-55c8-4cdc-8336-3ed7d1e58dd5';
 const form = { name: 'Laptop sekolah', locationUuid, config: { attendance_enabled: true, auto_sync: true, retention_days: 7 } };
 const backend = (status = 'PENDING', extra = {}) => ({ error: false, data: { device_uuid: deviceUuid, device_code: 'GKR-DEV-00001', status, key_version: 1, ...extra } });
 const plain = value => JSON.parse(JSON.stringify(value));
 
 async function setup() {
-  let record = null, currentScope = 'school:user', failSave = false, permissions = ['setting.device.create'];
+  let record = null, currentScope = `tenant:${schoolUuid}:user`, failSave = false, permissions = ['setting.device.create'];
   const identifier = webcrypto.randomUUID();
   const calls = [];
   const context = vm.createContext({ crypto: webcrypto, isSecureContext: true, TextEncoder, btoa, Date, setTimeout, clearTimeout, AbortController });
@@ -59,8 +60,7 @@ test('registration persists non-extractable key before sending exact SPKI contra
   const pending = await env.api.registerTrustedDevice(form);
   assert.equal(pending.status, 'PENDING');
   const call = env.calls[0];
-  assert.equal(call.endpoint, '/v1/trusted-devices/register');
-  assert.equal(call.options.sessionScopeOnly, true);
+  assert.equal(call.endpoint, '/v1/school/trusted-device/register');
   assert.equal(call.recordAtRequest.privateKey.extractable, false);
   await assert.rejects(webcrypto.subtle.exportKey('pkcs8', pending.privateKey));
   const payload = plain(call.options.body);
@@ -79,6 +79,27 @@ test('registration persists non-extractable key before sending exact SPKI contra
   assert.equal(active.status, 'ACTIVE');
   assert.equal(active.key.public_key, pending.key.public_key);
   assert.equal(env.calls[1].endpoint, `/v1/trusted-devices/${deviceUuid}`);
+  assert.equal(env.calls[1].options.method, 'POST');
+});
+
+test('registration accepts backend trusted response and refresh uses POST without inventing signing metadata', async () => {
+  const env = await setup();
+  const response = { data: { device_uuid: deviceUuid, location_uuid: locationUuid, school_uuid: schoolUuid, trusted: true }, error: null, message: 'success' };
+  env.handle(() => response);
+  const registered = await env.api.registerTrustedDevice(form);
+  assert.equal(env.calls[0].options.method, 'POST');
+  assert.equal(registered.status, 'ACTIVE');
+  assert.equal(registered.deviceUuid, deviceUuid);
+  assert.equal(registered.keyVersion, null);
+  await assert.rejects(env.signer.signTrustedDeviceRequest({ path: '/v1/test' }), /tidak sesuai/);
+  env.handle(() => ({ ...response, data: { ...response.data, trusted: false } }));
+  assert.equal((await env.api.refreshTrustedDevice()).status, 'PENDING');
+  assert.equal(env.calls[1].options.method, 'POST');
+  for (const extra of [{ trusted: 'true' }, { school_uuid: locationUuid }, { location_uuid: schoolUuid }, { device_uuid: locationUuid }]) {
+    env.handle(() => ({ ...response, data: { ...response.data, ...extra } }));
+    await assert.rejects(env.api.refreshTrustedDevice());
+    assert.equal(env.record.status, 'PENDING');
+  }
 });
 
 test('real signature verifies exact UTF-8 body and canonical newline order; nonce changes on each request', async () => {
@@ -122,7 +143,7 @@ test('network retry and duplicate registration retain identical key, identifier 
   assert.equal(env.record.key.public_key, saved.key.public_key);
   assert.equal(env.record.deviceIdentifier, saved.deviceIdentifier);
   await env.api.registerTrustedDevice(form);
-  assert.equal(env.calls.filter(call => call.options.method === 'POST').length, 2);
+  assert.equal(env.calls.filter(call => call.endpoint === '/v1/school/trusted-device/register').length, 2);
 });
 
 test('legacy preparation migrates public key format without replacing the key or trusting the old UUID', async () => {

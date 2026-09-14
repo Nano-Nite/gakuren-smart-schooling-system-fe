@@ -1,12 +1,20 @@
 # Trusted device: registrasi dan request signing
 
+## Kontrak response BE terbaru
+
+Registrasi memakai POST `/v1/school/trusted-device/register`. Pengecekan perangkat memakai POST `/v1/trusted-devices/{device_uuid}` tanpa body; endpoint absensi `/v1/attendance/trusted-device` juga memakai POST tanpa body.
+
+Response terbaru adalah `{ "data": { "device_uuid": "<UUID>", "location_uuid": "<UUID lokasi>", "school_uuid": "<UUID sekolah>", "trusted": true }, "error": null, "message": "success" }`.
+
+FE memvalidasi UUID, sekolah dan lokasi, lalu memetakan `trusted: true` menjadi ACTIVE dan `false` menjadi PENDING, termasuk langsung setelah registrasi. Format ini tidak memerlukan `device_code`, `status`, atau `key_version`. Tanpa key_version dari BE, request signing tetap tidak tersedia; FE tidak mengarang versi kunci server. Kontrak status/key_version di bagian berikut tetap didukung sebagai format legacy, termasuk kewajiban pengecekan status setelah registrasi legacy.
+
 Implementasi tahap 1–11 mempertahankan halaman `/settings/device`. Ed25519 memakai Web Crypto native; referensi algoritma dan SPKI: [W3C Web Cryptography](https://www.w3.org/TR/WebCryptoAPI/#ed25519).
 
 ## File dan tanggung jawab
 
 - `src/shared/utils/crypto.js`: generate key Ed25519, export SPKI Base64, fingerprint SHA-256, encoding.
 - `src/features/settings/device/services/trustedDeviceKeyStore.js`: IndexedDB, identifier instalasi, kunci dan metadata per akun/sekolah.
-- `src/features/settings/device/services/trustedDeviceApi.js`: payload, POST register, GET status, migrasi persiapan lama, validasi respons, pesan error.
+- `src/features/settings/device/services/trustedDeviceApi.js`: payload, POST register, POST status, migrasi persiapan lama, validasi respons, pesan error.
 - `src/features/settings/device/services/trustedDeviceSigner.js`: canonical request, signature dan header perangkat.
 - `src/features/settings/device/hooks/useTrustedDevice.js`: state halaman, pemuatan lokasi, registrasi dan refresh status.
 - `src/features/settings/device/pages/DeviceSettings.jsx`: formulir dan status dengan komponen Select/checkbox FE.
@@ -23,10 +31,10 @@ Service draft lama `deviceRegistration.js` digantikan oleh service di atas. Data
 3. Generate Ed25519 dengan `extractable: false`, sign/verify self-test, export hanya public key sebagai SPKI Base64 standar dengan padding.
 4. Fingerprint = `SHA256:` + hex uppercase SHA-256 dari byte SPKI.
 5. Simpan kunci dan identifier di IndexedDB sebelum mengirim request. Jika ada persiapan, gunakan kunci yang sama.
-6. POST `/v1/trusted-devices/register` menggunakan JWT existing. Tenant, school dan registered_by tidak dikirim pada body ataupun scope header endpoint trusted-device; backend harus mengambil identitas dari JWT.
-7. Simpan UUID, kode perangkat, key version dan status PENDING. Bahkan jika POST mengembalikan ACTIVE, FE menunggu GET status sebelum memungkinkan signing.
-8. GET `/v1/trusted-devices/{device_uuid}` saat halaman dibuka, aplikasi dibuka/reload setelah login, atau tombol **Periksa status** ditekan.
-9. Status dari GET: PENDING → Menunggu persetujuan; ACTIVE → Perangkat aktif; REVOKED → Perangkat dicabut; SUSPENDED → Perangkat dinonaktifkan sementara.
+6. POST `/v1/school/trusted-device/register` menggunakan JWT existing. Header `tenant_uuid` dan `school_uuid` tetap dikirim dari sesi aktif, termasuk pada POST status perangkat. Tenant, school dan registered_by tidak dimasukkan ke body; backend wajib memvalidasi scope header terhadap JWT dan menentukan registered_by.
+7. Simpan UUID, kode perangkat, key version dan status PENDING. Bahkan jika POST mengembalikan ACTIVE, FE menunggu POST status sebelum memungkinkan signing.
+8. POST `/v1/trusted-devices/{device_uuid}` saat halaman dibuka, aplikasi dibuka/reload setelah login, atau tombol **Periksa status** ditekan.
+9. Status dari POST: PENDING → Menunggu persetujuan; ACTIVE → Perangkat aktif; REVOKED → Perangkat dicabut; SUSPENDED → Perangkat dinonaktifkan sementara.
 
 Contoh body (UUID placeholder harus diganti UUID lokasi nyata; identifier berasal dari browser):
 
@@ -51,7 +59,7 @@ Contoh body (UUID placeholder harus diganti UUID lokasi nyata; identifier berasa
 
 `buildRegistrationPayload()` memisahkan mapping offline_capability agar mudah disesuaikan. Pilihan offline hanya dikirim sebagai permintaan konfigurasi; tahap ini tidak mengubah queue, sinkronisasi atau pelaksanaan retensi data.
 
-Respons register dan GET status yang diterima:
+Respons register dan POST status yang diterima:
 
 ```json
 {
@@ -65,7 +73,7 @@ Respons register dan GET status yang diterima:
 }
 ```
 
-Respons harus memuat UUID valid, kode nonkosong, status dikenal dan key_version integer positif. GET harus mengembalikan UUID yang sama dengan request. Format lain ditolak dan tidak mengaktifkan perangkat.
+Respons harus memuat UUID valid, kode nonkosong, status dikenal dan key_version integer positif. POST status harus mengembalikan UUID yang sama dengan request. Format lain ditolak dan tidak mengaktifkan perangkat.
 
 ## Penyimpanan private key
 
@@ -128,6 +136,8 @@ Header request:
 ```http
 POST /v1/attendance/sessions
 Authorization: Bearer <access token>
+tenant_uuid: <tenant dari sesi aktif>
+school_uuid: <sekolah dari sesi aktif>
 Content-Type: application/json
 X-Device-ID: <device_uuid>
 X-Key-Version: 1
@@ -151,9 +161,9 @@ Body tetap JSON normal; signature tidak masuk body. Signer menolak perangkat non
 
 1. Ketersediaan kedua endpoint dan bentuk respons di atas; ubah URL di API_CONFIG dan mapping di trustedDeviceApi jika berbeda. Belum diuji ke backend nyata dalam pekerjaan ini.
 2. Register idempotent untuk pasangan identitas JWT + device_identifier + public key. Retry identik mengembalikan device_uuid yang sama; key berbeda untuk identifier lama harus ditolak. Tidak ada endpoint lookup by identifier dalam kontrak saat ini.
-3. Status GET memuat device_code dan key_version. Aktivasi dilakukan pengelola/backend.
+3. Status legacy memuat device_code dan key_version. Aktivasi dilakukan pengelola/backend.
 4. Verifikasi SPKI Ed25519, fingerprint dan kepemilikan perangkat/JWT. Kontrak terbaru tidak memakai registration challenge dari draft lama.
 5. Verifikasi canonical bytes, batas clock skew, replay protection nonce, key version, status aktif dan izin. Jam klien bukan sumber waktu otoritatif.
-6. CORS mengizinkan Authorization, Content-Type dan lima header X-* di atas. Request signed normal masih mempertahankan scope headers existing; server wajib memvalidasi scope terhadap JWT.
+6. CORS mengizinkan Authorization, Content-Type, tenant_uuid, school_uuid dan lima header X-* di atas. Request registrasi, status perangkat, dan signed mempertahankan scope headers existing; server wajib memvalidasi scope terhadap JWT.
 7. Daftar endpoint sensitif yang harus mengaktifkan `trustedDevice: true`, dan dukungan object offline_capability.
 8. Offline queue, sync, key rotation, revoke dan server QR signing tidak termasuk tahap ini.

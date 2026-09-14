@@ -1,3 +1,4 @@
+import API_CONFIG from "../../../shared/config/api";
 import { authenticatedRequest } from "../../../shared/utils/api";
 
 const unwrap = (response) =>
@@ -86,7 +87,10 @@ export const attendanceService = {
 
   async getTrustedDevice(signal) {
     return unwrap(
-      await authenticatedRequest("/v1/attendance/trusted-device", { signal }),
+      await authenticatedRequest(API_CONFIG.ATTENDANCE_TRUSTED_DEVICE, {
+        method: "POST",
+        signal,
+      }),
     );
   },
 

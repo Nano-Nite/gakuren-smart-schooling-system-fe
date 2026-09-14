@@ -34,11 +34,11 @@ export default function DeviceSettings() {
 
     </header>
 
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
 
       <p className="font-semibold">{active ? 'Perangkat sudah disetujui' : registered ? 'Pendaftaran perangkat sudah diterima' : 'Daftarkan perangkat yang Anda gunakan'}</p>
 
-      <p className="mt-1">{active ? 'Perangkat ini siap membuktikan identitasnya untuk permintaan yang memerlukan perangkat tepercaya. Penggunaan fitur tetap mengikuti izin dan pengaturan sekolah.' : registered ? 'Gunakan tombol Periksa status untuk melihat hasil persetujuan terbaru dari pengelola sekolah.' : 'Pilih lokasi dan kebutuhan perangkat. Setelah didaftarkan, perangkat perlu mendapat persetujuan pengelola sekolah.'}</p>
+      <p className="mt-1">{active ? 'Perangkat ini sudah dipercaya oleh sekolah. Penggunaan fitur tetap mengikuti izin dan pengaturan sekolah.' : registered ? 'Gunakan tombol Periksa status untuk melihat hasil persetujuan terbaru dari pengelola sekolah.' : 'Pilih lokasi dan kebutuhan perangkat. Setelah didaftarkan, perangkat perlu mendapat persetujuan pengelola sekolah.'}</p>
 
     </div>
 
@@ -117,7 +117,7 @@ export default function DeviceSettings() {
 
           </div>
 
-        {!canCreate && <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-900">Anda belum memiliki izin untuk mendaftarkan perangkat. Hubungi pengelola sekolah untuk meminta bantuan.</p>}
+        {!canCreate && <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-800">Anda belum memiliki izin untuk mendaftarkan perangkat. Hubungi pengelola sekolah untuk meminta bantuan.</p>}
 
       </form>
 
@@ -127,7 +127,7 @@ export default function DeviceSettings() {
 
         {draft && <div className="min-w-0"><p className="text-sm text-slate-500">Nama perangkat</p><p className="mt-1 break-words text-sm font-semibold [overflow-wrap:anywhere]">{draft.form.name}</p></div>}
 
-        <p className="text-sm leading-6 text-slate-500">{keyMissing ? 'Kunci keamanan perangkat ini tidak ditemukan. Perangkat perlu didaftarkan ulang. Hubungi pengelola sekolah sebelum melanjutkan.' : active ? 'Perangkat sudah aktif. Identitas perangkat siap digunakan sesuai izin sekolah.' : draft?.status === 'REVOKED' ? 'Akses perangkat telah dicabut. Perangkat ini tidak dapat digunakan untuk permintaan yang memerlukan perangkat tepercaya.' : draft?.status === 'SUSPENDED' ? 'Akses perangkat dihentikan sementara. Hubungi pengelola sekolah untuk bantuan.' : draft?.status === 'ACTIVE' && !verified ? 'Status aktif terakhir belum dapat dikonfirmasi. Periksa status saat terhubung ke internet.' : registered ? 'Pendaftaran sudah diterima. Tunggu persetujuan pengelola sebelum menggunakan perangkat.' : draft ? 'Persiapan sudah tersimpan. Tekan Lanjutkan pendaftaran untuk mengirim data ke sekolah.' : 'Isi formulir untuk menyiapkan perangkat ini. Gunakan perangkat pribadi atau milik sekolah yang Anda kelola.'}</p>
+        <p className="text-sm leading-6 text-slate-500">{keyMissing ? 'Kunci keamanan perangkat ini tidak ditemukan. Perangkat perlu didaftarkan ulang. Hubungi pengelola sekolah sebelum melanjutkan.' : active ? 'Perangkat sudah aktif dan dipercaya oleh sekolah.' : draft?.status === 'REVOKED' ? 'Akses perangkat telah dicabut. Perangkat ini tidak dapat digunakan untuk permintaan yang memerlukan perangkat tepercaya.' : draft?.status === 'SUSPENDED' ? 'Akses perangkat dihentikan sementara. Hubungi pengelola sekolah untuk bantuan.' : draft?.status === 'ACTIVE' && !verified ? 'Status aktif terakhir belum dapat dikonfirmasi. Periksa status saat terhubung ke internet.' : registered ? 'Pendaftaran sudah diterima. Tunggu persetujuan pengelola sebelum menggunakan perangkat.' : draft ? 'Persiapan sudah tersimpan. Tekan Lanjutkan pendaftaran untuk mengirim data ke sekolah.' : 'Isi formulir untuk menyiapkan perangkat ini. Gunakan perangkat pribadi atau milik sekolah yang Anda kelola.'}</p>
 
         {draft?.deviceCode && <div><p className="text-sm text-slate-500">Kode perangkat</p><p className="mt-1 break-all text-sm font-semibold">{draft.deviceCode}</p></div>}
         {registered && <div><button type="button" onClick={refresh} disabled={busy || loading} className="min-h-11 w-full rounded-lg border border-slate-300 px-4 text-sm font-semibold text-blue-700 disabled:opacity-50">Periksa status</button>{!verified && <p className="mt-2 text-sm leading-6 text-slate-500">Status terbaru belum diperiksa. Tekan Periksa status saat terhubung ke internet.</p>}</div>}

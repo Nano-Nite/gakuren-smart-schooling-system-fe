@@ -44,8 +44,13 @@ export function buildRegistrationPayload({ name, locationUuid, config }, identif
     offline_capability: { attendance_offline: config.attendance_enabled, auto_sync: config.auto_sync, temporary_storage_days: config.retention_days } };
 }
 
-export function parseDeviceResponse(response, expectedUuid) {
+export function parseDeviceResponse(response, expectedUuid, expected = {}) {
   const data = response?.data;
+  if (!response?.error && data && Object.prototype.hasOwnProperty.call(data, 'trusted')) {
+    if (!uuid(data.device_uuid) || !uuid(data.school_uuid) || !uuid(data.location_uuid) || typeof data.trusted !== 'boolean' || (expectedUuid && expectedUuid !== data.device_uuid)) throw trustedDeviceError('RESPONSE', 'Respons perangkat belum sesuai. Hubungi pengelola sekolah; kunci perangkat tetap tersimpan.');
+    if ((expected.schoolUuid && data.school_uuid !== expected.schoolUuid) || (expected.locationUuid && data.location_uuid !== expected.locationUuid)) throw trustedDeviceError('RESPONSE', 'Sekolah atau lokasi pada respons perangkat tidak sesuai dengan pendaftaran.');
+    return { deviceUuid: data.device_uuid, schoolUuid: data.school_uuid, locationUuid: data.location_uuid, trusted: data.trusted, status: data.trusted ? 'ACTIVE' : 'PENDING', deviceCode: null, keyVersion: null, checkedAt: new Date().toISOString() };
+  }
   if (response?.error || !data || !uuid(data.device_uuid) || (expectedUuid && expectedUuid !== data.device_uuid) || !['PENDING', 'ACTIVE', 'REVOKED', 'SUSPENDED'].includes(data.status) || !Number.isInteger(data.key_version) || data.key_version < 1 || typeof data.device_code !== 'string' || !data.device_code.trim()) throw trustedDeviceError('RESPONSE', 'Respons perangkat belum sesuai. Hubungi pengelola sekolah; kunci perangkat tetap tersimpan.');
   return { deviceUuid: data.device_uuid, deviceCode: data.device_code, status: data.status, keyVersion: data.key_version, checkedAt: new Date().toISOString() };
 }
@@ -56,7 +61,7 @@ async function request(endpoint, options = {}) {
   options.signal?.addEventListener('abort', abort, { once: true });
   if (options.signal?.aborted) controller.abort();
   const timer = setTimeout(abort, API_CONFIG.REQUEST_TIMEOUT);
-  try { return await authenticatedRequest(endpoint, { ...options, signal: controller.signal, sessionScopeOnly: true }); }
+  try { return await authenticatedRequest(endpoint, { ...options, signal: controller.signal }); }
   finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
 }
 
@@ -82,7 +87,7 @@ export async function loadTrustedDevice(scope = getCacheScope()) {
 export async function refreshTrustedDevice(scope = getCacheScope(), signal) {
   const record = await loadTrustedDevice(scope);
   if (!record?.deviceUuid) return record;
-  const metadata = parseDeviceResponse(await request(`${API_CONFIG.TRUSTED_DEVICE}/${encodeURIComponent(record.deviceUuid)}`, { method: 'GET', signal }), record.deviceUuid);
+  const metadata = parseDeviceResponse(await request(`${API_CONFIG.TRUSTED_DEVICE}/${encodeURIComponent(record.deviceUuid)}`, { method: 'POST', signal }), record.deviceUuid, { schoolUuid: decodeURIComponent(scope.split(':')[1]), locationUuid: record.form.locationUuid });
   assertDeviceScope(scope);
   return updateDeviceRecord(current => {
     if (current.deviceUuid !== record.deviceUuid) throw trustedDeviceError('DEVICE_CHANGED', 'Data perangkat berubah. Muat ulang halaman.');
@@ -112,12 +117,12 @@ export async function registerTrustedDevice(form, scope = getCacheScope()) {
     return { ...current, form: current.registrationPayload ? current.form : form, registrationPayload: payload, registrationLease: { id: lease, until: Date.now() + 45000 } };
   }, scope);
   try {
-    const metadata = parseDeviceResponse(await request(API_CONFIG.REGISTER_TRUSTED_DEVICE, { method: 'POST', body: record.registrationPayload }));
+    const metadata = parseDeviceResponse(await request(API_CONFIG.REGISTER_TRUSTED_DEVICE, { method: 'POST', body: record.registrationPayload }), undefined, { schoolUuid: decodeURIComponent(scope.split(':')[1]), locationUuid: record.registrationPayload.location_uuid });
     assertDeviceScope(scope);
-    // Even if register returns ACTIVE, require a subsequent status GET before allowing signing.
+    // The trusted boolean is the backend's registration result. Legacy status responses still require a status check.
     return await updateDeviceRecord(current => {
       if (current.registrationLease?.id !== lease) throw trustedDeviceError('BUSY', 'Pendaftaran berubah. Periksa status kembali.');
-      return { ...current, ...metadata, status: 'PENDING', registrationLease: null };
+      return { ...current, ...metadata, status: metadata.trusted === undefined ? 'PENDING' : metadata.status, registrationLease: null };
     }, scope);
   } finally {
     // Preserve the payload and key on every error, including an ambiguous network result.
